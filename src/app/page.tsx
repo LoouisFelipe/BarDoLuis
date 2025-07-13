@@ -74,16 +74,20 @@ export default function App() {
                     <h1 className="text-xl font-bold">Boteco PDV</h1>
                 </div>
                 <div className="hidden md:block p-2 bg-background rounded-lg mb-4">
-                    <label className="text-xs text-muted-foreground flex items-center mb-1"><UserCog size={14} className="mr-1"/> Perfil</label>
-                    <Select value={userRole} onValueChange={setUserRole}>
-                        <SelectTrigger className="w-full bg-secondary text-foreground p-1 rounded-md text-sm">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="caixa">Caixa</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    {isAuthReady && (
+                        <>
+                            <label className="text-xs text-muted-foreground flex items-center mb-1"><UserCog size={14} className="mr-1"/> Perfil</label>
+                            <Select value={userRole} onValueChange={setUserRole}>
+                                <SelectTrigger className="w-full bg-secondary text-foreground p-1 rounded-md text-sm">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="caixa">Caixa</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </>
+                    )}
                 </div>
                 {permittedTabs.map(tab => {
                     const tabConfig = {
