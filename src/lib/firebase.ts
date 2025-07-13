@@ -19,6 +19,7 @@ function initializeFirebase(): Promise<void> {
 
     initializationPromise = new Promise((resolve, reject) => {
         if (typeof window === 'undefined') {
+            // No-op on the server
             return resolve();
         }
 
@@ -71,6 +72,10 @@ export function useAuth() {
     useEffect(() => {
         initializeFirebase().then(() => {
             const authAndListen = async () => {
+                if (!auth) {
+                    setIsAuthReady(true);
+                    return;
+                }
                 try {
                     const initialAuthToken = (window as any).__initial_auth_token;
                     if (initialAuthToken && auth.currentUser === null) {
@@ -111,7 +116,7 @@ export function useCollection(collectionName: string, options: any = {}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isAuthReady || !user) {
+        if (!isAuthReady || !user || !db) {
             if(isAuthReady && !user) setLoading(false);
             return;
         }
@@ -145,7 +150,7 @@ export function useConfig(configId: string, defaultConfig: any) {
     const [loading, setLoading] = useState(true);
 
     const docRef = useMemo(() => {
-        if (!isAuthReady || !user) return null;
+        if (!isAuthReady || !user || !db) return null;
         return doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId);
     }, [isAuthReady, user, configId]);
 
