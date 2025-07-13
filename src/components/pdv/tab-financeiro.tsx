@@ -1,6 +1,5 @@
-
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { getDb, appId } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
@@ -19,9 +18,15 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [filter, setFilter] = useState('all');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState('');
+
+    useEffect(() => {
+        // Set date on client-side to avoid hydration mismatch
+        setDate(new Date().toISOString().split('T')[0]);
+    }, []);
 
     const dailyTransactions = useMemo(() => {
+        if (!date) return [];
         return transactions.filter(t => t.timestamp?.toDate().toISOString().split('T')[0] === date);
     }, [transactions, date]);
 
@@ -61,6 +66,7 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
     };
 
     const getFilterTitle = () => {
+        if (!date) return "Carregando...";
         const dateFormatted = new Date(date + 'T03:00:00').toLocaleDateString('pt-BR');
         switch(filter) {
             case 'income': return `Detalhes das Entradas de ${dateFormatted}`;

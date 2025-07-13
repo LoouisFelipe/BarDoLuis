@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +16,15 @@ export const NewComandaModal = ({ onCreate, onClose, customers, userId, processi
     const [selectedCustomer, setSelectedCustomer] = useState('');
     const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
     const [useManualDateTime, setUseManualDateTime] = useState(false);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [time, setTime] = useState(new Date().toTimeString().slice(0, 5));
+    const [date, setDate] = useState('');
+    const [time, setTime] = useState('');
+
+    useEffect(() => {
+        // Set date/time on client-side to avoid hydration mismatch
+        const now = new Date();
+        setDate(now.toISOString().split('T')[0]);
+        setTime(now.toTimeString().slice(0, 5));
+    }, []);
 
     const handleCustomerChange = (value) => {
         if (value === 'add_new_customer') {
