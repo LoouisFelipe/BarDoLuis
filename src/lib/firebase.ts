@@ -1,39 +1,51 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, User } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, query, where, enableIndexedDbPersistence, arrayUnion } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
 
 let app: FirebaseApp;
-if (!getApps().length) {
-  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-  if (firebaseConfig.projectId) {
-    app = initializeApp(firebaseConfig);
-  }
-} else {
-  app = getApp();
-}
-
-export const db = getFirestore(app);
-
-try {
-    enableIndexedDbPersistence(db)
-      .catch((err) => {
-        if (err.code == 'failed-precondition') {
-          console.warn("Múltiplas abas abertas, a persistência offline pode não funcionar corretamente.");
-        } else if (err.code == 'unimplemented') {
-          console.error("O navegador atual não suporta persistência offline.");
+if (typeof window !== 'undefined') {
+    if (!getApps().length) {
+        const firebaseConfigStr = (window as any).__firebase_config;
+        if (!firebaseConfigStr) {
+            console.error('Firebase config not found');
+        } else {
+            const firebaseConfig = JSON.parse(firebaseConfigStr);
+            if (!firebaseConfig.projectId) {
+                console.error('"projectId" not provided in firebase.initializeApp.');
+            } else {
+                 app = initializeApp(firebaseConfig);
+            }
         }
-      });
-} catch (error) {
-    console.error("Erro ao inicializar persistência do Firebase:", error);
+    } else {
+        app = getApp();
+    }
 }
 
-export const auth = getAuth(app);
+
+export const db = typeof window !== 'undefined' ? getFirestore(app) : ({} as Firestore);
+export const auth = typeof window !== 'undefined' ? getAuth(app) : ({} as any);
+
+if (typeof window !== 'undefined') {
+    try {
+        enableIndexedDbPersistence(db)
+          .catch((err) => {
+            if (err.code == 'failed-precondition') {
+              console.warn("Múltiplas abas abertas, a persistência offline pode não funcionar corretamente.");
+            } else if (err.code == 'unimplemented') {
+              console.error("O navegador atual não suporta persistência offline.");
+            }
+          });
+    } catch (error) {
+        console.error("Erro ao inicializar persistência do Firebase:", error);
+    }
+}
+
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -41,8 +53,9 @@ export function useAuth() {
     useEffect(() => {
         const authAndListen = async () => {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                const initialAuthToken = (window as any).__initial_auth_token;
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
                 } else {
                     await signInAnonymously(auth);
                 }
