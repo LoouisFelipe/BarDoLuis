@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
-import { db, appId } from '@/lib/firebase';
+import { getDb, appId } from '@/lib/firebase';
 import { doc, addDoc, setDoc, collection } from 'firebase/firestore';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -28,6 +29,9 @@ export const CustomerFormModal = ({ customer, open, onOpenChange, userId, onSucc
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const db = getDb();
+        if (!db) return;
+
         setProcessing(true);
         const collectionPath = `artifacts/${appId}/users/${userId}/customers`;
         try {

@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
-import { db, appId } from '@/lib/firebase';
+import { getDb, appId } from '@/lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 import { Spinner } from './spinner';
@@ -45,7 +46,8 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
 
     const handleAddExpense = async (e) => {
         e.preventDefault();
-        if (!description || !amount || parseFloat(amount) <= 0) return;
+        const db = getDb();
+        if (!db || !description || !amount || parseFloat(amount) <= 0) return;
         setProcessing(true);
         const expenseData = { description, total: parseFloat(amount), timestamp: new Date(), type: 'expense' };
         try {

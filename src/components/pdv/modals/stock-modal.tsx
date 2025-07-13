@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState } from 'react';
-import { db, appId } from '@/lib/firebase';
+import { getDb, appId } from '@/lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -15,6 +16,9 @@ export const StockModal = ({ product, open, onOpenChange, userId }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const db = getDb();
+        if (!db) return;
+
         if (amount <= 0) {
             alert("A quantidade deve ser maior que zero.");
             return;

@@ -2,8 +2,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { useAuth, useCollection, useConfig, db } from '@/lib/firebase';
-import { getDoc, doc, writeBatch, collection, addDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { useAuth, useCollection } from '@/lib/firebase';
 
 import { TabComandas } from '@/components/pdv/tab-comandas';
 import { TabProdutos } from '@/components/pdv/tab-produtos';
@@ -15,10 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/pdv/spinner';
 
 import { GlassWater, UserCog, ClipboardList, Package, Users, History, BarChart2 } from 'lucide-react';
-
-
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
-
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('comandas');
@@ -37,10 +32,10 @@ export default function App() {
     }, [userRole]);
 
     useEffect(() => {
-        if (!permittedTabs.includes(activeTab)) {
+        if (isAuthReady && !permittedTabs.includes(activeTab)) {
             setActiveTab('comandas');
         }
-    }, [userRole, activeTab, permittedTabs]);
+    }, [userRole, activeTab, permittedTabs, isAuthReady]);
 
     const renderTabContent = () => {
         if (!isAuthReady || !user) {

@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { db, appId } from '@/lib/firebase';
+import { getDb, appId } from '@/lib/firebase';
 import { useCollection } from '@/lib/firebase';
 import { doc, addDoc, updateDoc, writeBatch, collection, getDoc } from 'firebase/firestore';
 
@@ -32,10 +33,9 @@ export const TabComandas = ({ products, customers, userId }) => {
     }, [comandas, selectedComanda]);
 
     const handleCreateComanda = useCallback(async (name, observations, customerId, createdAt = new Date()) => {
-        if (!name.trim()) {
-            alert("O nome da comanda não pode ser vazio.");
-            return;
-        }
+        const db = getDb();
+        if (!db || !name.trim()) return;
+        
         setProcessing(true);
         const newComanda = { name, observations, customerId: customerId || null, status: 'open', items: [], total: 0, createdAt };
         try {
@@ -50,6 +50,8 @@ export const TabComandas = ({ products, customers, userId }) => {
     }, [userId]);
 
     const updateComandaItems = useCallback(async (comandaId, newItems) => {
+        const db = getDb();
+        if(!db) return;
         const comandaRef = doc(db, `artifacts/${appId}/users/${userId}/comandas`, comandaId);
         const newTotal = newItems.reduce((sum, item) => sum + ((Number(item.price) || 0) * (item.quantity || 1)), 0);
         await updateDoc(comandaRef, { items: newItems, total: newTotal });
@@ -80,7 +82,8 @@ export const TabComandas = ({ products, customers, userId }) => {
     }, [selectedComanda, updateComandaItems]);
 
     const handleFinalizeSale = useCallback(async (paymentMethod, customerId = null, discount = 0, surcharge = 0) => {
-        if (!selectedComanda || selectedComanda.items.length === 0) return;
+        const db = getDb();
+        if (!db || !selectedComanda || selectedComanda.items.length === 0) return;
         setProcessing(true);
         try {
             const batch = writeBatch(db);

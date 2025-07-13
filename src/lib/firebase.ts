@@ -7,100 +7,94 @@ import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, query, wh
 
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
 
-let app: FirebaseApp;
-let auth: ReturnType<typeof getAuth>;
-let db: Firestore;
+let app: FirebaseApp | null = null;
+let auth: ReturnType<typeof getAuth> | null = null;
+let db: Firestore | null = null;
+let initializationPromise: Promise<void> | null = null;
 
 function initializeFirebase() {
-    if (typeof window === 'undefined') {
-        return;
+    if (initializationPromise) {
+        return initializationPromise;
     }
-    if (!getApps().length) {
+
+    initializationPromise = new Promise((resolve, reject) => {
+        if (typeof window === 'undefined') {
+            return resolve();
+        }
+
+        if (getApps().length) {
+            app = getApp();
+            auth = getAuth(app);
+            db = getFirestore(app);
+            return resolve();
+        }
+
         const firebaseConfigStr = (window as any).__firebase_config;
         if (firebaseConfigStr) {
             try {
                 const firebaseConfig = JSON.parse(firebaseConfigStr);
                 if (firebaseConfig.projectId) {
                     app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    enableIndexedDbPersistence(db).catch((err) => {
+                        console.warn("Firebase persistence error:", err.code);
+                    });
+                    resolve();
                 } else {
-                    console.error('"projectId" not provided in firebase.initializeApp.');
+                    reject(new Error('"projectId" not provided in firebase.initializeApp.'));
                 }
             } catch (e) {
-                console.error("Failed to parse Firebase config", e);
+                reject(new Error("Failed to parse Firebase config."));
             }
         } else {
-             console.error('Firebase config not found on window object.');
+             reject(new Error('Firebase config not found on window object.'));
         }
-    } else {
-        app = getApp();
-    }
-    
-    if (app) {
-        auth = getAuth(app);
-        db = getFirestore(app);
-        try {
-            enableIndexedDbPersistence(db)
-              .catch((err) => {
-                if (err.code == 'failed-precondition') {
-                  console.warn("Múltiplas abas abertas, a persistência offline pode não funcionar corretamente.");
-                } else if (err.code == 'unimplemented') {
-                  console.error("O navegador atual não suporta persistência offline.");
-                }
-              });
-        } catch (error) {
-            console.error("Erro ao inicializar persistência do Firebase:", error);
-        }
-    }
+    });
+    return initializationPromise;
 }
-
-// Initialize on first load in the client
-initializeFirebase();
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
-        if (!auth) {
-            initializeFirebase();
+        initializeFirebase().then(() => {
             if (!auth) {
-                 // Still not ready, will retry on next render
+                setIsAuthReady(true); 
                 return;
             }
-        }
-        
-        const authAndListen = async () => {
-            try {
-                const initialAuthToken = (window as any).__initial_auth_token;
-                if (initialAuthToken && auth.currentUser === null) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else if (auth.currentUser === null) {
-                    await signInAnonymously(auth);
-                }
-            } catch (error: any) {
-                console.error("Authentication with custom token failed:", error);
-                if (error.code === 'auth/invalid-custom-token' && auth.currentUser === null) {
-                    console.log("Falling back to anonymous sign-in.");
-                    try {
+            const authAndListen = async () => {
+                try {
+                    const initialAuthToken = (window as any).__initial_auth_token;
+                    if (initialAuthToken && auth.currentUser === null) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else if (auth.currentUser === null) {
                         await signInAnonymously(auth);
-                    } catch (anonError) {
-                        console.error("Anonymous sign-in also failed:", anonError);
                     }
+                } catch (error: any) {
+                    console.error("Authentication failed:", error);
+                    if (auth.currentUser === null) {
+                        try {
+                           await signInAnonymously(auth);
+                        } catch (anonError) {
+                           console.error("Anonymous sign-in also failed:", anonError);
+                        }
+                    }
+                } finally {
+                     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                        setUser(currentUser);
+                        setIsAuthReady(true);
+                    });
+                    return () => unsubscribe();
                 }
-            } finally {
-                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-                    setUser(currentUser);
-                    setIsAuthReady(true);
-                });
-                return () => unsubscribe();
-            }
-        };
-
-        if (isAuthReady) {
-            return;
-        }
-        authAndListen();
-    }, [isAuthReady]);
+            };
+            authAndListen();
+        }).catch(error => {
+            console.error("Firebase initialization failed:", error);
+            setIsAuthReady(true);
+        });
+    }, []);
 
     return { user, isAuthReady };
 }
@@ -111,23 +105,12 @@ export function useCollection(collectionName: string, options: any = {}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isAuthReady || !user) {
-            if (!isAuthReady) {
-                 // Still waiting for auth to be ready
-            } else {
-                setLoading(false);
-            }
+        if (!isAuthReady) return;
+        if (!user || !db) {
+            setLoading(false);
             return;
-        };
-        if (!db) {
-            initializeFirebase();
-            if (!db) {
-                 console.error("Firestore not initialized.");
-                 setLoading(false);
-                 return;
-            }
         }
-        setLoading(true);
+
         const collectionPath = `artifacts/${appId}/users/${user.uid}/${collectionName}`;
         
         let q;
@@ -157,32 +140,27 @@ export function useConfig(configId: string, defaultConfig: any) {
     const [loading, setLoading] = useState(true);
 
     const docRef = useMemo(() => {
-        if (!isAuthReady || !user) return null;
-        if (!db) {
-            initializeFirebase();
-            if (!db) {
-                 console.error("Firestore not initialized.");
-                 return null;
-            }
-        }
+        if (!isAuthReady || !user || !db) return null;
         return doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId);
     }, [isAuthReady, user, configId]);
 
     useEffect(() => {
         if (!docRef) {
-            if(isAuthReady && user) setLoading(false);
+             if(isAuthReady && user) setLoading(false);
             return;
         }
         const unsubscribe = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 setData(docSnap.data().values);
             } else {
-                setDoc(docRef, { values: defaultConfig }).catch(e => console.error("Error creating default config:", e));
+                if (db) {
+                   setDoc(docRef, { values: defaultConfig }).catch(e => console.error("Error creating default config:", e));
+                }
             }
             setLoading(false);
         }, () => setLoading(false));
         return () => unsubscribe();
-    }, [docRef, JSON.stringify(defaultConfig), isAuthReady, user]);
+    }, [docRef, JSON.stringify(defaultConfig)]);
 
     const update = async (newValue: any) => {
         if (!docRef) return;
@@ -194,5 +172,8 @@ export function useConfig(configId: string, defaultConfig: any) {
     return { data, loading, update };
 }
 
-// Export db and auth for use in other components that are not hooks
-export { db, auth };
+// Export a getter for db to be used outside of hooks
+const getDb = () => db;
+const getAuthInstance = () => auth;
+
+export { getDb, getAuthInstance as auth };

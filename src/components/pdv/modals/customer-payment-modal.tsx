@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState } from 'react';
-import { db, appId } from '@/lib/firebase';
+import { getDb, appId } from '@/lib/firebase';
 import { doc, writeBatch, collection } from 'firebase/firestore';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -15,6 +16,9 @@ export const CustomerPaymentModal = ({ customerForPayment, open, onOpenChange, u
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const db = getDb();
+        if (!db) return;
+
         if (amount <= 0 || amount > customerForPayment.balance) {
             alert("Valor de pagamento inválido.");
             return;

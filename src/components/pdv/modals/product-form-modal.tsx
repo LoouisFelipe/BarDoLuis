@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { db, appId, useConfig } from '@/lib/firebase';
+import { getDb, appId, useConfig } from '@/lib/firebase';
 import { doc, addDoc, setDoc, collection } from 'firebase/firestore';
 import { analyzeData } from '@/ai/flows/business-analyst';
 
@@ -108,6 +109,8 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
     
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const db = getDb();
+        if (!db) return;
         
         let finalCategory = formData.categoria;
         if (formData.categoria === 'add_new') {
