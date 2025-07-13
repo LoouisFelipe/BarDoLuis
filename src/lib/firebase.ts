@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
@@ -18,38 +19,55 @@ function initializeFirebase(): Promise<void> {
 
     initializationPromise = new Promise((resolve, reject) => {
         if (typeof window === 'undefined') {
+            // No-op on the server, initialization will happen on the client.
             return resolve();
         }
-
-        const firebaseConfigStr = (window as any).__firebase_config;
         
-        if (getApps().length === 0) {
-            if (firebaseConfigStr) {
-                const firebaseConfig = JSON.parse(firebaseConfigStr);
-                if (firebaseConfig.projectId) {
-                    app = initializeApp(firebaseConfig);
+        const setup = () => {
+            if (getApps().length === 0) {
+                const firebaseConfigStr = (window as any).__firebase_config;
+                if (firebaseConfigStr) {
+                    const firebaseConfig = JSON.parse(firebaseConfigStr);
+                    if (firebaseConfig.projectId) {
+                        app = initializeApp(firebaseConfig);
+                    } else {
+                        return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
+                    }
                 } else {
-                   return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
+                     return reject(new Error('Firebase config not found on window object.'));
                 }
             } else {
-                 return reject(new Error('Firebase config not found on window object.'));
+                app = getApp();
             }
-        } else {
-            app = getApp();
-        }
+            
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            enableIndexedDbPersistence(db).catch((err) => {
+                console.warn("Firebase persistence error:", err.code);
+            });
+
+            resolve();
+        };
         
-        auth = getAuth(app);
-        db = getFirestore(app);
-
-        enableIndexedDbPersistence(db).catch((err) => {
-            console.warn("Firebase persistence error:", err.code);
-        });
-
-        resolve();
+        // Wait for the window to be fully loaded to ensure all scripts have run
+        if (document.readyState === 'complete') {
+            setup();
+        } else {
+            window.addEventListener('load', setup);
+        }
     });
 
     return initializationPromise;
 }
+
+// Initialize immediately on client-side
+if (typeof window !== 'undefined') {
+    initializeFirebase().catch(err => {
+        console.error("Firebase initialization failed:", err);
+    });
+}
+
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -59,7 +77,7 @@ export function useAuth() {
         initializeFirebase().then(() => {
             const authAndListen = async () => {
                 if (!auth) {
-                    console.error("Firebase Auth not initialized.");
+                    // This should not happen if initialization is successful
                     setIsAuthReady(true);
                     return;
                 }
@@ -89,7 +107,7 @@ export function useAuth() {
             };
             authAndListen();
         }).catch(error => {
-            console.error("Firebase initialization failed:", error);
+            console.error("Auth setup failed due to Firebase init error:", error);
             setIsAuthReady(true);
         });
     }, []);
@@ -108,7 +126,10 @@ export function useCollection(collectionName: string, options: any = {}) {
             return;
         }
         
-        if (!db) return;
+        if (!db) {
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         const collectionPath = `artifacts/${appId}/users/${user.uid}/${collectionName}`;
