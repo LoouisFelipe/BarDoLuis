@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
@@ -10,33 +11,32 @@ import { TabFinanceiro } from '@/components/pdv/tab-financeiro';
 import { TabRelatorios } from '@/components/pdv/tab-relatorios';
 import { TabFornecedores } from '@/components/pdv/tab-fornecedores';
 import { TabVendaRapida } from '@/components/pdv/tab-venda-rapida';
-import { Toaster, useToast } from '@/components/ui/toaster';
-import { toast as toaster } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/pdv/spinner';
-import { Toast, ToastClose, ToastDescription, ToastTitle, ToastViewport, ToastProvider } from '@/components/ui/toast';
 
-import { GlassWater, UserCog, ClipboardList, Package, Users, History, BarChart2, Truck, Zap, CheckCircle, XCircle, Info } from 'lucide-react';
+import { GlassWater, UserCog, ClipboardList, Package, Users, History, BarChart2, Truck, Zap } from 'lucide-react';
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('comandas');
     const { user, isAuthReady } = useAuth();
     const [userRole, setUserRole] = useState('admin');
-    const [notifications, setNotifications] = useState([]);
+    const { toast } = useToast();
 
     const { data: products, loading: productsLoading } = useCollection('products');
     const { data: customers, loading: customersLoading } = useCollection('customers');
     const { data: suppliers, loading: suppliersLoading } = useCollection('suppliers');
     const { data: transactions, loading: transactionsLoading } = useCollection('transactions');
+    const { data: comandas, loading: comandasLoading } = useCollection('comandas', { where: ['status', '==', 'open'] });
 
-    const showNotification = useCallback((message, type = 'info') => {
-        toaster({
+    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        toast({
             title: type.charAt(0).toUpperCase() + type.slice(1),
             description: message,
             variant: type === 'error' ? 'destructive' : 'default',
         });
-    }, []);
+    }, [toast]);
 
     const permittedTabs = useMemo(() => {
         if (userRole === 'admin') {
@@ -63,27 +63,21 @@ export default function App() {
         
         if (!permittedTabs.includes(activeTab)) return null;
 
-        const allData = {
-            products: products || [],
-            customers: customers || [],
-            suppliers: suppliers || [],
-            transactions: transactions || [],
-            loading: productsLoading || customersLoading || suppliersLoading || transactionsLoading,
-        };
+        const isLoading = productsLoading || customersLoading || suppliersLoading || transactionsLoading || comandasLoading;
 
         switch (activeTab) {
-            case 'comandas': return <TabComandas products={allData.products} customers={allData.customers} userId={user.uid} showNotification={showNotification} />;
-            case 'venda_rapida': return <TabVendaRapida products={allData.products} transactions={allData.transactions} userId={user.uid} showNotification={showNotification} />;
-            case 'produtos': return <TabProdutos products={allData.products} loading={allData.loading} userId={user.uid} allProducts={allData.products} suppliers={allData.suppliers} showNotification={showNotification} />;
-            case 'clientes': return <TabClientes customers={allData.customers} loading={allData.loading} userId={user.uid} transactions={allData.transactions} showNotification={showNotification} />;
-            case 'suppliers': return <TabFornecedores suppliers={allData.suppliers} products={allData.products} loading={allData.loading} userId={user.uid} showNotification={showNotification} />;
-            case 'financeiro': return <TabFinanceiro transactions={allData.transactions} customers={allData.customers} userId={user.uid} showNotification={showNotification} />;
-            case 'relatorios': return <TabRelatorios transactions={allData.transactions} products={allData.products} loading={allData.loading} showNotification={showNotification} setActiveTab={setActiveTab} />;
+            case 'comandas': return <TabComandas products={products || []} customers={customers || []} comandas={comandas || []} loading={isLoading} userId={user.uid} showNotification={showNotification} />;
+            case 'venda_rapida': return <TabVendaRapida products={products || []} transactions={transactions || []} loading={isLoading} userId={user.uid} showNotification={showNotification} />;
+            case 'produtos': return <TabProdutos products={products || []} loading={productsLoading} userId={user.uid} allProducts={products || []} suppliers={suppliers || []} showNotification={showNotification} />;
+            case 'clientes': return <TabClientes customers={customers || []} loading={customersLoading} userId={user.uid} transactions={transactions || []} showNotification={showNotification} />;
+            case 'suppliers': return <TabFornecedores suppliers={suppliers || []} products={products || []} loading={suppliersLoading} userId={user.uid} showNotification={showNotification} />;
+            case 'financeiro': return <TabFinanceiro transactions={transactions || []} customers={customers || []} loading={transactionsLoading} userId={user.uid} showNotification={showNotification} />;
+            case 'relatorios': return <TabRelatorios transactions={transactions || []} products={products || []} loading={transactionsLoading || productsLoading} showNotification={showNotification} setActiveTab={setActiveTab} />;
             default: return null;
         }
     };
 
-    const TabButton = ({ tabName, icon, label }) => (
+    const TabButton = ({ tabName, icon, label }: { tabName: string, icon: React.ElementType, label: string }) => (
         <button onClick={() => setActiveTab(tabName)} className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start w-full text-sm font-medium rounded-lg transition-colors duration-200 group ${activeTab === tabName ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}>
             <div className="p-3">
                 {React.createElement(icon, { className: `transition-colors ${activeTab === tabName ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}`, size: 22 })}
@@ -100,7 +94,7 @@ export default function App() {
                     <h1 className="text-xl font-bold ml-3 hidden lg:block">BARDOLUIS</h1>
                 </div>
                 {permittedTabs.map(tab => {
-                    const tabConfig = {
+                    const tabConfig: { icon: React.ElementType, label: string } | undefined = {
                         comandas: { icon: ClipboardList, label: "Comandas" },
                         venda_rapida: { icon: Zap, label: "Venda Rápida" },
                         produtos: { icon: Package, label: "Produtos" },

@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import { getDb, appId, writeBatch, doc, getDoc, collection } from '@/lib/firebase';
@@ -7,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap } from 'lucide-react';
 
-export const TabVendaRapida = ({ products, transactions, userId, showNotification }) => {
+export const TabVendaRapida = ({ products, transactions, loading, userId, showNotification }) => {
     const [comanda, setComanda] = useState([]);
     const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
     const [processing, setProcessing] = useState(false);
 
     const mostSoldProducts = useMemo(() => {
+        if (!transactions || transactions.length === 0) return products.slice(0, 8).filter(p => p && p.saleType === 'unit');
+
         const productCount = transactions
             .filter(t => t.type === 'sale')
             .flatMap(t => t.items)
@@ -91,6 +94,10 @@ export const TabVendaRapida = ({ products, transactions, userId, showNotificatio
             setProcessing(false);
         }
     };
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+    }
 
     return (
         <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">

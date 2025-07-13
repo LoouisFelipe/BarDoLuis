@@ -1,7 +1,7 @@
+
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getDb, appId, doc, addDoc, updateDoc, writeBatch, collection, getDoc } from '@/lib/firebase';
-import { useCollection } from '@/lib/firebase';
 
 import { NewComandaModal } from './modals/new-comanda-modal';
 import { AddItemsModal } from './modals/add-items-modal';
@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button';
 
 import { ClipboardList, ChevronsRight, PlusCircle, Plus, Minus } from 'lucide-react';
 
-export const TabComandas = ({ products, customers, userId, showNotification }) => {
-    const { data: comandas, loading: comandasLoading } = useCollection('comandas', { where: ['status', '==', 'open'] });
+export const TabComandas = ({ products, customers, comandas, loading, userId, showNotification }) => {
     const [selectedComanda, setSelectedComanda] = useState(null);
     const [isNewComandaModalOpen, setNewComandaModalOpen] = useState(false);
     const [isAddItemsModalOpen, setAddItemsModalOpen] = useState(false);
@@ -27,8 +26,11 @@ export const TabComandas = ({ products, customers, userId, showNotification }) =
         if (selectedComanda) {
             const updatedComanda = comandas.find(c => c.id === selectedComanda.id);
             setSelectedComanda(updatedComanda || null);
+        } else if (!loading && comandas && comandas.length > 0) {
+            // Auto-select first comanda if none is selected
+            // setSelectedComanda(comandas[0]);
         }
-    }, [comandas, selectedComanda]);
+    }, [comandas, selectedComanda, loading]);
 
     const handleCreateComanda = useCallback(async (name, observations, customerId) => {
         const db = getDb();
@@ -151,7 +153,7 @@ export const TabComandas = ({ products, customers, userId, showNotification }) =
         }
     }, [selectedComanda, userId, showNotification]);
 
-    if (comandasLoading) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+    if (loading) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full p-1">
@@ -162,8 +164,8 @@ export const TabComandas = ({ products, customers, userId, showNotification }) =
                 </div>
                 <div className="overflow-y-auto flex-grow pr-2 space-y-2">
                     {comandas.map(comanda => (
-                        <button key={comanda.id} onClick={() => setSelectedComanda(comanda)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedComanda?.id === comanda.id ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}>
-                            <p className="font-semibold text-foreground">{comanda.name}</p>
+                        <button key={comanda.id} onClick={() => setSelectedComanda(comanda)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedComanda?.id === comanda.id ? 'bg-primary text-primary-foreground' : 'bg-secondary hover:bg-secondary/80'}`}>
+                            <p className="font-semibold">{comanda.name}</p>
                             <p className="text-sm text-muted-foreground">Total: R$ {(Number(comanda.total) || 0).toFixed(2)}</p>
                         </button>
                     ))}

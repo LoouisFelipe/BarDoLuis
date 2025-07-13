@@ -10,106 +10,72 @@ export const appId = typeof __app_id !== 'undefined' ? __app_id : 'bar-do-luis-a
 let app: FirebaseApp;
 let auth: ReturnType<typeof getAuth>;
 let db: Firestore;
-let initializationPromise: Promise<void> | null = null;
 
-function initializeFirebase(): Promise<void> {
-    if (initializationPromise) {
-        return initializationPromise;
-    }
-
-    initializationPromise = new Promise((resolve, reject) => {
-        if (typeof window === 'undefined') {
-            // No-op on the server, initialization will happen on the client.
-            return resolve();
-        }
-        
-        const setup = () => {
-            if (getApps().length === 0) {
-                const firebaseConfigStr = (window as any).__firebase_config;
-                if (firebaseConfigStr) {
-                    const firebaseConfig = JSON.parse(firebaseConfigStr);
-                    if (firebaseConfig.projectId) {
-                        app = initializeApp(firebaseConfig);
-                    } else {
-                        return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
-                    }
-                } else {
-                     return reject(new Error('Firebase config not found on window object.'));
-                }
+function initializeFirebase() {
+    if (typeof window !== 'undefined' && getApps().length === 0) {
+        const firebaseConfigStr = (window as any).__firebase_config;
+        if (firebaseConfigStr) {
+            const firebaseConfig = JSON.parse(firebaseConfigStr);
+            if (firebaseConfig.projectId) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                enableIndexedDbPersistence(db).catch((err) => {
+                    console.warn("Firebase persistence error:", err.code);
+                });
             } else {
-                app = getApp();
+                console.error('"projectId" not provided in firebase.initializeApp.');
             }
-            
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            enableIndexedDbPersistence(db).catch((err) => {
-                console.warn("Firebase persistence error:", err.code);
-            });
-
-            resolve();
-        };
-        
-        // Wait for the window to be fully loaded to ensure all scripts have run
-        if (document.readyState === 'complete') {
-            setup();
         } else {
-            window.addEventListener('load', setup);
+            console.error('Firebase config not found on window object.');
         }
-    });
-
-    return initializationPromise;
+    } else if (getApps().length > 0) {
+        app = getApp();
+        auth = getAuth(app);
+        db = getFirestore(app);
+    }
 }
 
 // Initialize immediately on client-side
-if (typeof window !== 'undefined') {
-    initializeFirebase().catch(err => {
-        console.error("Firebase initialization failed:", err);
-    });
-}
-
+initializeFirebase();
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
-        initializeFirebase().then(() => {
-            const authAndListen = async () => {
-                if (!auth) {
-                    // This should not happen if initialization is successful
+        if (!auth) {
+            // Firebase might not be initialized yet, especially on server render
+            setIsAuthReady(true); // Allow UI to render, auth will catch up
+            return;
+        }
+        
+        const authAndListen = async () => {
+            try {
+                const initialAuthToken = (window as any).__initial_auth_token;
+                if (initialAuthToken && auth.currentUser === null) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else if (auth.currentUser === null) {
+                    await signInAnonymously(auth);
+                }
+            } catch (error: any) {
+                console.error("Authentication failed, falling back to anonymous:", error);
+                if (auth.currentUser === null) {
+                    try {
+                       await signInAnonymously(auth);
+                    } catch (anonError) {
+                       console.error("Anonymous sign-in also failed:", anonError);
+                    }
+                }
+            } finally {
+                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
                     setIsAuthReady(true);
-                    return;
-                }
-                try {
-                    const initialAuthToken = (window as any).__initial_auth_token;
-                    if (initialAuthToken && auth.currentUser === null) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else if (auth.currentUser === null) {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error: any) {
-                    console.error("Authentication failed, falling back to anonymous:", error);
-                    if (auth.currentUser === null) {
-                        try {
-                           await signInAnonymously(auth);
-                        } catch (anonError) {
-                           console.error("Anonymous sign-in also failed:", anonError);
-                        }
-                    }
-                } finally {
-                     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-                        setUser(currentUser);
-                        setIsAuthReady(true);
-                    });
-                    return () => unsubscribe();
-                }
-            };
-            authAndListen();
-        }).catch(error => {
-            console.error("Auth setup failed due to Firebase init error:", error);
-            setIsAuthReady(true);
-        });
+                });
+                return () => unsubscribe();
+            }
+        };
+        authAndListen();
     }, []);
 
     return { user, isAuthReady };

@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { getDb, appId, collection, addDoc } from '@/lib/firebase';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Printer } from 'lucide-react';
 
 
@@ -32,12 +33,7 @@ const FechamentoCaixaModal = ({ open, onOpenChange, dailyTransactions }) => {
     const totalGeral = Object.values(totais).reduce((a, b) => a + b, 0);
 
     const handlePrint = () => {
-        const printContents = document.getElementById('printable-area').innerHTML;
-        const originalContents = document.body.innerHTML;
-        document.body.innerHTML = printContents;
         window.print();
-        document.body.innerHTML = originalContents;
-        window.location.reload();
     };
 
 
@@ -47,9 +43,9 @@ const FechamentoCaixaModal = ({ open, onOpenChange, dailyTransactions }) => {
                 <div id="printable-area">
                     <DialogHeader>
                         <DialogTitle>🧾 Fechamento de Caixa</DialogTitle>
+                        <DialogDescription>Resumo do dia: {new Date().toLocaleDateString('pt-BR')}</DialogDescription>
                     </DialogHeader>
-                    <p className="text-sm text-muted-foreground mb-4">Resumo do dia: {new Date().toLocaleDateString('pt-BR')}</p>
-                    <div className="bg-secondary p-4 rounded-lg space-y-2">
+                    <div className="bg-secondary p-4 rounded-lg space-y-2 mt-4">
                         {Object.entries(totais).map(([forma, valor]) => (
                             <div key={forma} className="flex justify-between text-lg">
                                 <span className="text-muted-foreground">{forma}</span>
@@ -70,7 +66,7 @@ const FechamentoCaixaModal = ({ open, onOpenChange, dailyTransactions }) => {
     );
 };
 
-export const TabFinanceiro = ({ transactions, customers, userId, showNotification }) => {
+export const TabFinanceiro = ({ transactions, customers, loading, userId, showNotification }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
@@ -83,7 +79,7 @@ export const TabFinanceiro = ({ transactions, customers, userId, showNotificatio
     }, []);
 
     const dailyTransactions = useMemo(() => {
-        if (!date) return [];
+        if (!date || !transactions) return [];
         return transactions.filter(t => t.timestamp?.toDate().toISOString().split('T')[0] === date);
     }, [transactions, date]);
 
@@ -133,6 +129,10 @@ export const TabFinanceiro = ({ transactions, customers, userId, showNotificatio
             case 'fiado': return `Clientes com Saldo Devedor`;
             default: return `Todas as Transações de ${dateFormatted}`;
         }
+    }
+
+    if (loading) {
+        return <div className="flex justify-center items-center h-full"><Spinner /></div>;
     }
 
     return (
