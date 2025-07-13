@@ -4,28 +4,11 @@
  * @fileOverview Customer insights AI agent.
  *
  * - getCustomerInsights - A function that handles the process of providing insights based on customer purchase history and preferences.
- * - CustomerInsightsInput - The input type for the getCustomerInsights function.
- * - CustomerInsightsOutput - The return type for the getCustomerInsights function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { CustomerInsightsInputSchema, CustomerInsightsOutputSchema, type CustomerInsightsInput, type CustomerInsightsOutput } from '@/ai/schemas/customer-insights-schema';
 
-const CustomerInsightsInputSchema = z.object({
-  customerPurchaseHistory: z
-    .string()
-    .describe('The purchase history of the customer.'),
-  customerPreferences: z.string().describe('The preferences of the customer.'),
-});
-export type CustomerInsightsInput = z.infer<typeof CustomerInsightsInputSchema>;
-
-const CustomerInsightsOutputSchema = z.object({
-  insights: z.string().describe('Insights into customer purchase history and preferences.'),
-  suggestedMarketingActions: z
-    .string()
-    .describe('Suggested marketing actions to improve customer loyalty.'),
-});
-export type CustomerInsightsOutput = z.infer<typeof CustomerInsightsOutputSchema>;
 
 export async function getCustomerInsights(input: CustomerInsightsInput): Promise<CustomerInsightsOutput> {
   return customerInsightsFlow(input);

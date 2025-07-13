@@ -1,4 +1,4 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/customer-insights.ts';
+import '@/ai/flows/business-analyst.ts';

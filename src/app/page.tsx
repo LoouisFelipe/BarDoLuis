@@ -1,59 +1,109 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingCart, Package, DollarSign, Cpu, HandCoins } from "lucide-react";
 
-import { Suppliers } from "@/components/suppliers";
-import { Purchases } from "@/components/purchases";
-import { Inventory } from "@/components/inventory";
-import { Customers } from "@/components/customers";
-import { AiInsights } from "@/components/ai-insights";
-import { Finance } from "@/components/finance";
+'use client';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-export default function Home() {
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-7xl">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-center tracking-tight bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-            BARDOLUIS
-          </h1>
-          <p className="text-center text-muted-foreground mt-2">
-            Your All-in-One Business Management Suite
-          </p>
-        </header>
+import { useAuth, useCollection, useConfig, db } from '@/lib/firebase';
+import { getDoc, doc, writeBatch, collection, addDoc, updateDoc, setDoc } from 'firebase/firestore';
 
-        <Tabs defaultValue="suppliers" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 h-auto">
-            <TabsTrigger value="suppliers" className="py-2"><Users className="mr-2" />Fornecedores</TabsTrigger>
-            <TabsTrigger value="purchases" className="py-2"><ShoppingCart className="mr-2" />Compras</TabsTrigger>
-            <TabsTrigger value="inventory" className="py-2"><Package className="mr-2" />Estoque</TabsTrigger>
-            <TabsTrigger value="customers" className="py-2"><HandCoins className="mr-2" />Clientes</TabsTrigger>
-            <TabsTrigger value="ai-insights" className="py-2"><Cpu className="mr-2" />AI Insights</TabsTrigger>
-            <TabsTrigger value="finance" className="py-2"><DollarSign className="mr-2" />Financeiro</TabsTrigger>
-          </TabsList>
+import { TabComandas } from '@/components/pdv/tab-comandas';
+import { TabProdutos } from '@/components/pdv/tab-produtos';
+import { TabClientes } from '@/components/pdv/tab-clientes';
+import { TabFinanceiro } from '@/components/pdv/tab-financeiro';
+import { TabRelatorios } from '@/components/pdv/tab-relatorios';
 
-          <div className="mt-6">
-            <TabsContent value="suppliers">
-              <Suppliers />
-            </TabsContent>
-            <TabsContent value="purchases">
-              <Purchases />
-            </TabsContent>
-            <TabsContent value="inventory">
-              <Inventory />
-            </TabsContent>
-            <TabsContent value="customers">
-              <Customers />
-            </TabsContent>
-            <TabsContent value="ai-insights">
-              <AiInsights />
-            </TabsContent>
-            <TabsContent value="finance">
-              <Finance />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
-    </div>
-  );
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/pdv/spinner';
+
+import { GlassWater, UserCog, ClipboardList, Package, Users, History, BarChart2 } from 'lucide-react';
+
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
+
+
+export default function App() {
+    const [activeTab, setActiveTab] = useState('comandas');
+    const { user, isAuthReady } = useAuth();
+    const [userRole, setUserRole] = useState('admin'); 
+    
+    const { data: products, loading: productsLoading } = useCollection('products');
+    const { data: customers, loading: customersLoading } = useCollection('customers');
+    const { data: transactions, loading: transactionsLoading } = useCollection('transactions');
+
+    const permittedTabs = useMemo(() => {
+        if (userRole === 'admin') {
+            return ['comandas', 'produtos', 'clientes', 'financeiro', 'relatorios'];
+        }
+        return ['comandas', 'produtos'];
+    }, [userRole]);
+
+    useEffect(() => {
+        if (!permittedTabs.includes(activeTab)) {
+            setActiveTab('comandas');
+        }
+    }, [userRole, activeTab, permittedTabs]);
+
+    const renderTabContent = () => {
+        if (!isAuthReady || !user) {
+            return (
+                <div className="flex justify-center items-center h-full">
+                    <Spinner /> 
+                    <p className="ml-4 text-white">Autenticando...</p>
+                </div>
+            );
+        }
+        
+        if (!permittedTabs.includes(activeTab)) return null;
+
+        switch (activeTab) {
+            case 'comandas': return <TabComandas products={products} customers={customers} userId={user.uid} />;
+            case 'produtos': return <TabProdutos products={products} loading={productsLoading} userId={user.uid} allProducts={products} />;
+            case 'clientes': return <TabClientes customers={customers} loading={customersLoading} userId={user.uid} transactions={transactions} />;
+            case 'financeiro': return <TabFinanceiro transactions={transactions} customers={customers} userId={user.uid} />;
+            case 'relatorios': return <TabRelatorios transactions={transactions} products={products} loading={transactionsLoading || productsLoading} />;
+            default: return null;
+        }
+    };
+
+    const TabButton = ({ tabName, icon, label }) => (
+        <button onClick={() => setActiveTab(tabName)} className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start sm:px-4 py-3 w-full text-sm font-medium rounded-lg transition-colors duration-200 ${activeTab === tabName ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary'}`}>
+            {React.createElement(icon, { className: "mb-1 sm:mb-0 sm:mr-3", size: 20 })}
+            <span className="hidden sm:inline">{label}</span>
+        </button>
+    );
+
+    return (
+        <div className="bg-background text-foreground min-h-screen font-sans flex flex-col md:flex-row">
+            <nav className="bg-card p-2 md:p-4 md:w-48 lg:w-56 flex md:flex-col justify-around md:justify-start md:space-y-2">
+                <div className="hidden md:flex items-center mb-4">
+                    <GlassWater className="text-accent mr-2" size={32} />
+                    <h1 className="text-xl font-bold">Boteco PDV</h1>
+                </div>
+                <div className="hidden md:block p-2 bg-background rounded-lg mb-4">
+                    <label className="text-xs text-muted-foreground flex items-center mb-1"><UserCog size={14} className="mr-1"/> Perfil</label>
+                    <Select value={userRole} onValueChange={setUserRole}>
+                        <SelectTrigger className="w-full bg-secondary text-foreground p-1 rounded-md text-sm">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="caixa">Caixa</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                {permittedTabs.map(tab => {
+                    const tabConfig = {
+                        comandas: { icon: ClipboardList, label: "Comandas" },
+                        produtos: { icon: Package, label: "Produtos" },
+                        clientes: { icon: Users, label: "Clientes" },
+                        financeiro: { icon: History, label: "Financeiro" },
+                        relatorios: { icon: BarChart2, label: "Relatórios & IA" },
+                    }[tab];
+                    return <TabButton key={tab} tabName={tab} icon={tabConfig.icon} label={tabConfig.label} />
+                })}
+            </nav>
+            <main className="flex-1 p-2 md:p-6">
+                {renderTabContent()}
+            </main>
+        </div>
+    );
 }

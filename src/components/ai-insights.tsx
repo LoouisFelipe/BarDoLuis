@@ -11,7 +11,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -22,8 +21,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { getCustomerInsights, type CustomerInsightsOutput } from "@/ai/flows/customer-insights";
-import { Loader2, Lightbulb, Sparkles } from "lucide-react";
+import { getCustomerInsights } from "@/ai/flows/customer-insights";
+import type { CustomerInsightsOutput } from "@/ai/schemas/customer-insights-schema";
+import { Loader2, Lightbulb, Sparkles, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
