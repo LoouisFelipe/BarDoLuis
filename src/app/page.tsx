@@ -97,7 +97,7 @@ export default function App() {
                         financeiro: { icon: History, label: "Financeiro" },
                         relatorios: { icon: BarChart2, label: "Relatórios & IA" },
                     }[tab];
-                    return <TabButton key={tab} tabName={tab} icon={tabConfig.icon} label={tabConfig.label} />
+                    return tabConfig ? <TabButton key={tab} tabName={tab} icon={tabConfig.icon} label={tabConfig.label} /> : null;
                 })}
             </nav>
             <main className="flex-1 p-2 md:p-6">
