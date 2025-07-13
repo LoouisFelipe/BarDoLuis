@@ -9,48 +9,65 @@ import type { Firestore } from 'firebase/firestore';
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
 
 let app: FirebaseApp;
-if (typeof window !== 'undefined') {
-    if (!getApps().length) {
+let db: Firestore;
+let auth: any;
+
+function initializeFirebase() {
+    if (typeof window !== 'undefined' && !getApps().length) {
         const firebaseConfigStr = (window as any).__firebase_config;
-        if (!firebaseConfigStr) {
-            console.error('Firebase config not found');
-        } else {
-            const firebaseConfig = JSON.parse(firebaseConfigStr);
-            if (!firebaseConfig.projectId) {
-                console.error('"projectId" not provided in firebase.initializeApp.');
-            } else {
-                 app = initializeApp(firebaseConfig);
+        if (firebaseConfigStr) {
+            try {
+                const firebaseConfig = JSON.parse(firebaseConfigStr);
+                if (firebaseConfig.projectId) {
+                    app = initializeApp(firebaseConfig);
+                } else {
+                    console.error('"projectId" not provided in firebase.initializeApp.');
+                }
+            } catch (e) {
+                console.error("Failed to parse Firebase config", e);
             }
+        } else {
+             // Config not yet available, do nothing. It might be loaded later.
         }
-    } else {
+    }
+    if (!app && getApps().length > 0) {
         app = getApp();
     }
-}
 
-
-export const db = typeof window !== 'undefined' ? getFirestore(app) : ({} as Firestore);
-export const auth = typeof window !== 'undefined' ? getAuth(app) : ({} as any);
-
-if (typeof window !== 'undefined') {
-    try {
-        enableIndexedDbPersistence(db)
-          .catch((err) => {
-            if (err.code == 'failed-precondition') {
-              console.warn("Múltiplas abas abertas, a persistência offline pode não funcionar corretamente.");
-            } else if (err.code == 'unimplemented') {
-              console.error("O navegador atual não suporta persistência offline.");
-            }
-          });
-    } catch (error) {
-        console.error("Erro ao inicializar persistência do Firebase:", error);
+    if (app) {
+        db = getFirestore(app);
+        auth = getAuth(app);
+        try {
+            enableIndexedDbPersistence(db)
+              .catch((err) => {
+                if (err.code == 'failed-precondition') {
+                  console.warn("Múltiplas abas abertas, a persistência offline pode não funcionar corretamente.");
+                } else if (err.code == 'unimplemented') {
+                  console.error("O navegador atual não suporta persistência offline.");
+                }
+              });
+        } catch (error) {
+            console.error("Erro ao inicializar persistência do Firebase:", error);
+        }
     }
 }
 
+// Initialize on load
+initializeFirebase();
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     useEffect(() => {
+        if (!auth) {
+            initializeFirebase();
+            if (!auth) {
+                console.error("Firebase Auth not initialized.");
+                setIsAuthReady(true);
+                return;
+            }
+        }
+        
         const authAndListen = async () => {
             try {
                 const initialAuthToken = (window as any).__initial_auth_token;
@@ -87,7 +104,22 @@ export function useCollection(collectionName: string, options: any = {}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isAuthReady || !user) return;
+        if (!isAuthReady || !user) {
+            if (!isAuthReady) {
+                 // Still waiting for auth to be ready
+            } else {
+                setLoading(false);
+            }
+            return;
+        };
+        if (!db) {
+            initializeFirebase();
+            if (!db) {
+                 console.error("Firestore not initialized.");
+                 setLoading(false);
+                 return;
+            }
+        }
         setLoading(true);
         const collectionPath = `artifacts/${appId}/users/${user.uid}/${collectionName}`;
         
@@ -119,6 +151,13 @@ export function useConfig(configId: string, defaultConfig: any) {
 
     const docRef = useMemo(() => {
         if (!isAuthReady || !user) return null;
+        if (!db) {
+            initializeFirebase();
+            if (!db) {
+                 console.error("Firestore not initialized.");
+                 return null;
+            }
+        }
         return doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId);
     }, [isAuthReady, user, configId]);
 
@@ -144,3 +183,6 @@ export function useConfig(configId: string, defaultConfig: any) {
 
     return { data, loading, update };
 }
+
+// Export db and auth for use in other components that are not hooks
+export { db, auth };
