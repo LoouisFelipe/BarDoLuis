@@ -23,40 +23,40 @@ function initializeFirebase(): Promise<void> {
         }
 
         const setup = () => {
-            if (getApps().length) {
-                app = getApp();
-            } else {
-                const firebaseConfigStr = (window as any).__firebase_config;
-                if (firebaseConfigStr) {
-                    try {
+            try {
+                if (getApps().length === 0) {
+                    const firebaseConfigStr = (window as any).__firebase_config;
+                    if (firebaseConfigStr) {
                         const firebaseConfig = JSON.parse(firebaseConfigStr);
                         if (firebaseConfig.projectId) {
                             app = initializeApp(firebaseConfig);
                         } else {
                            return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
                         }
-                    } catch (e) {
-                       return reject(new Error("Failed to parse Firebase config."));
+                    } else {
+                         return reject(new Error('Firebase config not found on window object.'));
                     }
                 } else {
-                     return reject(new Error('Firebase config not found on window object.'));
+                    app = getApp();
                 }
+                
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                enableIndexedDbPersistence(db).catch((err) => {
+                    console.warn("Firebase persistence error:", err.code);
+                });
+
+                resolve();
+            } catch (error) {
+                reject(error);
             }
-            
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            enableIndexedDbPersistence(db).catch((err) => {
-                console.warn("Firebase persistence error:", err.code);
-            });
-
-            resolve();
         };
 
         if (document.readyState === 'complete') {
             setup();
         } else {
-            window.addEventListener('load', setup);
+            window.addEventListener('load', setup, { once: true });
         }
     });
 
