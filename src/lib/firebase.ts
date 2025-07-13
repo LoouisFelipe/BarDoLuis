@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, type User } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, query, where, enableIndexedDbPersistence, arrayUnion, type Firestore } from 'firebase/firestore';
@@ -19,7 +19,7 @@ function initializeFirebase(): Promise<void> {
 
     initializationPromise = new Promise((resolve, reject) => {
         if (typeof window === 'undefined') {
-            // No-op on the server
+            // No-op on the server and resolve immediately
             return resolve();
         }
 
@@ -170,12 +170,16 @@ export function useConfig(configId: string, defaultConfig: any) {
         return () => unsubscribe();
     }, [docRef, JSON.stringify(defaultConfig)]);
 
-    const update = async (newValue: any) => {
+    const update = useCallback(async (newValue: any) => {
         if (!docRef) return;
-        await updateDoc(docRef, {
-            values: arrayUnion(newValue)
-        });
-    };
+        try {
+            await updateDoc(docRef, {
+                values: arrayUnion(newValue)
+            });
+        } catch(e) {
+             await setDoc(docRef, { values: [newValue] });
+        }
+    },[docRef]);
 
     return { data, loading, update };
 }
