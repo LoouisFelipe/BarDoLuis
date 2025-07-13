@@ -7,12 +7,12 @@ import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, query, wh
 
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pdv-app';
 
-let app: FirebaseApp | null = null;
-let auth: ReturnType<typeof getAuth> | null = null;
-let db: Firestore | null = null;
+let app: FirebaseApp;
+let auth: ReturnType<typeof getAuth>;
+let db: Firestore;
 let initializationPromise: Promise<void> | null = null;
 
-function initializeFirebase() {
+function initializeFirebase(): Promise<void> {
     if (initializationPromise) {
         return initializationPromise;
     }
@@ -22,37 +22,47 @@ function initializeFirebase() {
             return resolve();
         }
 
-        if (getApps().length) {
-            app = getApp();
+        const setup = () => {
+            if (getApps().length) {
+                app = getApp();
+            } else {
+                const firebaseConfigStr = (window as any).__firebase_config;
+                if (firebaseConfigStr) {
+                    try {
+                        const firebaseConfig = JSON.parse(firebaseConfigStr);
+                        if (firebaseConfig.projectId) {
+                            app = initializeApp(firebaseConfig);
+                        } else {
+                           return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
+                        }
+                    } catch (e) {
+                       return reject(new Error("Failed to parse Firebase config."));
+                    }
+                } else {
+                     return reject(new Error('Firebase config not found on window object.'));
+                }
+            }
+            
             auth = getAuth(app);
             db = getFirestore(app);
-            return resolve();
-        }
 
-        const firebaseConfigStr = (window as any).__firebase_config;
-        if (firebaseConfigStr) {
-            try {
-                const firebaseConfig = JSON.parse(firebaseConfigStr);
-                if (firebaseConfig.projectId) {
-                    app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    enableIndexedDbPersistence(db).catch((err) => {
-                        console.warn("Firebase persistence error:", err.code);
-                    });
-                    resolve();
-                } else {
-                    reject(new Error('"projectId" not provided in firebase.initializeApp.'));
-                }
-            } catch (e) {
-                reject(new Error("Failed to parse Firebase config."));
-            }
+            enableIndexedDbPersistence(db).catch((err) => {
+                console.warn("Firebase persistence error:", err.code);
+            });
+
+            resolve();
+        };
+
+        if (document.readyState === 'complete') {
+            setup();
         } else {
-             reject(new Error('Firebase config not found on window object.'));
+            window.addEventListener('load', setup);
         }
     });
+
     return initializationPromise;
 }
+
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -60,10 +70,6 @@ export function useAuth() {
 
     useEffect(() => {
         initializeFirebase().then(() => {
-            if (!auth) {
-                setIsAuthReady(true); 
-                return;
-            }
             const authAndListen = async () => {
                 try {
                     const initialAuthToken = (window as any).__initial_auth_token;
@@ -105,9 +111,8 @@ export function useCollection(collectionName: string, options: any = {}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isAuthReady) return;
-        if (!user || !db) {
-            setLoading(false);
+        if (!isAuthReady || !user) {
+            if(isAuthReady && !user) setLoading(false);
             return;
         }
 
@@ -140,7 +145,7 @@ export function useConfig(configId: string, defaultConfig: any) {
     const [loading, setLoading] = useState(true);
 
     const docRef = useMemo(() => {
-        if (!isAuthReady || !user || !db) return null;
+        if (!isAuthReady || !user) return null;
         return doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId);
     }, [isAuthReady, user, configId]);
 
@@ -153,9 +158,7 @@ export function useConfig(configId: string, defaultConfig: any) {
             if (docSnap.exists()) {
                 setData(docSnap.data().values);
             } else {
-                if (db) {
-                   setDoc(docRef, { values: defaultConfig }).catch(e => console.error("Error creating default config:", e));
-                }
+                setDoc(docRef, { values: defaultConfig }).catch(e => console.error("Error creating default config:", e));
             }
             setLoading(false);
         }, () => setLoading(false));
@@ -172,7 +175,6 @@ export function useConfig(configId: string, defaultConfig: any) {
     return { data, loading, update };
 }
 
-// Export a getter for db to be used outside of hooks
 const getDb = () => db;
 const getAuthInstance = () => auth;
 
