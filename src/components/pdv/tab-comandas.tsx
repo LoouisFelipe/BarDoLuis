@@ -1,9 +1,7 @@
-
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { getDb, appId } from '@/lib/firebase';
+import { getDb, appId, doc, addDoc, updateDoc, writeBatch, collection, getDoc } from '@/lib/firebase';
 import { useCollection } from '@/lib/firebase';
-import { doc, addDoc, updateDoc, writeBatch, collection, getDoc } from 'firebase/firestore';
 
 import { NewComandaModal } from './modals/new-comanda-modal';
 import { AddItemsModal } from './modals/add-items-modal';
@@ -14,7 +12,7 @@ import { Button } from '@/components/ui/button';
 
 import { ClipboardList, ChevronsRight, PlusCircle, Plus, Minus } from 'lucide-react';
 
-export const TabComandas = ({ products, customers, userId }) => {
+export const TabComandas = ({ products, customers, userId, showNotification }) => {
     const { data: comandas, loading: comandasLoading } = useCollection('comandas', { where: ['status', '==', 'open'] });
     const [selectedComanda, setSelectedComanda] = useState(null);
     const [isNewComandaModalOpen, setNewComandaModalOpen] = useState(false);
@@ -32,22 +30,27 @@ export const TabComandas = ({ products, customers, userId }) => {
         }
     }, [comandas, selectedComanda]);
 
-    const handleCreateComanda = useCallback(async (name, observations, customerId, createdAt = new Date()) => {
+    const handleCreateComanda = useCallback(async (name, observations, customerId) => {
         const db = getDb();
-        if (!db || !name.trim()) return;
+        if (!db || !name.trim()) {
+            showNotification("O nome da comanda não pode ser vazio.", "error");
+            return;
+        }
         
         setProcessing(true);
-        const newComanda = { name, observations, customerId: customerId || null, status: 'open', items: [], total: 0, createdAt };
+        const newComanda = { name, observations, customerId: customerId || null, status: 'open', items: [], total: 0, createdAt: new Date() };
         try {
             const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/comandas`), newComanda);
             setSelectedComanda({ id: docRef.id, ...newComanda });
             setNewComandaModalOpen(false);
+            showNotification(`Comanda "${name}" criada com sucesso!`, "success");
         } catch (error) {
             console.error("Erro ao criar comanda: ", error);
+            showNotification("Erro ao criar comanda.", "error");
         } finally {
             setProcessing(false);
         }
-    }, [userId]);
+    }, [userId, showNotification]);
 
     const updateComandaItems = useCallback(async (comandaId, newItems) => {
         const db = getDb();
@@ -103,25 +106,26 @@ export const TabComandas = ({ products, customers, userId }) => {
             batch.set(doc(collection(db, `artifacts/${appId}/users/${userId}/transactions`)), saleDocData);
 
             for (const item of selectedComanda.items) {
-                if(item.type === 'combo') {
-                    for(const comboItem of item.comboItems) {
-                        const productRef = doc(db, `artifacts/${appId}/users/${userId}/products`, comboItem.productId);
-                        const productDoc = await getDoc(productRef);
-                        if(productDoc.exists()){
-                            const productData = productDoc.data();
-                            const deduction = productData.saleType === 'unit' ? comboItem.quantity : productData.baseUnitSize * comboItem.quantity;
-                            batch.update(productRef, { stock: productData.stock - deduction });
+                const productRef = doc(db, `artifacts/${appId}/users/${userId}/products`, item.productId);
+                const productDoc = await getDoc(productRef);
+                if (productDoc.exists()) {
+                    const productData = productDoc.data();
+                    if (productData.saleType === 'combo' && productData.comboItems) {
+                        for (const comboItem of productData.comboItems) {
+                            const comboProductRef = doc(db, `artifacts/${appId}/users/${userId}/products`, comboItem.productId);
+                            const comboProductDoc = await getDoc(comboProductRef);
+                            if (comboProductDoc.exists()) {
+                                const comboProductData = comboProductDoc.data();
+                                const stockToDeduct = (comboItem.quantity || 1) * item.quantity;
+                                batch.update(comboProductRef, { stock: (comboProductData.stock || 0) - stockToDeduct });
+                            }
                         }
-                    }
-                } else {
-                    const productRef = doc(db, `artifacts/${appId}/users/${userId}/products`, item.productId);
-                    const productDoc = await getDoc(productRef);
-                    if(productDoc.exists()){
-                        batch.update(productRef, { stock: productDoc.data().stock - (item.type === 'unit' ? item.quantity : item.size * item.quantity) });
+                    } else if (productData.saleType !== 'combo') {
+                        const stockToDeduct = item.type === 'unit' ? item.quantity : (item.size || 0) * item.quantity;
+                        batch.update(productRef, { stock: (productData.stock || 0) - stockToDeduct });
                     }
                 }
             }
-
             if (paymentMethod === 'Fiado') {
                 const finalCustomerId = customerId || selectedComanda.customerId;
                 if(finalCustomerId) {
@@ -136,14 +140,18 @@ export const TabComandas = ({ products, customers, userId }) => {
             batch.delete(doc(db, `artifacts/${appId}/users/${userId}/comandas`, selectedComanda.id));
 
             await batch.commit();
+            showNotification(`Venda de R$ ${finalTotal.toFixed(2)} finalizada!`, "success");
             setSelectedComanda(null);
             setPaymentModalOpen(false);
         } catch (error) {
             console.error("Erro ao finalizar venda: ", error);
+            showNotification("Erro ao finalizar venda.", "error");
         } finally {
             setProcessing(false);
         }
-    }, [selectedComanda, userId]);
+    }, [selectedComanda, userId, showNotification]);
+
+    if (comandasLoading) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full p-1">
@@ -153,7 +161,7 @@ export const TabComandas = ({ products, customers, userId }) => {
                     <Button onClick={() => setNewComandaModalOpen(true)} size="icon" className="bg-primary hover:bg-primary/80"><Plus size={20} /></Button>
                 </div>
                 <div className="overflow-y-auto flex-grow pr-2 space-y-2">
-                    {comandasLoading ? <Spinner /> : comandas.map(comanda => (
+                    {comandas.map(comanda => (
                         <button key={comanda.id} onClick={() => setSelectedComanda(comanda)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedComanda?.id === comanda.id ? 'bg-primary' : 'bg-secondary hover:bg-secondary/80'}`}>
                             <p className="font-semibold text-foreground">{comanda.name}</p>
                             <p className="text-sm text-muted-foreground">Total: R$ {(Number(comanda.total) || 0).toFixed(2)}</p>
@@ -169,22 +177,22 @@ export const TabComandas = ({ products, customers, userId }) => {
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-foreground">{selectedComanda.name}</h2>
-                                {selectedComanda.customerId && <p className="text-sm text-accent mt-1 font-semibold">Cliente: {customerMap.get(selectedComanda.customerId) || '...'}</p>}
+                                {selectedComanda.customerId && <p className="text-sm text-primary mt-1 font-semibold">Cliente: {customerMap.get(selectedComanda.customerId) || '...'}</p>}
                                 {selectedComanda.observations && <p className="text-sm text-muted-foreground mt-1">{selectedComanda.observations}</p>}
                             </div>
-                            <Button onClick={() => setAddItemsModalOpen(true)} className="bg-accent text-accent-foreground font-semibold hover:bg-accent/80"><PlusCircle className="mr-2" size={20} /> Adicionar Itens</Button>
+                            <Button onClick={() => setAddItemsModalOpen(true)} className="bg-primary text-primary-foreground font-semibold hover:bg-primary/80"><PlusCircle className="mr-2" size={20} /> Adicionar Itens</Button>
                         </div>
                         <div className="flex-grow overflow-y-auto bg-background rounded-lg p-2 mb-4">
                             {selectedComanda.items.length === 0 ? <p className="text-muted-foreground text-center mt-8">Nenhum item na comanda.</p> : (
                                 <ul className="space-y-2">
                                     {selectedComanda.items.map((item, index) => (
-                                        <li key={item.identifier} className="flex justify-between items-center bg-secondary p-2 rounded-md">
+                                        <li key={`${item.identifier}-${index}`} className="flex justify-between items-center bg-secondary p-2 rounded-md">
                                             <div><p className="font-semibold text-foreground">{item.name} {item.subcategoria && `(${item.subcategoria})`} {item.doseName ? `(${item.doseName})` : ''}</p><p className="text-xs text-muted-foreground">R$ {(Number(item.price) || 0).toFixed(2)} / un.</p></div>
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-2 bg-muted rounded-full">
                                                     <Button onClick={() => handleUpdateQuantity(index, -1)} size="icon" variant="ghost" className="h-6 w-6 text-destructive"><Minus size={16} /></Button>
                                                     <span className="font-bold text-foreground w-6 text-center">{item.quantity}</span>
-                                                    <Button onClick={() => handleUpdateQuantity(index, 1)} size="icon" variant="ghost" className="h-6 w-6 text-accent"><Plus size={16} /></Button>
+                                                    <Button onClick={() => handleUpdateQuantity(index, 1)} size="icon" variant="ghost" className="h-6 w-6 text-green-500"><Plus size={16} /></Button>
                                                 </div>
                                                 <p className="text-foreground font-bold w-20 text-right">R$ {((Number(item.price) || 0) * (item.quantity || 1)).toFixed(2)}</p>
                                             </div>
@@ -195,15 +203,15 @@ export const TabComandas = ({ products, customers, userId }) => {
                         </div>
                         <div className="border-t-2 border-border pt-4">
                             <div className="flex justify-between items-center text-xl font-bold text-foreground mb-4"><span>Total:</span><span>R$ {(Number(selectedComanda.total) || 0).toFixed(2)}</span></div>
-                            <Button onClick={() => setPaymentModalOpen(true)} disabled={selectedComanda.items.length === 0 || processing} className="w-full bg-accent text-accent-foreground font-bold py-3 text-lg hover:bg-accent/80 disabled:bg-muted-foreground">{processing ? <Spinner /> : 'Fechar Conta'}</Button>
+                            <Button onClick={() => setPaymentModalOpen(true)} disabled={selectedComanda.items.length === 0 || processing} className="w-full bg-green-600 text-white font-bold py-3 text-lg hover:bg-green-500 disabled:bg-muted-foreground">{processing ? <Spinner /> : 'Fechar Conta'}</Button>
                         </div>
                     </>
                 )}
             </div>
-            {isNewComandaModalOpen && <NewComandaModal customers={customers} userId={userId} onCreate={handleCreateComanda} processing={processing} onClose={() => setNewComandaModalOpen(false)} />}
-            {isAddItemsModalOpen && <AddItemsModal products={products} onAddItem={handleAddItemToComanda} open={isAddItemsModalOpen} onOpenChange={setAddItemsModalOpen} onAddNewProduct={() => { setAddItemsModalOpen(false); setIsNewProductModalOpen(true); }} />}
-            {isNewProductModalOpen && <ProductFormModal open={isNewProductModalOpen} onOpenChange={setIsNewProductModalOpen} userId={userId} allProducts={products} />}
-            {isPaymentModalOpen && selectedComanda && <PaymentModal open={isPaymentModalOpen} onOpenChange={setPaymentModalOpen} subtotal={selectedComanda.total} customers={customers} userId={userId} onFinalize={handleFinalizeSale} isProcessing={processing} />}
+            {isNewComandaModalOpen && <NewComandaModal customers={customers} userId={userId} onCreate={handleCreateComanda} processing={processing} onClose={() => setNewComandaModalOpen(false)} showNotification={showNotification} />}
+            {isAddItemsModalOpen && <AddItemsModal products={products} onAddItem={handleAddItemToComanda} open={isAddItemsModalOpen} onOpenChange={setAddItemsModalOpen} onAddNewProduct={() => { setAddItemsModalOpen(false); setIsNewProductModalOpen(true); }} showNotification={showNotification} />}
+            {isNewProductModalOpen && <ProductFormModal open={isNewProductModalOpen} onOpenChange={setIsNewProductModalOpen} userId={userId} allProducts={products} showNotification={showNotification} />}
+            {isPaymentModalOpen && selectedComanda && <PaymentModal open={isPaymentModalOpen} onOpenChange={setPaymentModalOpen} subtotal={selectedComanda.total} customers={customers} userId={userId} onFinalize={handleFinalizeSale} isProcessing={processing} showNotification={showNotification}/>}
         </div>
     );
 };

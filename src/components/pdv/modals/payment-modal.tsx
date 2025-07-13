@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '../spinner';
 import { CustomerFormModal } from './customer-form-modal';
 
-export const PaymentModal = ({ subtotal, customers, userId, onFinalize, isProcessing, open, onOpenChange }) => {
+export const PaymentModal = ({ subtotal, customers, userId, onFinalize, isProcessing, open, onOpenChange, showNotification }) => {
     const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
     const [selectedCustomer, setSelectedCustomer] = useState('');
     const [discount, setDiscount] = useState(0);
@@ -29,7 +29,7 @@ export const PaymentModal = ({ subtotal, customers, userId, onFinalize, isProces
 
     const handleFinalize = () => {
         if (paymentMethod === 'Fiado' && !selectedCustomer) {
-            alert("Por favor, selecione um cliente para a venda fiado.");
+            showNotification("Por favor, selecione um cliente para a venda fiado.", "error");
             return;
         }
         onFinalize(paymentMethod, selectedCustomer, Number(discount) || 0, Number(surcharge) || 0);
@@ -73,7 +73,7 @@ export const PaymentModal = ({ subtotal, customers, userId, onFinalize, isProces
                             <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
                                 <SelectTrigger><SelectValue placeholder="Selecione um cliente..." /></SelectTrigger>
                                 <SelectContent>
-                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                     <SelectItem value="add_new_customer" className="text-primary">+ Adicionar Novo Cliente</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -95,6 +95,7 @@ export const PaymentModal = ({ subtotal, customers, userId, onFinalize, isProces
                         setSelectedCustomer(newCustomerId);
                         setIsNewCustomerModalOpen(false);
                     }}
+                    showNotification={showNotification}
                 />
             )}
         </>

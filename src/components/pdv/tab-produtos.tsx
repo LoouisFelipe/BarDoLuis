@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 import { Package, PlusCircle, Edit, AlertTriangle } from 'lucide-react';
 
-export const TabProdutos = ({ products, loading, userId, allProducts }) => {
+export const TabProdutos = ({ products, loading, userId, allProducts, suppliers, showNotification }) => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [isStockModalOpen, setStockModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -21,8 +21,8 @@ export const TabProdutos = ({ products, loading, userId, allProducts }) => {
     const handleStock = (product) => { setProductForStock(product); setStockModalOpen(true); };
 
     const isLowStock = (product) => {
-        if (product.saleType === 'combo') return false;
-        const threshold = product.saleType === 'unit' ? 10 : 1000;
+        if (product.saleType === 'combo' || !product.stock) return false;
+        const threshold = product.saleType === 'unit' ? 10 : (product.baseUnitSize || 1000) * 2; // Ex: 2 garrafas
         return product.stock > 0 && product.stock < threshold;
     };
 
@@ -40,7 +40,6 @@ export const TabProdutos = ({ products, loading, userId, allProducts }) => {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Nome</TableHead>
-                                        <TableHead>Subcategoria</TableHead>
                                         <TableHead>Categoria</TableHead>
                                         <TableHead>Estoque</TableHead>
                                         <TableHead>Ações</TableHead>
@@ -49,8 +48,7 @@ export const TabProdutos = ({ products, loading, userId, allProducts }) => {
                                 <TableBody>
                                     {products.map(p => (
                                         <TableRow key={p.id}>
-                                            <TableCell className="font-medium">{p.name}</TableCell>
-                                            <TableCell>{p.subcategoria || 'N/A'}</TableCell>
+                                            <TableCell className="font-medium">{p.name} {p.subcategoria && <span className="text-xs text-muted-foreground">({p.subcategoria})</span>}</TableCell>
                                             <TableCell>{p.categoria || 'N/A'}</TableCell>
                                             <TableCell>
                                                 {p.saleType !== 'combo' ? (
@@ -62,6 +60,7 @@ export const TabProdutos = ({ products, loading, userId, allProducts }) => {
                                                             <TooltipContent><p>Este item está acabando!</p></TooltipContent>
                                                         </Tooltip>
                                                         }
+                                                        {p.stock <= 0 && <span className="text-xs font-bold px-2 py-1 rounded-full bg-destructive text-destructive-foreground">ESGOTADO</span>}
                                                     </div>
                                                 ) : (
                                                     <span className="text-xs italic text-purple-400">N/A (Combo)</span>
@@ -88,8 +87,8 @@ export const TabProdutos = ({ products, loading, userId, allProducts }) => {
                         </div>
                     </div>
                 )}
-                {isModalOpen && <ProductFormModal product={editingProduct} open={isModalOpen} onOpenChange={setModalOpen} userId={userId} allProducts={allProducts} />}
-                {isStockModalOpen && <StockModal product={productForStock} open={isStockModalOpen} onOpenChange={setStockModalOpen} userId={userId} />}
+                {isModalOpen && <ProductFormModal product={editingProduct} open={isModalOpen} onOpenChange={setModalOpen} userId={userId} allProducts={allProducts} showNotification={showNotification}/>}
+                {isStockModalOpen && <StockModal product={productForStock} open={isStockModalOpen} onOpenChange={setStockModalOpen} userId={userId} suppliers={suppliers} showNotification={showNotification}/>}
             </div>
         </TooltipProvider>
     );

@@ -4,16 +4,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Beer, Wine, Boxes, PlusCircle } from 'lucide-react';
+import { Beer, Wine, Boxes, PlusCircle, Soup } from 'lucide-react';
 
-export const AddItemsModal = ({ products, onAddItem, open, onOpenChange, onAddNewProduct }) => {
+export const AddItemsModal = ({ products, onAddItem, open, onOpenChange, onAddNewProduct, showNotification }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProductForDose, setSelectedProductForDose] = useState(null);
     const [isManualDoseView, setIsManualDoseView] = useState(false);
     const [manualDose, setManualDose] = useState({ size: '', price: '' });
 
     const groupedProducts = useMemo(() => {
-        const filtered = products.filter(p => (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.subcategoria && p.subcategoria.toLowerCase().includes(searchTerm.toLowerCase()))) && (p.saleType !== 'combo' ? p.stock > 0 : true));
+        const filtered = products.filter(p => (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.subcategoria && p.subcategoria.toLowerCase().includes(searchTerm.toLowerCase()))) && (p.saleType === 'combo' ? true : p.stock > 0));
         return filtered.reduce((acc, product) => {
             const category = product.categoria || 'Outros';
             if (!acc[category]) acc[category] = [];
@@ -40,7 +40,7 @@ export const AddItemsModal = ({ products, onAddItem, open, onOpenChange, onAddNe
         const size = parseFloat(manualDose.size);
         const price = parseFloat(manualDose.price);
         if (!size || !price || size <= 0 || price <= 0) {
-            alert("Por favor, insira um volume e um preço válidos.");
+            showNotification("Por favor, insira um volume e um preço válidos.", "error");
             return;
         }
         onAddItem(selectedProductForDose, 'dose', { price: price, size: size, doseName: `Dose Manual (${size}ml)` });
@@ -103,13 +103,13 @@ export const AddItemsModal = ({ products, onAddItem, open, onOpenChange, onAddNe
                     <div className="max-h-[60vh] overflow-y-auto pr-2">
                         {Object.keys(groupedProducts).sort().map(category => (
                             <div key={category} className="mb-6">
-                                <h4 className="text-xl font-bold text-accent mb-3 border-b-2 border-border pb-2">{category}</h4>
+                                <h4 className="text-xl font-bold text-primary mb-3 border-b-2 border-border pb-2">{category}</h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {groupedProducts[category].map(product => (
                                         <Button key={product.id} onClick={() => handleProductClick(product)} variant="secondary" className="h-auto flex-col p-3 text-center transition-all duration-200 disabled:opacity-50" disabled={product.stock <= 0 && product.saleType !== 'combo'}>
-                                            {product.saleType === 'combo' ? <Boxes size={32} className="mx-auto mb-2 text-purple-400" /> : product.saleType === 'unit' ? <Beer size={32} className="mx-auto mb-2 text-yellow-400" /> : <Wine size={32} className="mx-auto mb-2 text-red-400" />}
+                                            {product.categoria === 'Comidas' ? <Soup size={32} className="mx-auto mb-2 text-orange-400" /> : product.saleType === 'combo' ? <Boxes size={32} className="mx-auto mb-2 text-purple-400" /> : product.saleType === 'unit' ? <Beer size={32} className="mx-auto mb-2 text-yellow-400" /> : <Wine size={32} className="mx-auto mb-2 text-red-400" />}
                                             <p className="text-foreground font-semibold text-sm whitespace-normal">{product.name} {product.subcategoria && `(${product.subcategoria})`}</p>
-                                            {product.saleType !== 'combo' && <p className="text-xs text-muted-foreground">{product.stock <= 0 ? "Esgotado" : `Estoque: ${product.stock} ${product.baseUnit}`}</p>}
+                                            {product.saleType !== 'combo' && <p className={`text-xs ${product.stock <= 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{product.stock <= 0 ? "Esgotado" : `Estoque: ${product.stock}`}</p>}
                                         </Button>
                                     ))}
                                 </div>

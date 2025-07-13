@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
-import { getDb, appId } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { getDb, appId, collection, addDoc } from '@/lib/firebase';
 
 import { Spinner } from './spinner';
 import { Button } from '@/components/ui/button';
@@ -9,19 +8,77 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Printer } from 'lucide-react';
 
 
 import { History, TrendingUp, TrendingDown, Scale, Users } from 'lucide-react';
 
-export const TabFinanceiro = ({ transactions, customers, userId }) => {
+const FechamentoCaixaModal = ({ open, onOpenChange, dailyTransactions }) => {
+    const totais = useMemo(() => {
+        const resumo = { Dinheiro: 0, PIX: 0, Débito: 0, Crédito: 0, Fiado: 0 };
+        dailyTransactions.forEach(t => {
+            if (t.type === 'sale') {
+                if (resumo.hasOwnProperty(t.paymentMethod)) {
+                    resumo[t.paymentMethod] += t.total;
+                }
+            } else if (t.type === 'payment') {
+                resumo['Dinheiro'] += t.total;
+            }
+        });
+        return resumo;
+    }, [dailyTransactions]);
+
+    const totalGeral = Object.values(totais).reduce((a, b) => a + b, 0);
+
+    const handlePrint = () => {
+        const printContents = document.getElementById('printable-area').innerHTML;
+        const originalContents = document.body.innerHTML;
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+        window.location.reload();
+    };
+
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <div id="printable-area">
+                    <DialogHeader>
+                        <DialogTitle>🧾 Fechamento de Caixa</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground mb-4">Resumo do dia: {new Date().toLocaleDateString('pt-BR')}</p>
+                    <div className="bg-secondary p-4 rounded-lg space-y-2">
+                        {Object.entries(totais).map(([forma, valor]) => (
+                            <div key={forma} className="flex justify-between text-lg">
+                                <span className="text-muted-foreground">{forma}</span>
+                                <span className="font-semibold text-foreground">R$ {valor.toFixed(2)}</span>
+                            </div>
+                        ))}
+                        <hr className="border-border my-2"/>
+                        <div className="flex justify-between font-bold text-xl text-green-400 pt-2">
+                            <span>Total Geral</span><span>R$ {totalGeral.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+                 <Button onClick={handlePrint} className="w-full mt-6 print:hidden">
+                    <Printer className="mr-2" size={20} /> Imprimir Relatório
+                </Button>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+export const TabFinanceiro = ({ transactions, customers, userId, showNotification }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [filter, setFilter] = useState('all');
     const [date, setDate] = useState('');
+    const [isFechamentoModalOpen, setIsFechamentoModalOpen] = useState(false);
 
     useEffect(() => {
-        // Set date on client-side to avoid hydration mismatch
         setDate(new Date().toISOString().split('T')[0]);
     }, []);
 
@@ -34,7 +91,7 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
         let income = 0;
         let expense = 0;
         dailyTransactions.forEach(t => {
-            if (t.type === 'sale' || t.type === 'payment') income += t.total;
+            if ((t.type === 'sale' && t.paymentMethod !== 'Fiado') || t.type === 'payment') income += t.total;
             else if (t.type === 'expense') expense += t.total;
         });
         const fiado = customers.reduce((sum, c) => sum + (c.balance || 0), 0);
@@ -42,9 +99,9 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
     }, [dailyTransactions, customers]);
     
     const filteredList = useMemo(() => {
-        if (filter === 'all') return dailyTransactions;
-        if (filter === 'income') return dailyTransactions.filter(t => t.type === 'sale' || t.type === 'payment');
-        if (filter === 'expense') return dailyTransactions.filter(t => t.type === 'expense');
+        if (filter === 'all') return dailyTransactions.sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate());
+        if (filter === 'income') return dailyTransactions.filter(t => t.type === 'sale' || t.type === 'payment').sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate());
+        if (filter === 'expense') return dailyTransactions.filter(t => t.type === 'expense').sort((a,b) => b.timestamp.toDate() - a.timestamp.toDate());
         if (filter === 'fiado') return customers.filter(c => c.balance > 0);
         return [];
     }, [dailyTransactions, filter, customers]);
@@ -57,9 +114,11 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
         const expenseData = { description, total: parseFloat(amount), timestamp: new Date(), type: 'expense' };
         try {
             await addDoc(collection(db, `artifacts/${appId}/users/${userId}/transactions`), expenseData);
+            showNotification("Despesa adicionada com sucesso!", "success");
             setDescription(''); setAmount('');
         } catch (error) {
             console.error("Erro ao adicionar despesa:", error);
+            showNotification("Erro ao adicionar despesa.", "error");
         } finally {
             setProcessing(false);
         }
@@ -80,7 +139,12 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
         <div className="p-4 space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-bold text-foreground flex items-center"><History className="mr-3" /> Financeiro</h2>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-secondary text-foreground p-2 rounded-lg w-48"/>
+                 <div className="flex items-center gap-4">
+                    <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="bg-secondary text-foreground p-2 rounded-lg w-48"/>
+                    <Button onClick={() => setIsFechamentoModalOpen(true)} className="bg-primary text-primary-foreground font-semibold hover:bg-primary/80">
+                        <Printer className="mr-2" size={20} /> Fechar Caixa
+                    </Button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Button variant="outline" onClick={() => setFilter('income')} className="h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary"><TrendingUp className="text-green-400 mr-4" size={32}/><div> <p className="text-sm text-muted-foreground">Entradas do Dia</p><p className="text-2xl font-bold text-green-400">R$ {totalIncome.toFixed(2)}</p></div></Button>
@@ -105,10 +169,10 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
                      <div className="overflow-y-auto max-h-64">
                          <Table>
                              <TableBody>
-                                {filteredList.map(item => (
-                                    <TableRow key={item.id} className={`${item.type === 'expense' ? 'bg-red-900/20' : (item.type ? 'bg-green-900/20' : 'bg-yellow-900/20')}`}>
+                                {filteredList.length === 0 ? <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Nenhuma transação hoje.</TableCell></TableRow> : filteredList.map(item => (
+                                    <TableRow key={item.id} className={`${item.balance > 0 ? 'bg-yellow-900/20' : item.type === 'expense' ? 'bg-red-900/20' : 'bg-green-900/20'}`}>
                                         <TableCell>{item.description || item.comandaName || item.name}</TableCell>
-                                        <TableCell className="text-right font-bold">{item.type === 'expense' ? '-' : '+'} R$ {(item.total || item.balance).toFixed(2)}</TableCell>
+                                        <TableCell className="text-right font-bold">{item.balance > 0 ? '' : (item.type === 'expense' ? '-' : '+')} R$ {(item.total || item.balance).toFixed(2)}</TableCell>
                                     </TableRow>
                                 ))}
                              </TableBody>
@@ -117,6 +181,7 @@ export const TabFinanceiro = ({ transactions, customers, userId }) => {
                     </CardContent>
                 </Card>
             </div>
+             {isFechamentoModalOpen && <FechamentoCaixaModal open={isFechamentoModalOpen} onOpenChange={setIsFechamentoModalOpen} dailyTransactions={dailyTransactions} />}
         </div>
     );
 };

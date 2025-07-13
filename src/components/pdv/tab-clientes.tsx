@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 import { Users, UserPlus, History, Sparkles, DollarSign, Edit } from 'lucide-react';
 
-export const TabClientes = ({ customers, loading, userId, transactions }) => { 
+export const TabClientes = ({ customers, loading, userId, transactions, showNotification }) => { 
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [isPaymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -70,10 +70,10 @@ export const TabClientes = ({ customers, loading, userId, transactions }) => {
                         </div>
                     </div>
                 )}
-                {isModalOpen && <CustomerFormModal customer={editingCustomer} open={isModalOpen} onOpenChange={setModalOpen} userId={userId} />}
-                {isPaymentModalOpen && <CustomerPaymentModal customerForPayment={customerForPayment} open={isPaymentModalOpen} onOpenChange={setPaymentModalOpen} userId={userId} />}
+                {isModalOpen && <CustomerFormModal customer={editingCustomer} open={isModalOpen} onOpenChange={setModalOpen} userId={userId} showNotification={showNotification} />}
+                {isPaymentModalOpen && <CustomerPaymentModal customerForPayment={customerForPayment} open={isPaymentModalOpen} onOpenChange={setPaymentModalOpen} userId={userId} showNotification={showNotification} />}
                 {isAnalysisModalOpen && <CustomerAnalysisModal customer={customerForAnalysis} transactions={transactions} open={isAnalysisModalOpen} onOpenChange={setAnalysisModalOpen} />}
-                {isHistoryModalOpen && <CustomerHistoryModal customer={customerForHistory} transactions={transactions} open={isHistoryModalOpen} onOpenChange={setHistoryModalOpen} />}
+                {isHistoryModalOpen && <CustomerHistoryModal customer={customerForHistory} transactions={transactions} open={isHistoryModalOpen} onOpenChange={setIsHistoryModalOpen} />}
             </div>
         </TooltipProvider>
     );

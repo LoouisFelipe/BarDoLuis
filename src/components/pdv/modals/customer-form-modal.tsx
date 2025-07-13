@@ -1,16 +1,14 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
-import { getDb, appId } from '@/lib/firebase';
-import { doc, addDoc, setDoc, collection } from 'firebase/firestore';
+import { getDb, appId, setDoc, addDoc, doc, collection } from '@/lib/firebase';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '../spinner';
 
-export const CustomerFormModal = ({ customer, open, onOpenChange, userId, onSuccess }) => { 
+export const CustomerFormModal = ({ customer, open, onOpenChange, userId, onSuccess, showNotification }) => { 
     const [formData, setFormData] = useState({ name: '', phone: '', balance: 0 });
     const [processing, setProcessing] = useState(false);
 
@@ -37,9 +35,11 @@ export const CustomerFormModal = ({ customer, open, onOpenChange, userId, onSucc
         try {
             if (customer) {
                 await setDoc(doc(db, collectionPath, customer.id), formData, { merge: true });
+                showNotification("Cliente atualizado com sucesso!", "success");
                 onOpenChange(false);
             } else {
                 const newDocRef = await addDoc(collection(db, collectionPath), { ...formData, balance: 0 });
+                showNotification("Cliente adicionado com sucesso!", "success");
                 if (onSuccess) {
                     onSuccess(newDocRef.id);
                 } else {
@@ -48,7 +48,7 @@ export const CustomerFormModal = ({ customer, open, onOpenChange, userId, onSucc
             }
         } catch (error) {
             console.error("Erro ao salvar cliente: ", error);
-            alert("Ocorreu um erro ao salvar o cliente.");
+            showNotification("Ocorreu um erro ao salvar o cliente.", "error");
         } finally {
             setProcessing(false);
         }

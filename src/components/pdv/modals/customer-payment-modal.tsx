@@ -1,8 +1,6 @@
-
 'use client';
 import React, { useState } from 'react';
-import { getDb, appId } from '@/lib/firebase';
-import { doc, writeBatch, collection } from 'firebase/firestore';
+import { getDb, appId, doc, writeBatch, collection } from '@/lib/firebase';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '../spinner';
 
-export const CustomerPaymentModal = ({ customerForPayment, open, onOpenChange, userId }) => {
+export const CustomerPaymentModal = ({ customerForPayment, open, onOpenChange, userId, showNotification }) => {
     const [amount, setAmount] = useState(customerForPayment.balance || 0);
     const [processing, setProcessing] = useState(false);
 
@@ -20,7 +18,7 @@ export const CustomerPaymentModal = ({ customerForPayment, open, onOpenChange, u
         if (!db) return;
 
         if (amount <= 0 || amount > customerForPayment.balance) {
-            alert("Valor de pagamento inválido.");
+            showNotification("Valor de pagamento inválido.", "error");
             return;
         }
         setProcessing(true);
@@ -40,10 +38,11 @@ export const CustomerPaymentModal = ({ customerForPayment, open, onOpenChange, u
             batch.set(doc(collection(db, `artifacts/${appId}/users/${userId}/transactions`)), transactionData);
 
             await batch.commit();
+            showNotification("Pagamento recebido com sucesso!", "success");
             onOpenChange(false);
         } catch (error) {
             console.error("Erro ao registrar pagamento: ", error);
-            alert("Ocorreu um erro ao registrar o pagamento.");
+            showNotification("Ocorreu um erro ao registrar o pagamento.", "error");
         } finally {
             setProcessing(false);
         }

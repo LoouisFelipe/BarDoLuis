@@ -1,30 +1,19 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '../spinner';
 import { CustomerFormModal } from './customer-form-modal';
 
-export const NewComandaModal = ({ onCreate, onClose, customers, userId, processing }) => {
+export const NewComandaModal = ({ onCreate, onClose, customers, userId, processing, showNotification }) => {
     const [name, setName] = useState('');
     const [observations, setObservations] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState('');
     const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
-    const [useManualDateTime, setUseManualDateTime] = useState(false);
-    const [date, setDate] = useState('');
-    const [time, setTime] = useState('');
-
-    useEffect(() => {
-        // Set date/time on client-side to avoid hydration mismatch
-        const now = new Date();
-        setDate(now.toISOString().split('T')[0]);
-        setTime(now.toTimeString().slice(0, 5));
-    }, []);
 
     const handleCustomerChange = (value) => {
         if (value === 'add_new_customer') {
@@ -41,8 +30,7 @@ export const NewComandaModal = ({ onCreate, onClose, customers, userId, processi
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const createdAt = useManualDateTime ? new Date(`${date}T${time}`) : new Date();
-        onCreate(name, observations, selectedCustomer, createdAt);
+        onCreate(name, observations, selectedCustomer);
     };
 
     return (
@@ -69,16 +57,6 @@ export const NewComandaModal = ({ onCreate, onClose, customers, userId, processi
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="manual-datetime" checked={useManualDateTime} onCheckedChange={(checked) => setUseManualDateTime(!!checked)} />
-                                <Label htmlFor="manual-datetime">Lançar com data/hora manual</Label>
-                            </div>
-                            {useManualDateTime && (
-                                <div className="flex gap-4 animate-fade-in">
-                                    <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
-                                    <Input type="time" value={time} onChange={e => setTime(e.target.value)} />
-                                </div>
-                            )}
                         </div>
                         <DialogFooter>
                             <Button type="submit" className="w-full" disabled={processing}>
@@ -94,6 +72,7 @@ export const NewComandaModal = ({ onCreate, onClose, customers, userId, processi
                     onOpenChange={setIsNewCustomerModalOpen} 
                     userId={userId} 
                     onSuccess={handleNewCustomerSuccess}
+                    showNotification={showNotification}
                 />
             )}
         </>

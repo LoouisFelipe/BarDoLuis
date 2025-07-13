@@ -1,11 +1,9 @@
-
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { getDb, appId, useConfig } from '@/lib/firebase';
-import { doc, addDoc, setDoc, collection } from 'firebase/firestore';
+import { getDb, appId, useConfig, addDoc, setDoc, doc, collection } from '@/lib/firebase';
 import { analyzeData } from '@/ai/flows/business-analyst';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,7 +14,7 @@ import { Spinner } from '../spinner';
 import { Sparkles, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-export const ProductFormModal = ({ product, open, onOpenChange, userId, allProducts }) => { 
+export const ProductFormModal = ({ product, open, onOpenChange, userId, allProducts, showNotification, onSuccess, initialName = '' }) => { 
     const { data: categories, update: addCategory } = useConfig('productCategories', ['Cervejas', 'Cachaças', 'Comidas', 'Águas', 'Refrigerantes']);
     const { data: subcategories, update: addSubcategory } = useConfig('productSubcategories', ['300ml', '600ml', 'Lata', 'Com Bacon', 'Sem Cebola']);
     
@@ -26,14 +24,13 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
     const [newSubcategoryValue, setNewSubcategoryValue] = useState('');
     const [comboSearchTerm, setComboSearchTerm] = useState('');
     
-    const initialDoseOptions = [
+    const initialDoseOptions = useMemo(() => [
         { id: 'd50', name: '50ml', size: 50, enabled: false, price: 0 },
         { id: 'd100', name: '100ml', size: 100, enabled: false, price: 0 },
-        { id: 'd100Limon', name: '100ml com limão', size: 100, enabled: false, price: 0 }
-    ];
+    ], []);
 
     const [formData, setFormData] = useState({
-        name: '', subcategoria: '', categoria: '', saleType: 'unit', unitPrice: 0, costPrice: 0,
+        name: initialName, subcategoria: '', categoria: '', saleType: 'unit', unitPrice: 0, costPrice: 0,
         baseUnit: 'unidade', baseUnitSize: 1000, stock: 0,
         doseOptions: initialDoseOptions, comboItems: [], description: '', initialStock: 0
     });
@@ -55,13 +52,9 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
                 doseOptions: mergedDoseOptions, comboItems: product.comboItems || [], description: product.description || '', initialStock: 0
             });
         } else {
-             setFormData({
-                name: '', subcategoria: '', categoria: '', saleType: 'unit', unitPrice: 0, costPrice: 0,
-                baseUnit: 'unidade', baseUnitSize: 1000, stock: 0,
-                doseOptions: initialDoseOptions, comboItems: [], description: '', initialStock: 0
-            });
+             setFormData(prev => ({...prev, name: initialName, doseOptions: initialDoseOptions, comboItems: [], description: ''}));
         }
-    }, [product, open]);
+    }, [product, open, initialName, initialDoseOptions]);
 
     const handleChange = (name, value) => {
         if (name === 'categoria') setShowNewCategoryInput(value === 'add_new');
@@ -91,7 +84,7 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
 
     const handleGenerateDescription = async () => {
         if (!formData.name) {
-            alert("Por favor, preencha o nome do produto primeiro.");
+            showNotification("Por favor, preencha o nome do produto primeiro.", "error");
             return;
         }
         setIaLoading(true);
@@ -102,6 +95,7 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
             setFormData(prev => ({ ...prev, description: result.answer }));
         } catch (error) {
             console.error("Error generating description:", error)
+            showNotification("Erro ao gerar descrição com IA.", "error");
         } finally {
             setIaLoading(false);
         }
@@ -114,15 +108,15 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
         
         let finalCategory = formData.categoria;
         if (formData.categoria === 'add_new') {
-            if (!newCategoryValue.trim()) { alert("Por favor, insira um nome para a nova categoria."); return; }
+            if (!newCategoryValue.trim()) { showNotification("Por favor, insira um nome para a nova categoria.", "error"); return; }
             finalCategory = newCategoryValue.trim();
             if (!categories.some(c => c.toLowerCase() === finalCategory.toLowerCase())) await addCategory(finalCategory);
         }
-        if (!finalCategory || finalCategory === 'add_new') { alert("Por favor, selecione ou crie uma categoria válida."); return; }
+        if (!finalCategory || finalCategory === 'add_new') { showNotification("Por favor, selecione ou crie uma categoria válida.", "error"); return; }
 
         let finalSubcategory = formData.subcategoria;
         if (formData.subcategoria === 'add_new') {
-            if (!newSubcategoryValue.trim()) { alert("Por favor, insira um nome para a nova subcategoria."); return; }
+            if (!newSubcategoryValue.trim()) { showNotification("Por favor, insira um nome para a nova subcategoria.", "error"); return; }
             finalSubcategory = newSubcategoryValue.trim();
             if (!subcategories.some(sc => sc.toLowerCase() === finalSubcategory.toLowerCase())) await addSubcategory(finalSubcategory);
         }
@@ -147,11 +141,19 @@ export const ProductFormModal = ({ product, open, onOpenChange, userId, allProdu
 
 
         try {
-            if (product) await setDoc(doc(db, collectionPath, product.id), dataToSave, { merge: true });
-            else await addDoc(collection(db, collectionPath), dataToSave);
+            if (product) {
+                await setDoc(doc(db, collectionPath, product.id), dataToSave, { merge: true });
+                showNotification("Produto atualizado com sucesso!", "success");
+                if (onSuccess) onSuccess({ id: product.id, ...dataToSave });
+            } else {
+                const newDocRef = await addDoc(collection(db, collectionPath), dataToSave);
+                showNotification("Produto adicionado com sucesso!", "success");
+                if (onSuccess) onSuccess({ id: newDocRef.id, ...dataToSave });
+            }
             onOpenChange(false);
         } catch (error) {
             console.error("Erro ao salvar produto: ", error);
+            showNotification("Erro ao salvar produto.", "error");
         } finally {
             setProcessing(false);
         }
