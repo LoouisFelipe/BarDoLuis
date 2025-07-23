@@ -18,40 +18,46 @@ function initializeFirebase(): Promise<void> {
     }
 
     firebaseInitializationPromise = new Promise((resolve, reject) => {
-        if (getApps().length > 0) {
-            firebaseApp = getApp();
-            firebaseAuth = getAuth(firebaseApp);
-            firestoreDb = getFirestore(firebaseApp);
-            resolve();
-            return;
+        if (typeof window === 'undefined') {
+            // Se estiver no servidor, não faz nada.
+            return resolve();
         }
 
-        if (typeof window !== 'undefined') {
-            const firebaseConfigStr = (window as any).__firebase_config;
-            if (firebaseConfigStr) {
-                try {
-                    const firebaseConfig = JSON.parse(firebaseConfigStr);
-                    if (firebaseConfig.projectId) {
-                        firebaseApp = initializeApp(firebaseConfig);
-                        firebaseAuth = getAuth(firebaseApp);
-                        firestoreDb = getFirestore(firebaseApp);
-                        enableIndexedDbPersistence(firestoreDb).catch((err) => {
-                            console.warn("Firebase persistence error:", err.code);
-                        });
-                        resolve();
-                    } else {
-                        reject(new Error('"projectId" not provided in firebase.initializeApp.'));
-                    }
-                } catch (e) {
-                    reject(e);
-                }
+        const setup = () => {
+            if (getApps().length > 0) {
+                firebaseApp = getApp();
             } else {
-                 reject(new Error('Firebase config not found on window object.'));
+                const firebaseConfigStr = (window as any).__firebase_config;
+                if (firebaseConfigStr) {
+                    try {
+                        const firebaseConfig = JSON.parse(firebaseConfigStr);
+                        if (firebaseConfig.projectId) {
+                            firebaseApp = initializeApp(firebaseConfig);
+                        } else {
+                            return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
+                        }
+                    } catch (e) {
+                        return reject(e);
+                    }
+                } else {
+                     return reject(new Error('Firebase config not found on window object.'));
+                }
             }
+            firebaseAuth = getAuth(firebaseApp);
+            firestoreDb = getFirestore(firebaseApp);
+            enableIndexedDbPersistence(firestoreDb).catch((err) => {
+                console.warn("Firebase persistence error:", err.code);
+            });
+            resolve();
+        };
+
+        if (document.readyState === 'complete') {
+            setup();
         } else {
-             resolve();
+            window.addEventListener('load', setup);
         }
     });
+
     return firebaseInitializationPromise;
 }
 
@@ -108,37 +114,45 @@ export function useCollection(collectionName: string, options: any = {}) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isAuthReady || !user) {
-            if (isAuthReady) setLoading(false);
-            return () => {};
-        }
+        const loadData = async () => {
+            if (!isAuthReady || !user) {
+                if (isAuthReady) setLoading(false);
+                return;
+            }
 
-        if (!firestoreDb) {
-            initializeFirebase().then(() => {
-                if(!firestoreDb) setLoading(false);
+            await initializeFirebase();
+
+            if (!firestoreDb) {
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
+            const collectionPath = `artifacts/${appId}/users/${user.uid}/${collectionName}`;
+            
+            let q;
+            if (options.where) {
+                q = query(collection(firestoreDb, collectionPath), where(...options.where));
+            } else {
+                q = query(collection(firestoreDb, collectionPath));
+            }
+
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                setData(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                setLoading(false);
+            }, (error) => {
+                console.error(`Error fetching ${collectionName}:`, error);
+                setLoading(false);
             });
-            return () => {};
-        }
 
-        setLoading(true);
-        const collectionPath = `artifacts/${appId}/users/${user.uid}/${collectionName}`;
-        
-        let q;
-        if (options.where) {
-            q = query(collection(firestoreDb, collectionPath), where(...options.where));
-        } else {
-            q = query(collection(firestoreDb, collectionPath));
-        }
+            return unsubscribe;
+        };
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            setData(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setLoading(false);
-        }, (error) => {
-            console.error(`Error fetching ${collectionName}:`, error);
-            setLoading(false);
-        });
+        const unsubscribePromise = loadData();
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
+        };
     }, [isAuthReady, user, collectionName, JSON.stringify(options.where)]);
 
     return { data, loading };
@@ -148,10 +162,16 @@ export function useConfig(configId: string, defaultConfig: any) {
     const { user, isAuthReady } = useAuth();
     const [data, setData] = useState(defaultConfig);
     const [loading, setLoading] = useState(true);
-
-    const docRef = useMemo(() => {
-        if (!isAuthReady || !user || !firestoreDb) return null;
-        return doc(firestoreDb, `artifacts/${appId}/users/${user.uid}/config`, configId);
+    const [docRef, setDocRef] = useState<any>(null);
+    
+    useEffect(() => {
+        const init = async () => {
+            if (!isAuthReady || !user) return;
+            await initializeFirebase();
+            if(!firestoreDb) return;
+            setDocRef(doc(firestoreDb, `artifacts/${appId}/users/${user.uid}/config`, configId));
+        };
+        init();
     }, [isAuthReady, user, configId]);
 
     useEffect(() => {
