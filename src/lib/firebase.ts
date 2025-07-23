@@ -7,60 +7,64 @@ import { getFirestore, collection, doc, onSnapshot, query, where, enableIndexedD
 
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'bar-do-luis-app';
 
-let firebaseApp: FirebaseApp;
-let firebaseAuth: ReturnType<typeof getAuth>;
-let firestoreDb: Firestore;
-let firebaseInitializationPromise: Promise<void> | null = null;
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: ReturnType<typeof getAuth> | null = null;
+let firestoreDb: Firestore | null = null;
+let firebaseInitializationPromise: Promise<FirebaseApp> | null = null;
 
-function initializeFirebase(): Promise<void> {
-    if (firebaseInitializationPromise) {
-        return firebaseInitializationPromise;
+async function initializeFirebase(): Promise<FirebaseApp> {
+  if (firebaseInitializationPromise) {
+    return firebaseInitializationPromise;
+  }
+
+  firebaseInitializationPromise = new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      // No server-side, we can't initialize.
+      return reject(new Error('Firebase can only be initialized on the client.'));
     }
 
-    firebaseInitializationPromise = new Promise((resolve, reject) => {
-        if (typeof window === 'undefined') {
-            // Se estiver no servidor, não faz nada.
-            return resolve();
-        }
+    if (getApps().length) {
+        const app = getApp();
+        resolve(app);
+    }
 
-        const setup = () => {
-            if (getApps().length > 0) {
-                firebaseApp = getApp();
-            } else {
-                const firebaseConfigStr = (window as any).__firebase_config;
-                if (firebaseConfigStr) {
-                    try {
-                        const firebaseConfig = JSON.parse(firebaseConfigStr);
-                        if (firebaseConfig.projectId) {
-                            firebaseApp = initializeApp(firebaseConfig);
-                        } else {
-                            return reject(new Error('"projectId" not provided in firebase.initializeApp.'));
-                        }
-                    } catch (e) {
-                        return reject(e);
-                    }
+    const checkConfig = () => {
+        const firebaseConfigStr = (window as any).__firebase_config;
+        if (firebaseConfigStr) {
+            try {
+                const firebaseConfig = JSON.parse(firebaseConfigStr);
+                if (firebaseConfig.projectId) {
+                    const app = initializeApp(firebaseConfig);
+                    resolve(app);
                 } else {
-                     return reject(new Error('Firebase config not found on window object.'));
+                    reject(new Error('"projectId" not provided in firebase.initializeApp.'));
                 }
+            } catch (e) {
+                reject(e);
             }
-            firebaseAuth = getAuth(firebaseApp);
-            firestoreDb = getFirestore(firebaseApp);
-            enableIndexedDbPersistence(firestoreDb).catch((err) => {
-                console.warn("Firebase persistence error:", err.code);
-            });
-            resolve();
-        };
-
-        if (document.readyState === 'complete') {
-            setup();
         } else {
-            window.addEventListener('load', setup);
+            // If config is not there, wait and check again.
+            setTimeout(checkConfig, 100); 
         }
-    });
+    };
+    checkConfig();
+  });
 
-    return firebaseInitializationPromise;
+  try {
+    firebaseApp = await firebaseInitializationPromise;
+    firebaseAuth = getAuth(firebaseApp);
+    firestoreDb = getFirestore(firebaseApp);
+    await enableIndexedDbPersistence(firestoreDb);
+  } catch (err: any) {
+    if (err.code === 'failed-precondition') {
+      console.warn("Firebase persistence error: Multiple tabs open.");
+    } else if (err.code !== 'unimplemented') {
+      console.error("Firebase persistence error:", err);
+    }
+  }
+
+  return firebaseApp;
 }
-
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -70,36 +74,36 @@ export function useAuth() {
         const authAndListen = async () => {
             try {
                 await initializeFirebase();
-                if(!firebaseAuth) {
+                const auth = getAuthInstance();
+                if(!auth) {
                     setIsAuthReady(true);
                     return;
                 };
 
                 const initialAuthToken = (window as any).__initial_auth_token;
-                if (initialAuthToken && firebaseAuth.currentUser === null) {
-                    await signInWithCustomToken(firebaseAuth, initialAuthToken);
-                } else if (firebaseAuth.currentUser === null) {
-                    await signInAnonymously(firebaseAuth);
+                if (initialAuthToken && auth.currentUser === null) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else if (auth.currentUser === null) {
+                    await signInAnonymously(auth);
                 }
+                
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setIsAuthReady(true);
+                });
+                return () => unsubscribe();
+                 
             } catch (error: any) {
-                console.error("Authentication failed, falling back to anonymous:", error);
-                if (firebaseAuth && firebaseAuth.currentUser === null) {
+                console.error("Authentication failed:", error);
+                const auth = getAuthInstance();
+                if (auth && auth.currentUser === null) {
                     try {
-                       await signInAnonymously(firebaseAuth);
+                       await signInAnonymously(auth);
                     } catch (anonError) {
                        console.error("Anonymous sign-in also failed:", anonError);
                     }
                 }
-            } finally {
-                 if(firebaseAuth){
-                    const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
-                        setUser(currentUser);
-                        setIsAuthReady(true);
-                    });
-                    return () => unsubscribe();
-                 } else {
-                    setIsAuthReady(true);
-                 }
+                setIsAuthReady(true); // Still ready, just not authenticated well
             }
         };
         authAndListen();
@@ -115,14 +119,17 @@ export function useCollection(collectionName: string, options: any = {}) {
 
     useEffect(() => {
         const loadData = async () => {
-            if (!isAuthReady || !user) {
-                if (isAuthReady) setLoading(false);
+            if (!isAuthReady) {
+                return;
+            }
+            if (!user) {
+                setLoading(false);
                 return;
             }
 
             await initializeFirebase();
-
-            if (!firestoreDb) {
+            const db = getDb();
+            if (!db) {
                 setLoading(false);
                 return;
             }
@@ -132,9 +139,9 @@ export function useCollection(collectionName: string, options: any = {}) {
             
             let q;
             if (options.where) {
-                q = query(collection(firestoreDb, collectionPath), where(...options.where));
+                q = query(collection(db, collectionPath), where(...options.where));
             } else {
-                q = query(collection(firestoreDb, collectionPath));
+                q = query(collection(db, collectionPath));
             }
 
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -168,8 +175,9 @@ export function useConfig(configId: string, defaultConfig: any) {
         const init = async () => {
             if (!isAuthReady || !user) return;
             await initializeFirebase();
-            if(!firestoreDb) return;
-            setDocRef(doc(firestoreDb, `artifacts/${appId}/users/${user.uid}/config`, configId));
+            const db = getDb();
+            if(!db) return;
+            setDocRef(doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId));
         };
         init();
     }, [isAuthReady, user, configId]);
