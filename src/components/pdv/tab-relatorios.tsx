@@ -8,12 +8,36 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from 'recharts';
+
+import type { BarChart, Bar, XAxis, YAxis, Tooltip as ChartTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 
 import { BarChart2, MessageSquare, Lightbulb } from 'lucide-react';
 
+const ChartContainer = ({ children }: { children: React.ReactNode }) => {
+    const [ChartComponent, setChartComponent] = useState<any>(null);
+
+    useEffect(() => {
+        import('recharts').then(recharts => {
+            setChartComponent(() => recharts.ResponsiveContainer);
+        });
+    }, []);
+
+    if (!ChartComponent) {
+        return <div className="flex justify-center items-center h-[250px]"><Spinner /></div>;
+    }
+
+    return <ChartComponent width="100%" height={250}>{children}</ChartComponent>;
+};
+
 export const TabRelatorios = ({ transactions, products, loading, showNotification, setActiveTab }) => {
+    const [Recharts, setRecharts] = useState<any>(null);
+    useEffect(() => {
+        import('recharts').then(recharts => {
+            setRecharts(recharts);
+        });
+    }, []);
+
     const [period, setPeriod] = useState('today');
     const [iaResult, setIaResult] = useState('');
     const [iaLoading, setIaLoading] = useState(false);
@@ -99,7 +123,9 @@ export const TabRelatorios = ({ transactions, products, loading, showNotificatio
         }
     };
 
-    if (loading) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+    if (loading || !Recharts) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+
+    const { BarChart, Bar, XAxis, YAxis, Tooltip: ChartTooltip, ResponsiveContainer } = Recharts;
 
     return (
         <TooltipProvider>
@@ -138,27 +164,27 @@ export const TabRelatorios = ({ transactions, products, loading, showNotificatio
                          <Card>
                           <CardHeader><CardTitle>Top 5 Produtos Mais Vendidos</CardTitle></CardHeader>
                           <CardContent>
-                              <ResponsiveContainer width="100%" height={250}>
+                              <ChartContainer>
                                 <BarChart data={reportData.topProducts}>
                                   <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                   <ChartTooltip cursor={{fill: 'hsl(var(--muted))'}} contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}/>
                                   <Bar dataKey="quantity" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} name="Quantidade"/>
                                 </BarChart>
-                              </ResponsiveContainer>
+                              </ChartContainer>
                           </CardContent>
                         </Card>
                          <Card>
                           <CardHeader><CardTitle>Top 5 Produtos Mais Lucrativos</CardTitle></CardHeader>
                           <CardContent>
-                             <ResponsiveContainer width="100%" height={250}>
+                             <ChartContainer>
                                 <BarChart data={reportData.profitByProduct}>
                                   <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false}/>
                                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`}/>
                                   <ChartTooltip cursor={{fill: 'hsl(var(--muted))'}} contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} formatter={(value) => `R$ ${Number(value).toFixed(2)}`}/>
                                   <Bar dataKey="profit" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} name="Lucro"/>
                                 </BarChart>
-                              </ResponsiveContainer>
+                              </ChartContainer>
                           </CardContent>
                         </Card>
                     </div>
