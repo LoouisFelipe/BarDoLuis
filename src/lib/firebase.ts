@@ -18,7 +18,6 @@ async function initializeFirebase(): Promise<FirebaseApp> {
 
   firebaseInitializationPromise = new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
-      // No server-side, we can't initialize.
       return reject(new Error('Firebase can only be initialized on the client.'));
     }
 
