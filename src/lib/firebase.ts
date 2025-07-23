@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
@@ -26,6 +25,7 @@ async function initializeFirebase(): Promise<FirebaseApp> {
     if (getApps().length) {
         const app = getApp();
         resolve(app);
+        return;
     }
 
     const checkConfig = () => {
@@ -54,13 +54,16 @@ async function initializeFirebase(): Promise<FirebaseApp> {
     firebaseApp = await firebaseInitializationPromise;
     firebaseAuth = getAuth(firebaseApp);
     firestoreDb = getFirestore(firebaseApp);
-    await enableIndexedDbPersistence(firestoreDb);
+    // Note: enableIndexedDbPersistence should only be called once, so we guard it.
+    await enableIndexedDbPersistence(firestoreDb).catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.warn("Firebase persistence error: Multiple tabs open, persistence can only be enabled in one tab at a a time.");
+        } else if (err.code == 'unimplemented') {
+            console.warn("Firebase persistence error: The current browser does not support all of the features required to enable persistence.");
+        }
+    });
   } catch (err: any) {
-    if (err.code === 'failed-precondition') {
-      console.warn("Firebase persistence error: Multiple tabs open.");
-    } else if (err.code !== 'unimplemented') {
-      console.error("Firebase persistence error:", err);
-    }
+    console.error("Firebase initialization error:", err);
   }
 
   return firebaseApp;
@@ -76,7 +79,7 @@ export function useAuth() {
                 await initializeFirebase();
                 const auth = getAuthInstance();
                 if(!auth) {
-                    setIsAuthReady(true);
+                    setIsAuthReady(true); // Can't get auth instance, but we are "ready"
                     return;
                 };
 
@@ -91,6 +94,7 @@ export function useAuth() {
                     setUser(currentUser);
                     setIsAuthReady(true);
                 });
+
                 return () => unsubscribe();
                  
             } catch (error: any) {
@@ -123,6 +127,7 @@ export function useCollection(collectionName: string, options: any = {}) {
                 return;
             }
             if (!user) {
+                setData([]);
                 setLoading(false);
                 return;
             }
@@ -130,6 +135,7 @@ export function useCollection(collectionName: string, options: any = {}) {
             await initializeFirebase();
             const db = getDb();
             if (!db) {
+                setData([]);
                 setLoading(false);
                 return;
             }
@@ -173,10 +179,16 @@ export function useConfig(configId: string, defaultConfig: any) {
     
     useEffect(() => {
         const init = async () => {
-            if (!isAuthReady || !user) return;
+            if (!isAuthReady || !user) {
+                if(isAuthReady) setLoading(false);
+                return;
+            };
             await initializeFirebase();
             const db = getDb();
-            if(!db) return;
+            if(!db) {
+                setLoading(false);
+                return;
+            };
             setDocRef(doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId));
         };
         init();
@@ -184,28 +196,38 @@ export function useConfig(configId: string, defaultConfig: any) {
 
     useEffect(() => {
         if (!docRef) {
-             if(isAuthReady && user) setLoading(false);
-            return () => {};
+            return;
         }
+        setLoading(true);
         const unsubscribe = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 setData(docSnap.data().values);
             } else {
+                setData(defaultConfig);
                 setDoc(docRef, { values: defaultConfig }).catch(e => console.error("Error creating default config:", e));
             }
             setLoading(false);
-        }, () => setLoading(false));
+        }, (error) => {
+            console.error("Error fetching config:", error);
+            setLoading(false);
+        });
         return () => unsubscribe();
     }, [docRef, JSON.stringify(defaultConfig)]);
 
     const update = useCallback(async (newValue: any) => {
         if (!docRef) return;
         try {
-            await updateDoc(docRef, {
-                values: arrayUnion(newValue)
-            });
+            // Check if doc exists before trying to update it
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                await updateDoc(docRef, {
+                    values: arrayUnion(newValue)
+                });
+            } else {
+                 await setDoc(docRef, { values: [newValue] });
+            }
         } catch(e) {
-             await setDoc(docRef, { values: [newValue] });
+             console.error("Error updating config:", e);
         }
     },[docRef]);
 
