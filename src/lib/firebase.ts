@@ -7,72 +7,93 @@ import { getFirestore, collection, doc, onSnapshot, query, where, enableIndexedD
 
 export const appId = typeof __app_id !== 'undefined' ? __app_id : 'bar-do-luis-app';
 
-let app: FirebaseApp;
-let auth: ReturnType<typeof getAuth>;
-let db: Firestore;
+let firebaseApp: FirebaseApp;
+let firebaseAuth: ReturnType<typeof getAuth>;
+let firestoreDb: Firestore;
+let firebaseInitializationPromise: Promise<void> | null = null;
 
-function initializeFirebase() {
-    if (typeof window !== 'undefined' && getApps().length === 0) {
-        const firebaseConfigStr = (window as any).__firebase_config;
-        if (firebaseConfigStr) {
-            const firebaseConfig = JSON.parse(firebaseConfigStr);
-            if (firebaseConfig.projectId) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                enableIndexedDbPersistence(db).catch((err) => {
-                    console.warn("Firebase persistence error:", err.code);
-                });
+function initializeFirebase(): Promise<void> {
+    if (firebaseInitializationPromise) {
+        return firebaseInitializationPromise;
+    }
+
+    firebaseInitializationPromise = new Promise((resolve, reject) => {
+        if (getApps().length > 0) {
+            firebaseApp = getApp();
+            firebaseAuth = getAuth(firebaseApp);
+            firestoreDb = getFirestore(firebaseApp);
+            resolve();
+            return;
+        }
+
+        if (typeof window !== 'undefined') {
+            const firebaseConfigStr = (window as any).__firebase_config;
+            if (firebaseConfigStr) {
+                try {
+                    const firebaseConfig = JSON.parse(firebaseConfigStr);
+                    if (firebaseConfig.projectId) {
+                        firebaseApp = initializeApp(firebaseConfig);
+                        firebaseAuth = getAuth(firebaseApp);
+                        firestoreDb = getFirestore(firebaseApp);
+                        enableIndexedDbPersistence(firestoreDb).catch((err) => {
+                            console.warn("Firebase persistence error:", err.code);
+                        });
+                        resolve();
+                    } else {
+                        reject(new Error('"projectId" not provided in firebase.initializeApp.'));
+                    }
+                } catch (e) {
+                    reject(e);
+                }
             } else {
-                console.error('"projectId" not provided in firebase.initializeApp.');
+                 reject(new Error('Firebase config not found on window object.'));
             }
         } else {
-            console.error('Firebase config not found on window object.');
+             resolve();
         }
-    } else if (getApps().length > 0) {
-        app = getApp();
-        auth = getAuth(app);
-        db = getFirestore(app);
-    }
+    });
+    return firebaseInitializationPromise;
 }
 
-// Initialize immediately on client-side
-initializeFirebase();
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     useEffect(() => {
-        if (!auth) {
-            // Firebase might not be initialized yet, especially on server render
-            setIsAuthReady(true); // Allow UI to render, auth will catch up
-            return;
-        }
-        
         const authAndListen = async () => {
             try {
+                await initializeFirebase();
+                if(!firebaseAuth) {
+                    setIsAuthReady(true);
+                    return;
+                };
+
                 const initialAuthToken = (window as any).__initial_auth_token;
-                if (initialAuthToken && auth.currentUser === null) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else if (auth.currentUser === null) {
-                    await signInAnonymously(auth);
+                if (initialAuthToken && firebaseAuth.currentUser === null) {
+                    await signInWithCustomToken(firebaseAuth, initialAuthToken);
+                } else if (firebaseAuth.currentUser === null) {
+                    await signInAnonymously(firebaseAuth);
                 }
             } catch (error: any) {
                 console.error("Authentication failed, falling back to anonymous:", error);
-                if (auth.currentUser === null) {
+                if (firebaseAuth && firebaseAuth.currentUser === null) {
                     try {
-                       await signInAnonymously(auth);
+                       await signInAnonymously(firebaseAuth);
                     } catch (anonError) {
                        console.error("Anonymous sign-in also failed:", anonError);
                     }
                 }
             } finally {
-                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-                    setUser(currentUser);
+                 if(firebaseAuth){
+                    const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
+                        setUser(currentUser);
+                        setIsAuthReady(true);
+                    });
+                    return () => unsubscribe();
+                 } else {
                     setIsAuthReady(true);
-                });
-                return () => unsubscribe();
+                 }
             }
         };
         authAndListen();
@@ -89,12 +110,14 @@ export function useCollection(collectionName: string, options: any = {}) {
     useEffect(() => {
         if (!isAuthReady || !user) {
             if (isAuthReady) setLoading(false);
-            return;
+            return () => {};
         }
-        
-        if (!db) {
-            setLoading(false);
-            return;
+
+        if (!firestoreDb) {
+            initializeFirebase().then(() => {
+                if(!firestoreDb) setLoading(false);
+            });
+            return () => {};
         }
 
         setLoading(true);
@@ -102,9 +125,9 @@ export function useCollection(collectionName: string, options: any = {}) {
         
         let q;
         if (options.where) {
-            q = query(collection(db, collectionPath), where(...options.where));
+            q = query(collection(firestoreDb, collectionPath), where(...options.where));
         } else {
-            q = query(collection(db, collectionPath));
+            q = query(collection(firestoreDb, collectionPath));
         }
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -127,14 +150,14 @@ export function useConfig(configId: string, defaultConfig: any) {
     const [loading, setLoading] = useState(true);
 
     const docRef = useMemo(() => {
-        if (!isAuthReady || !user || !db) return null;
-        return doc(db, `artifacts/${appId}/users/${user.uid}/config`, configId);
+        if (!isAuthReady || !user || !firestoreDb) return null;
+        return doc(firestoreDb, `artifacts/${appId}/users/${user.uid}/config`, configId);
     }, [isAuthReady, user, configId]);
 
     useEffect(() => {
         if (!docRef) {
              if(isAuthReady && user) setLoading(false);
-            return;
+            return () => {};
         }
         const unsubscribe = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -161,7 +184,7 @@ export function useConfig(configId: string, defaultConfig: any) {
     return { data, loading, update };
 }
 
-const getDb = () => db;
-const getAuthInstance = () => auth;
+const getDb = () => firestoreDb;
+const getAuthInstance = () => firebaseAuth;
 
 export { getDb, getAuthInstance, writeBatch, addDoc, setDoc, getDoc, updateDoc, deleteDoc, doc, collection };
