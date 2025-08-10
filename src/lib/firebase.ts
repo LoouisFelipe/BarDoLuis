@@ -4,7 +4,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, type User } from 'firebase/auth';
 import { getFirestore, collection, doc, onSnapshot, query, where, enableIndexedDbPersistence, arrayUnion, writeBatch, addDoc, setDoc, getDoc, updateDoc, deleteDoc, type Firestore } from 'firebase/firestore';
 
-export const appId = typeof __app_id !== 'undefined' ? __app_id : 'bar-do-luis-app';
+export const appId = process.env.NEXT_PUBLIC_APP_ID;
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: ReturnType<typeof getAuth> | null = null;
@@ -80,6 +80,7 @@ export function useAuth() {
                 if(!auth) {
                     setIsAuthReady(true); // Can't get auth instance, but we are "ready"
                     return;
+ console.log("isAuthReady:", isAuthReady, "user:", user);
                 };
 
                 const initialAuthToken = (window as any).__initial_auth_token;
@@ -92,6 +93,7 @@ export function useAuth() {
                 const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
                     setUser(currentUser);
                     setIsAuthReady(true);
+ console.log("isAuthReady:", isAuthReady, "user:", user);
                 });
 
                 return () => unsubscribe();
