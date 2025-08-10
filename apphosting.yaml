@@ -1,6 +1,21 @@
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
+# The name of the framework used by your app.
+# Supported values: nextjs, angular, web (plain http server)
+# Not required for Next.js and Angular apps.
+# framework: nextjs
+
+# The command that builds your app.
+build:
+  # The command that starts the build of your app.
+  command: "npm run build"
+  
+# The command that starts your app.
+start:
+  # The command that starts the http server of your app.
+  command: "npm run start"
+  
 runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
