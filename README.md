@@ -23,3 +23,4 @@ Este é um projeto de um sistema de Ponto de Venda (PDV) desenvolvido com Next.j
 - **Animações:** Animações sutis, como efeitos de fade-in, para uma experiência de usuário suave e envolvente.
 
 Para começar, explore o código em `src/app/page.tsx`.
+# BarDoLuis
