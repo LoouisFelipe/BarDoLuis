@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -35,13 +34,13 @@ export const ProductsTab: React.FC = () => {
     const [categoryFilter, setCategoryFilter] = useState('all');
 
     const categories = useMemo(() => {
-        if (!products) return []; // Golden Rule: Prevent crash if products is undefined.
+        if (!products) return []; 
         const uniqueCategories = new Set(products.map(p => p.category).filter(Boolean));
         return Array.from(uniqueCategories).sort();
     }, [products]);
 
     const filteredProducts = useMemo(() => {
-        if (!products) return []; // Golden Rule: Prevent crash if products is undefined.
+        if (!products) return []; 
         return products.filter(p => {
             const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
             const matchesSearch = searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -108,6 +107,40 @@ export const ProductsTab: React.FC = () => {
         return stockValue <= threshold;
     };
 
+    const calculateMarkup = (p: Product) => {
+        const cost = Number(p.costPrice) || 0;
+        let markupValue = 0;
+        let hasCalculation = false;
+
+        if (p.saleType === 'unit' && cost > 0) {
+            const price = Number(p.unitPrice) || 0;
+            markupValue = ((price - cost) / cost) * 100;
+            hasCalculation = true;
+        } else if (p.saleType === 'dose' && cost > 0 && p.baseUnitSize && p.baseUnitSize > 0) {
+            const costPerMl = cost / p.baseUnitSize;
+            const activeDoses = p.doseOptions?.filter(d => d.enabled && d.size > 0) || [];
+            
+            if (activeDoses.length > 0) {
+                const totalMarkup = activeDoses.reduce((acc, dose) => {
+                    const pricePerMl = dose.price / dose.size;
+                    const doseMarkup = ((pricePerMl - costPerMl) / costPerMl) * 100;
+                    return acc + doseMarkup;
+                }, 0);
+                
+                markupValue = totalMarkup / activeDoses.length;
+                hasCalculation = true;
+            }
+        }
+
+        if (!hasCalculation) return { label: 'N/A', color: 'text-muted-foreground' };
+
+        let color = 'text-accent';
+        if (markupValue < 50) color = 'text-yellow-400';
+        if (markupValue < 0) color = 'text-destructive';
+
+        return { label: `${markupValue.toFixed(0)}%`, color };
+    };
+
     const renderAccordionView = () => (
         <Accordion type="multiple" className="space-y-4" defaultValue={categories}>
             {Object.keys(groupedProducts).sort().map(category => (
@@ -131,16 +164,7 @@ export const ProductsTab: React.FC = () => {
                                 {groupedProducts[category].map(p => {
                                     const cost = Number(p.costPrice) || 0;
                                     const price = Number(p.unitPrice) || 0;
-                                    let markup = 'N/A';
-                                    let markupColor = 'text-muted-foreground';
-
-                                    if (p.saleType === 'unit' && cost > 0 && price > 0) {
-                                        const markupValue = ((price - cost) / cost) * 100;
-                                        markup = `${markupValue.toFixed(0)}%`;
-                                        if (markupValue < 50) markupColor = 'text-yellow-400';
-                                        if (markupValue >= 50) markupColor = 'text-accent';
-                                        if (markupValue < 0) markupColor = 'text-destructive';
-                                    }
+                                    const markup = calculateMarkup(p);
 
                                     return (
                                         <TableRow key={p.id} className="border-t">
@@ -175,7 +199,12 @@ export const ProductsTab: React.FC = () => {
                                                 {p.saleType === 'dose' && (p.doseOptions && p.doseOptions.length > 0 ? `${p.doseOptions.length} Opções` : 'N/A')}
                                                 {p.saleType === 'service' && 'Valor Aberto'}
                                             </TableCell>
-                                            <TableCell className={`font-bold ${markupColor}`}>{markup}</TableCell>
+                                            <TableCell className={`font-bold ${markup.color}`}>
+                                                {markup.label}
+                                                {p.saleType === 'dose' && markup.label !== 'N/A' && (
+                                                    <span className="text-[10px] block font-normal text-muted-foreground">(média)</span>
+                                                )}
+                                            </TableCell>
                                             <TableCell className="text-right pr-6">
                                                 {p.saleType !== 'service' && (
                                                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="text-accent hover:text-accent/80"><PackagePlus size={20} /></Button></TooltipTrigger><TooltipContent><p>Adicionar Estoque</p></TooltipContent></Tooltip>
