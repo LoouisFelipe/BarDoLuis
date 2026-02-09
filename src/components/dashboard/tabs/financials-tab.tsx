@@ -1,10 +1,10 @@
-
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { DateRange } from 'react-day-picker';
 import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ import {
     Info
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage } from '@/components/ui/form';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -50,7 +50,6 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Combobox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 
 interface ExpenseFormData {
     description: string;
@@ -301,7 +300,6 @@ export const FinancialsTab: React.FC = () => {
                                 filteredList.map(item => {
                                     const transaction = item as Transaction;
                                     
-                                    // Renderização para Clientes Devedores
                                     if (filter === 'fiado') {
                                         const customer = item as Customer;
                                         return (
@@ -319,7 +317,6 @@ export const FinancialsTab: React.FC = () => {
                                         );
                                     }
                                     
-                                    // Renderização para Transações
                                     const hasItems = transaction.items && transaction.items.length > 0;
                                     let icon;
                                     let description = transaction.description || '';
@@ -378,7 +375,7 @@ export const FinancialsTab: React.FC = () => {
                 </CardContent>
             </Card>
 
-            {/* Modal de Nova Despesa (Refatoração de UX) */}
+            {/* Modal de Nova Despesa */}
             <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
