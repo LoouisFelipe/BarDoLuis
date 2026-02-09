@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface OrderPaymentModalProps {
   open: boolean;
@@ -18,6 +18,7 @@ interface OrderPaymentModalProps {
     displayName: string;
     items: OrderItem[];
     total: number;
+    customerId: string | null;
   };
   onDeleteOrder: (orderId: string) => Promise<void>;
   onCloseAll: () => void; // Function to close all modals
@@ -34,8 +35,15 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   const { toast } = useToast();
 
   const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(order.customerId);
   const [processing, setProcessing] = useState(false);
+
+  // Sync selected customer if the order already has one
+  useEffect(() => {
+    if (order.customerId) {
+        setSelectedCustomerId(order.customerId);
+    }
+  }, [order.customerId]);
 
   const handleFinalize = async () => {
     if (paymentMethod === 'Fiado' && !selectedCustomerId) {
@@ -95,21 +103,26 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
             </Select>
           </div>
 
-          {paymentMethod === 'Fiado' && (
+          {(paymentMethod === 'Fiado' || order.customerId) && (
             <div className="w-full space-y-2">
               <Label htmlFor="customer-select">Cliente</Label>
-              <Select onValueChange={setSelectedCustomerId}>
+              <Select value={selectedCustomerId || ''} onValueChange={setSelectedCustomerId}>
                 <SelectTrigger id="customer-select">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((c: Customer) => (
                     <SelectItem key={c.id} value={c.id!}>
-                      {c.name} (Saldo: R$ {c.balance.toFixed(2)})
+                      {c.name} (Saldo: R$ {(c.balance || 0).toFixed(2)})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {order.customerId && (
+                <p className="text-[10px] text-accent font-bold uppercase">
+                  ✓ Cliente vinculado automaticamente à comanda.
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -26,6 +26,7 @@ export interface UseOpenOrdersResult {
   createOrder: (data: { displayName: string; customerId?: string | null }) => Promise<Order>;
   createOrderForNewCustomer: (customerName: string) => Promise<Order>;
   updateOrder: (orderId: string, items: OrderItem[]) => Promise<void>;
+  updateOrderCustomer: (orderId: string, customerId: string, displayName: string) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
 }
 
@@ -138,10 +139,27 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
     });
   }, [db]);
 
+  const updateOrderCustomer = useCallback(async (orderId: string, customerId: string, displayName: string) => {
+    const orderRef = doc(db, 'open_orders', orderId);
+    return updateDoc(orderRef, {
+        customerId,
+        displayName,
+    });
+  }, [db]);
+
   const deleteOrder = useCallback(async (orderId: string) => {
     const orderRef = doc(db, 'open_orders', orderId);
     return deleteDoc(orderRef);
   }, [db]);
 
-  return { openOrders, loading, error, createOrder, createOrderForNewCustomer, updateOrder, deleteOrder };
+  return { 
+    openOrders, 
+    loading, 
+    error, 
+    createOrder, 
+    createOrderForNewCustomer, 
+    updateOrder, 
+    updateOrderCustomer,
+    deleteOrder 
+  };
 };
