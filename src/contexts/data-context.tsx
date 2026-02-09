@@ -53,9 +53,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const db = useFirestore();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
-  const usersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'users') : null, [db, user]);
+  // CTO Rule: Só buscamos a lista de usuários se o usuário logado for Admin.
+  // Isso evita erros de permissão para waiters/cashiers e economiza leituras.
+  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [db, user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [db, user]);

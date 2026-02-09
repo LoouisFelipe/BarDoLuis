@@ -7,9 +7,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Permissões para o perfil do usuário
+    // Permissões para usuários: Staff pode listar para gerenciar cargos.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isStaff();
     }
 
     // Gestão de Produtos: Todos veem (para o cardápio), Staff edita.
