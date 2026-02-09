@@ -9,13 +9,12 @@ import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -25,7 +24,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { 
@@ -42,7 +40,7 @@ import {
     Info
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormControl, FormLabel } from '@/components/ui/form';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -146,7 +144,7 @@ export const FinancialsTab: React.FC = () => {
             reset({ description: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], category: '', replicate: false, monthsToReplicate: '11' });
             setIsExpenseModalOpen(false);
         } catch (error) {
-            // Erro tratado pelo DataContext
+            // Error handled by context
         } finally {
             setProcessing(false);
         }
@@ -158,7 +156,7 @@ export const FinancialsTab: React.FC = () => {
         try {
             await deleteTransaction(transactionToDelete.id);
         } catch (error) {
-            // Erro tratado pelo DataContext
+            // Error handled by context
         } finally {
             setProcessing(false);
             setTransactionToDelete(null);
@@ -262,7 +260,6 @@ export const FinancialsTab: React.FC = () => {
                                 </div>
                             ) : (
                                 filteredList.map(item => {
-                                    const transaction = item as Transaction;
                                     if (filter === 'fiado') {
                                         const customer = item as Customer;
                                         return (
@@ -279,9 +276,12 @@ export const FinancialsTab: React.FC = () => {
                                             </div>
                                         );
                                     }
+                                    
+                                    const transaction = item as Transaction;
                                     const hasItems = transaction.items && transaction.items.length > 0;
                                     let icon, desc = transaction.description || '', sub = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
                                     const color = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
+                                    
                                     switch (transaction.type) {
                                         case 'sale':
                                             icon = <ShoppingCart className="text-accent" size={20} />;
@@ -298,6 +298,7 @@ export const FinancialsTab: React.FC = () => {
                                             if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
                                             break;
                                     }
+                                    
                                     return (
                                         <div key={transaction.id} className={cn("group flex items-center p-4 rounded-lg bg-background border transition-all", hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10')} onClick={() => hasItems && handleRowClick(transaction)}>
                                             <div className="mr-4 p-2 bg-muted rounded-full">{icon}</div>
@@ -318,7 +319,7 @@ export const FinancialsTab: React.FC = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    )
+                                    );
                                 })
                             )}
                         </div>
@@ -335,7 +336,7 @@ export const FinancialsTab: React.FC = () => {
                         <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
                             <FormItem>
                                 <FormLabel>Tipo de Saída</FormLabel>
-                                <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value); form.setValue('category', ''); }} value={expenseType}>
+                                <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value as any); form.setValue('category', ''); }} value={expenseType}>
                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="variable">Despesa Variável</SelectItem>
