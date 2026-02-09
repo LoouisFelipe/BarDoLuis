@@ -66,7 +66,6 @@ export const FinancialsTab: React.FC = () => {
     const [date, setDate] = useState<DateRange | undefined>();
     const [filter, setFilter] = useState('all');
     
-    // UI States
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
@@ -137,41 +136,29 @@ export const FinancialsTab: React.FC = () => {
     const handleAddExpense = async (data: ExpenseFormData) => {
         const numAmount = parseFloat(data.amount);
         if (!data.description || !numAmount || numAmount <= 0 || !data.category) {
-            toast({
-                title: "Campos Inválidos",
-                description: "Por favor, preencha todos os campos obrigatórios.",
-                variant: "destructive",
-            });
+            toast({ title: "Campos Inválidos", description: "Preencha todos os campos obrigatórios.", variant: "destructive" });
             return;
         }
-        
         setProcessing(true);
         try {
             const replicateCount = data.replicate ? (parseInt(data.monthsToReplicate, 10) || 0) : 0;
             await addExpense(data.description, numAmount, data.category, data.expenseDate, replicateCount);
-            reset({ 
-                description: '', 
-                amount: '', 
-                expenseDate: new Date().toISOString().split('T')[0], 
-                category: '', 
-                replicate: false, 
-                monthsToReplicate: '11' 
-            });
+            reset({ description: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], category: '', replicate: false, monthsToReplicate: '11' });
             setIsExpenseModalOpen(false);
         } catch (error) {
-           console.error("Erro ao adicionar despesa.", error);
+            // Erro tratado pelo DataContext
         } finally {
             setProcessing(false);
         }
     };
     
     const handleDeleteTransaction = async () => {
-        if (!transactionToDelete || !transactionToDelete.id) return;
+        if (!transactionToDelete?.id) return;
         setProcessing(true);
         try {
             await deleteTransaction(transactionToDelete.id);
         } catch (error) {
-            console.error("Ocorreu um erro ao excluir a transação.", error);
+            // Erro tratado pelo DataContext
         } finally {
             setProcessing(false);
             setTransactionToDelete(null);
@@ -190,29 +177,25 @@ export const FinancialsTab: React.FC = () => {
         const fromDate = format(date.from, 'dd/MM/yy');
         const toDate = date.to ? format(date.to, 'dd/MM/yy') : fromDate;
         const period = fromDate === toDate ? fromDate : `de ${fromDate} a ${toDate}`;
-
         switch(filter) {
             case 'income': return `Entradas (Recebimentos) ${period}`;
             case 'expense': return `Saídas (Despesas) ${period}`;
             case 'sales': return `Vendas ${period}`;
-            case 'fiado': return `Clientes com Saldo Devedor (Total)`;
+            case 'fiado': return `Clientes com Saldo Devedor`;
             default: return `Todas as Transações ${period}`;
         }
     };
 
-    if (loading) {
-        return <div className="flex justify-center items-center h-full"><Spinner /></div>;
-    }
+    if (loading) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
 
     return (
         <div className="p-1 md:p-4 space-y-6">
-            {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
                 <div>
                     <h2 className="text-3xl font-bold text-foreground flex items-center">
                         <History className="mr-3 text-primary" /> Financeiro
                     </h2>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fluxo de Caixa e Inadimplência</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fluxo de Caixa</p>
                 </div>
                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                     <DateRangePicker date={date} onDateChange={setDate} className="w-full sm:w-auto" />
@@ -222,71 +205,52 @@ export const FinancialsTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* Summary Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <Button 
                     variant={filter === 'income' ? 'secondary' : 'outline'} 
                     onClick={() => setFilter('income')} 
-                    className={cn(
-                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
-                        filter === 'income' ? "border-accent" : "border-transparent"
-                    )}
+                    className={cn("h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all", filter === 'income' ? "border-accent" : "border-transparent")}
                 >
-                    <TrendingUp className="text-accent mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <TrendingUp className="text-accent mr-3 hidden sm:block" size={28}/>
                     <div> 
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Entradas (Período)</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Entradas</p>
                         <p className="text-xl md:text-2xl font-black text-accent">R$ {totalIncome.toFixed(2)}</p>
                     </div>
                 </Button>
-
                 <Button 
                     variant={filter === 'expense' ? 'secondary' : 'outline'} 
                     onClick={() => setFilter('expense')} 
-                    className={cn(
-                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
-                        filter === 'expense' ? "border-destructive" : "border-transparent"
-                    )}
+                    className={cn("h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all", filter === 'expense' ? "border-destructive" : "border-transparent")}
                 >
-                    <TrendingDown className="text-destructive mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <TrendingDown className="text-destructive mr-3 hidden sm:block" size={28}/>
                     <div>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saídas (Período)</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saídas</p>
                         <p className="text-xl md:text-2xl font-black text-destructive">R$ {totalExpense.toFixed(2)}</p>
                     </div>
                 </Button>
-
                 <div className="bg-card p-4 rounded-xl flex items-center border-2 border-transparent">
-                    <Scale className="text-primary mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <Scale className="text-primary mr-3 hidden sm:block" size={28}/>
                     <div>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saldo (Período)</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saldo</p>
                         <p className="text-xl md:text-2xl font-black text-primary">R$ {(totalIncome - totalExpense).toFixed(2)}</p>
                     </div>
                 </div>
-
                 <Button 
                     variant={filter === 'fiado' ? 'secondary' : 'outline'} 
                     onClick={() => setFilter('fiado')} 
-                    className={cn(
-                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
-                        filter === 'fiado' ? "border-yellow-400" : "border-transparent"
-                    )}
+                    className={cn("h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all", filter === 'fiado' ? "border-yellow-400" : "border-transparent")}
                 >
-                    <Users className="text-yellow-400 mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <Users className="text-yellow-400 mr-3 hidden sm:block" size={28}/>
                     <div>
-                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">A Receber (Total)</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">A Receber</p>
                         <p className="text-xl md:text-2xl font-black text-yellow-400">R$ {totalFiadoGeral.toFixed(2)}</p>
                     </div>
                 </Button>
             </div>
 
-            {/* Main Content Area */}
             <Card className="shadow-lg border-none bg-card">
                 <CardHeader className="border-b pb-4 bg-muted/20">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle className="text-xl">{getFilterTitle()}</CardTitle>
-                            <CardDescription>Detalhamento de todas as movimentações financeiras registradas.</CardDescription>
-                        </div>
-                    </div>
+                    <CardTitle className="text-xl">{getFilterTitle()}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <ScrollArea className="h-[60vh]">
@@ -294,12 +258,11 @@ export const FinancialsTab: React.FC = () => {
                             {filteredList.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
                                     <Info size={48} className="text-muted-foreground opacity-20" />
-                                    <p className="text-muted-foreground font-medium">Nenhuma transação encontrada para este filtro ou período.</p>
+                                    <p className="text-muted-foreground font-medium">Nenhuma transação encontrada.</p>
                                 </div>
                             ) : (
                                 filteredList.map(item => {
                                     const transaction = item as Transaction;
-                                    
                                     if (filter === 'fiado') {
                                         const customer = item as Customer;
                                         return (
@@ -307,56 +270,44 @@ export const FinancialsTab: React.FC = () => {
                                                 <Users className="mr-4 text-yellow-400" size={24} />
                                                 <div className="flex-grow">
                                                     <p className="font-bold text-sm">{customer.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">{customer.contact || 'Sem contato registrado'}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">{customer.contact || 'Sem contato'}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo devedor</p>
+                                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Dívida</p>
                                                     <p className="font-black text-xl text-yellow-400">R$ {(customer.balance || 0).toFixed(2)}</p>
                                                 </div>
                                             </div>
                                         );
                                     }
-                                    
                                     const hasItems = transaction.items && transaction.items.length > 0;
-                                    let icon;
-                                    let description = transaction.description || '';
-                                    let subDescription = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
-                                    const amountColor = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
-
+                                    let icon, desc = transaction.description || '', sub = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
+                                    const color = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
                                     switch (transaction.type) {
                                         case 'sale':
                                             icon = <ShoppingCart className="text-accent" size={20} />;
-                                            const customerName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
-                                            description = customerName ? `Venda: ${customerName}` : 'Venda de Balcão';
-                                            if (transaction.paymentMethod) subDescription += ` • ${transaction.paymentMethod}`;
+                                            const cName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
+                                            desc = cName ? `Venda: ${cName}` : 'Venda Balcão';
+                                            if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
                                             break;
                                         case 'expense':
                                             icon = <ArrowDownCircle className="text-destructive" size={20} />;
-                                            if (transaction.expenseCategory) subDescription += ` • ${transaction.expenseCategory}`;
+                                            if (transaction.expenseCategory) sub += ` • ${transaction.expenseCategory}`;
                                             break;
                                         case 'payment':
                                             icon = <HandCoins className="text-primary" size={20} />;
-                                            if (transaction.paymentMethod) subDescription += ` • ${transaction.paymentMethod}`;
+                                            if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
                                             break;
                                     }
-
                                     return (
-                                        <div 
-                                            key={transaction.id}
-                                            className={cn(
-                                                "group flex items-center p-4 rounded-lg bg-background border transition-all",
-                                                hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10'
-                                            )}
-                                            onClick={() => hasItems && handleRowClick(transaction)}
-                                        >
+                                        <div key={transaction.id} className={cn("group flex items-center p-4 rounded-lg bg-background border transition-all", hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10')} onClick={() => hasItems && handleRowClick(transaction)}>
                                             <div className="mr-4 p-2 bg-muted rounded-full">{icon}</div>
                                             <div className="flex-grow min-w-0">
-                                                <p className="font-bold text-sm truncate">{description}</p>
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">{subDescription}</p>
+                                                <p className="font-bold text-sm truncate">{desc}</p>
+                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">{sub}</p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="text-right">
-                                                    <span className={cn("font-black text-lg", amountColor)}>
+                                                    <span className={cn("font-black text-lg", color)}>
                                                         {transaction.type === 'expense' ? '-' : '+'} R$ {transaction.total.toFixed(2)}
                                                     </span>
                                                 </div>
@@ -375,160 +326,73 @@ export const FinancialsTab: React.FC = () => {
                 </CardContent>
             </Card>
 
-            {/* Modal de Nova Despesa */}
             <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <TrendingDown className="text-destructive" /> Registrar Saída
-                        </DialogTitle>
-                        <DialogDescription>Preencha os dados da despesa para atualizar o fluxo de caixa.</DialogDescription>
+                        <DialogTitle className="flex items-center gap-2"><TrendingDown className="text-destructive" /> Registrar Saída</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
                             <FormItem>
                                 <FormLabel>Tipo de Saída</FormLabel>
-                                <Select onValueChange={(value: 'variable' | 'fixed') => {
-                                    setExpenseType(value);
-                                    form.setValue('category', '');
-                                    if (value === 'variable') form.setValue('replicate', false);
-                                }} value={expenseType}>
+                                <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value); form.setValue('category', ''); }} value={expenseType}>
                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="variable">Despesa Variável (Insumos, Manutenção)</SelectItem>
-                                        <SelectItem value="fixed">Custo Fixo (Aluguel, Luz, etc)</SelectItem>
+                                        <SelectItem value="variable">Despesa Variável</SelectItem>
+                                        <SelectItem value="fixed">Custo Fixo</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </FormItem>
-                            
-                            <FormField
-                                control={control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Descrição</FormLabel>
-                                        <FormControl><Input placeholder="Ex: Compra de Gelo" required {...field} /></FormControl>
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={control}
-                                name="category"
-                                render={({ field }) => {
-                                    const categories = expenseType === 'fixed' ? fixedCategories : variableCategories;
-                                    const categoryOptions = Object.entries(categories).map(([value, label]) => ({ value, label }));
-                                    return (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Categoria</FormLabel>
-                                            <FormControl>
-                                                <Combobox
-                                                    options={categoryOptions}
-                                                    value={field.value}
-                                                    onChange={(val, isCreation) => {
-                                                        field.onChange(val);
-                                                        if (isCreation) {
-                                                            if (expenseType === 'fixed') setFixedCategories(prev => ({...prev, [val]: val}));
-                                                            else setVariableCategories(prev => ({...prev, [val]: val}));
-                                                        }
-                                                    }}
-                                                    placeholder="Selecione ou crie..."
-                                                    createLabel="Criar categoria:"
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )
-                                }}
-                            />
-
+                            <FormField control={control} name="description" render={({ field }) => (
+                                <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input placeholder="Ex: Gelo" required {...field} /></FormControl></FormItem>
+                            )}/>
+                            <FormField control={control} name="category" render={({ field }) => {
+                                const cats = expenseType === 'fixed' ? fixedCategories : variableCategories;
+                                return (
+                                    <FormItem className="flex flex-col"><FormLabel>Categoria</FormLabel><FormControl><Combobox options={Object.entries(cats).map(([v, l]) => ({ value: v, label: l }))} value={field.value} onChange={(val, isCreation) => { field.onChange(val); if (isCreation) { if (expenseType === 'fixed') setFixedCategories(p => ({...p, [val]: val})); else setVariableCategories(p => ({...p, [val]: val})); } }} placeholder="Selecione..." createLabel="Criar:" /></FormControl></FormItem>
+                                )
+                            }}/>
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                    control={control}
-                                    name="amount"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Valor (R$)</FormLabel>
-                                            <FormControl><Input type="number" step="0.01" placeholder="0.00" required {...field} /></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="expenseDate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Data</FormLabel>
-                                            <FormControl><Input type="date" required {...field} /></FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                                <FormField control={control} name="amount" render={({ field }) => (
+                                    <FormItem><FormLabel>Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" required {...field} /></FormControl></FormItem>
+                                )}/>
+                                <FormField control={form.control} name="expenseDate" render={({ field }) => (
+                                    <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" required {...field} /></FormControl></FormItem>
+                                )}/>
                             </div>
-
                             {expenseType === 'fixed' && (
                                 <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
-                                    <FormField
-                                        control={control}
-                                        name="replicate"
-                                        render={({ field }) => (
-                                            <FormItem className="flex items-center justify-between">
-                                                <div className="space-y-0.5"><FormLabel>Replicar mensalmente?</FormLabel></div>
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange}/></FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                    {isReplicating && (
-                                        <FormField
-                                            control={control}
-                                            name="monthsToReplicate"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Quantos meses?</FormLabel>
-                                                    <FormControl><Input type="number" {...field} /></FormControl>
-                                                </FormItem>
-                                            )}
-                                        />
-                                    )}
+                                    <FormField control={control} name="replicate" render={({ field }) => (
+                                        <FormItem className="flex items-center justify-between"><FormLabel>Replicar mensalmente?</FormLabel><FormControl><Switch checked={field.value} onCheckedChange={field.onChange}/></FormControl></FormItem>
+                                    )}/>
+                                    {isReplicating && <FormField control={control} name="monthsToReplicate" render={({ field }) => (
+                                        <FormItem><FormLabel>Quantos meses?</FormLabel><FormControl><Input type="number" {...field} /></FormControl></FormItem>
+                                    )}/>}
                                 </div>
                             )}
-
                             <DialogFooter className="pt-4">
                                 <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)}>Cancelar</Button>
-                                <Button type="submit" disabled={processing} className="bg-destructive text-white">
-                                    {processing ? <Spinner size="h-4 w-4"/> : "Confirmar Despesa"}
-                                </Button>
+                                <Button type="submit" disabled={processing} className="bg-destructive text-white">{processing ? <Spinner size="h-4 w-4"/> : "Confirmar"}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
              
-             {/* Alert Deletar */}
              {transactionToDelete && (
                 <AlertDialog open={!!transactionToDelete} onOpenChange={() => setTransactionToDelete(null)}>
                     <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir Transação?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Essa ação removerá permanentemente o lançamento de <strong>{transactionToDelete.description}</strong> no valor de R$ {transactionToDelete.total.toFixed(2)}.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
+                        <AlertDialogHeader><AlertDialogTitle>Excluir Transação?</AlertDialogTitle></AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteTransaction} className="bg-destructive hover:bg-destructive/80">
-                                {processing ? <Spinner /> : 'Confirmar Exclusão'}
-                            </AlertDialogAction>
+                            <AlertDialogAction onClick={handleDeleteTransaction} className="bg-destructive hover:bg-destructive/80">{processing ? <Spinner /> : 'Excluir'}</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
             )}
 
-            {/* Modal Detalhes */}
             {selectedTransaction && (
-                <TransactionDetailModal
-                    transaction={selectedTransaction}
-                    open={!!selectedTransaction}
-                    onOpenChange={() => setSelectedTransaction(null)}
-                />
+                <TransactionDetailModal transaction={selectedTransaction} open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)} />
             )}
         </div>
     );
