@@ -26,7 +26,6 @@ export const useReportData = ({
   periodGoal,
 }: UseReportDataProps) => {
   return useMemo(() => {
-    // CFO Rule: Se a data não estiver montada no cliente, retornamos nulo para evitar erros de hidratação
     if (!date?.from) return null;
 
     const from = startOfDay(date.from);
@@ -38,19 +37,17 @@ export const useReportData = ({
       return timestamp && isWithinInterval(timestamp, interval);
     });
 
-    // --- Lógica de Meta Dinâmica baseada em Custos (CFO/CEO Rule) ---
+    // --- Meta Dinâmica baseada em Custos ---
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = getDaysInMonth(from);
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
-    // Soma as despesas do mês corrente para definir o ponto de equilíbrio
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
     }).reduce((acc, t) => acc + (t.total || 0), 0);
 
-    // Fallback estratégico se não houver despesas lançadas
     const defaultMonthlyGoal = 30000; 
     const effectiveMonthlyExpenses = totalMonthlyExpenses > 0 ? totalMonthlyExpenses : defaultMonthlyGoal;
 
@@ -85,7 +82,13 @@ export const useReportData = ({
             t.items.forEach((item: any) => {
               const product = (products || []).find((p) => p.id === item.productId);
               if (product) {
-                cogs += (product.costPrice || 0) * (item.quantity || 1);
+                // CFO: Cálculo de COGS fracionado para doses
+                const baseUnitSize = product.baseUnitSize || 1;
+                const costPerMl = (product.costPrice || 0) / baseUnitSize;
+                const itemSize = item.size || 1; // Se não tiver size, assume 1 (unidade)
+                const effectiveCost = item.size ? (costPerMl * itemSize) : (product.costPrice || 0);
+                
+                cogs += effectiveCost * (item.quantity || 1);
               }
             });
           }
@@ -141,10 +144,17 @@ export const useReportData = ({
         if (t.items) {
           t.items.forEach((item: any) => {
             topProductsMap.set(item.name, (topProductsMap.get(item.name) || 0) + (item.quantity || 1));
+            
+            // CFO: Lucro Brutal detalhado por produto
             const product = (products || []).find((p) => p.id === item.productId);
-            const cost = product ? (product.costPrice || 0) : 0;
-            const profit = ((item.unitPrice || 0) - cost) * (item.quantity || 1);
-            profitByProductMap.set(item.name, (profitByProductMap.get(item.name) || 0) + profit);
+            if (product) {
+                const baseUnitSize = product.baseUnitSize || 1;
+                const costPerMl = (product.costPrice || 0) / baseUnitSize;
+                const itemSize = item.size || 1;
+                const effectiveCost = item.size ? (costPerMl * itemSize) : (product.costPrice || 0);
+                const profit = ((item.unitPrice || 0) - effectiveCost) * (item.quantity || 1);
+                profitByProductMap.set(item.name, (profitByProductMap.get(item.name) || 0) + profit);
+            }
           });
         }
       } else if (t.type === 'payment') {

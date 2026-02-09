@@ -120,7 +120,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const collectionRef = collection(db, path);
     const docRef = id ? doc(collectionRef, id) : doc(collectionRef);
     
-    // Limpeza profunda: garante que não enviamos undefined nem o próprio ID dentro do corpo do documento
     const cleanData: any = {};
     Object.entries(data).forEach(([key, value]) => {
       if (key !== 'id' && value !== undefined) {
@@ -240,7 +239,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             id: expenseRef.id,
             timestamp: serverTimestamp(),
             type: 'expense',
-            description: `Compra de Fornecedor: ${supplierName}`,
+            description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`,
             total: totalCost,
             expenseCategory: 'Insumos',
             items: JSON.parse(JSON.stringify(items)),
@@ -265,13 +264,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const uniqueProductIds = Array.from(new Set(order.items.map(i => i.productId)));
 
         return runTransaction(db, async (t) => {
+            // CTO: Otimização de leitura de estoque para garantir consistência
             await Promise.all(uniqueProductIds.map(id => t.get(doc(db, 'products', id))));
 
             const saleRef = doc(collection(db, 'transactions'));
             
             order.items.forEach(item => {
                 const productRef = doc(db, 'products', item.productId);
-                t.update(productRef, { stock: increment(-item.quantity) });
+                // CTO: Decremento inteligente - Se for dose, subtrai ML, se for unitário, subtrai 1.
+                const decrementAmount = item.size ? item.size * item.quantity : item.quantity;
+                t.update(productRef, { stock: increment(-decrementAmount) });
             });
 
             if (paymentMethod === 'Fiado' && customerId) {
