@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
 
 interface OrderManagementModalProps {
   open: boolean;
@@ -35,6 +35,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   onDeleteOrder,
 }) => {
   const { products, customers, saveCustomer, loading: productsLoading } = useData();
+  const { updateOrderCustomer } = useOpenOrders();
   const { toast } = useToast();
   
   const [currentItems, setCurrentItems] = useState<OrderItem[]>([]);
@@ -61,6 +62,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setIsPaymentModalOpen(false);
       setIsLinkCustomerOpen(false);
       setSearchTerm('');
+      setSelectedCustomerId(existingOrder.customerId || '');
     }
   }, [open, existingOrder]);
   
@@ -177,33 +179,24 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 setProcessing(false);
                 return;
             }
-            customerId = await saveCustomer({ name: newCustomerName.trim(), contact: '', creditLimit: 0 });
+            customerId = await saveCustomer({ name: newCustomerName.trim(), contact: '', creditLimit: null });
             name = newCustomerName.trim();
         }
 
-        // Import do hook global para usar o update de cliente
-        // Como o updateOrderCustomer está disponível em useOpenOrders, precisamos acessá-lo.
-        // Mas o hook está sendo passado como prop ou via contexto? No layout ele usa useOpenOrders.
-        // Aqui, precisamos de uma forma de disparar esse update. 
-        // Vou usar o motor de dados genérico se não tiver o hook disponível localmente.
-        // Na verdade, a prop onUpdateOrder pode ser estendida ou usamos o genericSave direto se necessário.
-        // Para seguir o padrão do CTO, vou emitir um toast sugerindo que o sistema agora identificou o cliente.
-        
-        // CORREÇÃO: Vamos atualizar o displayName e customerId via runTransaction ou similar se necessário, 
-        // mas aqui vamos delegar para o componente pai ou usar o generic do DataContext.
-        // Para simplificar agora, vamos atualizar o display e o ID via DataContext generic.
+        await updateOrderCustomer(existingOrder.id, customerId, name);
         
         toast({ title: "Cliente Vinculado!", description: `Comanda agora pertence a ${name}` });
         setIsLinkCustomerOpen(false);
-        // Recarrega ou fecha para refletir mudanças (o onSnapshot cuidará do resto se o pai atualizar)
-        // Por agora, o usuário precisa salvar a comanda para consolidar se mudarmos o ID aqui.
-        // Mas o ideal é que o vínculo seja imediato.
-        
     } catch (error) {
         console.error(error);
+        toast({ title: "Erro", description: "Falha ao vincular cliente.", variant: "destructive" });
     } finally {
         setProcessing(false);
     }
+  };
+
+  const handleOpenPaymentModal = () => {
+    setIsPaymentModalOpen(true);
   };
 
   if (!open) return null; 
@@ -325,7 +318,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                                   "text-[10px] font-bold",
                                   product.stock <= 5 ? "text-destructive" : "text-muted-foreground"
                                 )}>
-                                  {product.stock} un.
+                                  {product.stock} {product.saleType === 'dose' ? 'ml' : 'un.'}
                                 </span>
                               )}
                             </div>
