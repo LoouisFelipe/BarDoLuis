@@ -1,0 +1,40 @@
+# Dependências (O maior vilão)
+/node_modules
+/.pnp
+.pnp.js
+
+# Testes e Build (Lixo temporário)
+/coverage
+/.next/
+/out/
+/build
+.firebase
+/.firebase
+
+# Arquivos de Sistema e IDE
+.DS_Store
+*.pem
+.vscode/
+.idx/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log*
+
+# Variáveis de Ambiente (SEGURANÇA MÁXIMA)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Arquivos temporários de TypeScript
+*.tsbuildinfo
+next-env.d.ts.firebase/
+.firebase/
+.firebase/
+.firebase/
+.next/
+node_modules/

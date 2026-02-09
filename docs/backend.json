@@ -1,0 +1,262 @@
+{
+  "entities": {
+    "Supplier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Supplier",
+      "type": "object",
+      "description": "Represents a supplier with their contact information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Supplier entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the supplier."
+        },
+        "contactName": {
+          "type": "string",
+          "description": "Contact person's name at the supplier."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Supplier's phone number."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactName",
+        "phoneNumber"
+      ]
+    },
+    "Purchase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Purchase",
+      "type": "object",
+      "description": "Represents a purchase record, linking to a supplier and products.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Purchase entity."
+        },
+        "supplierId": {
+          "type": "string",
+          "description": "Reference to Supplier. (Relationship: Supplier 1:N Purchase)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N Purchase)"
+        },
+        "purchaseDate": {
+          "type": "string",
+          "description": "Date of the purchase.",
+          "format": "date-time"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of product purchased."
+        }
+      },
+      "required": [
+        "id",
+        "supplierId",
+        "productId",
+        "purchaseDate",
+        "quantity"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product in the inventory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the product."
+        },
+        "stockLevel": {
+          "type": "number",
+          "description": "Current stock level of the product."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Price of one unit of the product."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "stockLevel",
+        "unitPrice"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer with their contact details and balance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Customer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the customer."
+        },
+        "contactDetails": {
+          "type": "string",
+          "description": "Contact details of the customer."
+        },
+        "outstandingBalance": {
+          "type": "number",
+          "description": "Outstanding balance for credit sales."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactDetails",
+        "outstandingBalance"
+      ]
+    },
+    "FinancialTransaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialTransaction",
+      "type": "object",
+      "description": "Represents a financial transaction, categorized as income or expense.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the FinancialTransaction entity."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "Date of the transaction.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the transaction."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of transaction (income or expense)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the financial transaction"
+        }
+      },
+      "required": [
+        "id",
+        "transactionDate",
+        "amount",
+        "type",
+        "description"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/suppliers/{supplierId}",
+        "definition": {
+          "entityName": "Supplier",
+          "schema": {
+            "$ref": "#/backend/entities/Supplier"
+          },
+          "description": "Stores supplier information.",
+          "params": [
+            {
+              "name": "supplierId",
+              "description": "Unique identifier for the supplier."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product information.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "Unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/purchases/{purchaseId}",
+        "definition": {
+          "entityName": "Purchase",
+          "schema": {
+            "$ref": "#/backend/entities/Purchase"
+          },
+          "description": "Stores purchase records.",
+          "params": [
+            {
+              "name": "purchaseId",
+              "description": "Unique identifier for the purchase."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer information.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "Unique identifier for the customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/financial_transactions/{transactionId}",
+        "definition": {
+          "entityName": "FinancialTransaction",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialTransaction"
+          },
+          "description": "Stores financial transaction records.",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "Unique identifier for the financial transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore database structure for 'BarDoLuis' is designed to ensure security, scalability, and ease of debugging, adhering to the principles of Authorization Independence and Structural Segregation. We avoid hierarchical authorization dependencies by denormalizing authorization data where needed. The structure facilitates clear authorization rules and supports secure list operations (QAPs).  The database includes collections for Suppliers, Products, Purchases, Customers, and Financial Transactions. User authentication is handled via password and anonymous auth."
+  }
+}

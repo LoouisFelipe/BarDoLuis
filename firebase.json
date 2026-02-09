@@ -1,0 +1,19 @@
+{
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  },
+  "firestore": {
+    "database": "bardoluis",
+    "location": "us-central1",
+    "rules": "src/firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

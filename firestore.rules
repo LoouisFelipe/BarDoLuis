@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isStaff() {
+      return request.auth != null;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if isStaff();
+    }
+
+    match /transactions/{transactionId} {
+      allow read, write: if isStaff();
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
