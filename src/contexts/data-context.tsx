@@ -239,11 +239,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             id: expenseRef.id,
             timestamp: serverTimestamp(),
             type: 'expense',
-            description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`,
+            description: `Compra de Fornecedor: ${supplierName}`,
             total: totalCost,
             expenseCategory: 'Insumos',
             items: JSON.parse(JSON.stringify(items)),
             supplierId,
+            userId: user?.uid || null,
         });
 
         for (const item of items) {
