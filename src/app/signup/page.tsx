@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Eye, EyeOff } from 'lucide-react'; // CPO: Assumindo que 'lucide-react' está instalado para ícones
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -18,6 +19,7 @@ type FormData = {
   name: string;
   email: string;
   password: string;
+  confirmPassword: string; // CPO: Campo para confirmar senha
 };
 
 export default function SignupPage() {
@@ -26,9 +28,20 @@ export default function SignupPage() {
   const { toast } = useToast();
   const auth = useFirebaseAuth();
   const db = useFirestore();
+  const [showPassword, setShowPassword] = useState(false); // CPO: Estado para alternar visibilidade da senha
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // CPO: Estado para alternar visibilidade da senha de confirmação
 
   const onSignup = async (data: FormData) => {
     try {
+      if (data.password !== data.confirmPassword) { // CPO: Validação de confirmação de senha
+        toast({
+          title: 'Erro no cadastro',
+          description: 'As senhas não coincidem.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 

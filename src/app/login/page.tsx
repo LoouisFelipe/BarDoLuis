@@ -1,6 +1,5 @@
-
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Eye, EyeOff } from 'lucide-react'; // CPO: Assumindo que 'lucide-react' está instalado para ícones
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -21,6 +21,7 @@ type FormData = {
 
 export default function LoginPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>();
+  const [showPassword, setShowPassword] = useState(false); // CPO: Estado para alternar visibilidade da senha
   const router = useRouter();
   const { toast } = useToast();
   const auth = useFirebaseAuth();
@@ -105,6 +106,9 @@ export default function LoginPage() {
                 Criar nova conta
               </Link>
             </p>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline font-semibold">
+              Esqueceu a senha? {/* CPO: Link para recuperação de senha (a rota /forgot-password precisaria ser criada) */}
+            </Link>
         </CardFooter>
       </Card>
     </div>

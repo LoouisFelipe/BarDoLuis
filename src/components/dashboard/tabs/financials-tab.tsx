@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, Customer } from '@/lib/schemas';
@@ -8,7 +9,7 @@ import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fn
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +20,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, History, TrendingUp, TrendingDown, Scale, Users, ShoppingCart, ArrowDownCircle, HandCoins } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { 
+    Trash2, 
+    History, 
+    TrendingUp, 
+    TrendingDown, 
+    Scale, 
+    Users, 
+    ShoppingCart, 
+    ArrowDownCircle, 
+    HandCoins, 
+    PlusCircle,
+    Info
+} from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal';
@@ -46,8 +67,8 @@ export const FinancialsTab: React.FC = () => {
     const [date, setDate] = useState<DateRange | undefined>();
     const [filter, setFilter] = useState('all');
     
-    const customersWithBalance = useMemo(() => (customers || []).filter(c => c.balance && c.balance > 0), [customers]);
-    
+    // UI States
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -75,7 +96,6 @@ export const FinancialsTab: React.FC = () => {
         setValue('expenseDate', today.toISOString().split('T')[0]);
     }, [setValue]);
 
-
     const filteredTransactions = useMemo(() => {
         if (!date?.from) return [];
         const interval = { start: startOfDay(date.from), end: endOfDay(date.to || date.from) };
@@ -98,6 +118,7 @@ export const FinancialsTab: React.FC = () => {
         }, { totalIncome: 0, totalExpense: 0 });
     }, [filteredTransactions]);
 
+    const customersWithBalance = useMemo(() => (customers || []).filter(c => (c.balance || 0) > 0), [customers]);
     const totalFiadoGeral = useMemo(() => customersWithBalance.reduce((sum, c) => sum + (c.balance || 0), 0), [customersWithBalance]);
 
     const filteredList = useMemo(() => {
@@ -129,7 +150,15 @@ export const FinancialsTab: React.FC = () => {
         try {
             const replicateCount = data.replicate ? (parseInt(data.monthsToReplicate, 10) || 0) : 0;
             await addExpense(data.description, numAmount, data.category, data.expenseDate, replicateCount);
-            reset({ description: '', amount: '', expenseDate: date?.to?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0], category: '', replicate: false, monthsToReplicate: '11' });
+            reset({ 
+                description: '', 
+                amount: '', 
+                expenseDate: new Date().toISOString().split('T')[0], 
+                category: '', 
+                replicate: false, 
+                monthsToReplicate: '11' 
+            });
+            setIsExpenseModalOpen(false);
         } catch (error) {
            console.error("Erro ao adicionar despesa.", error);
         } finally {
@@ -155,7 +184,7 @@ export const FinancialsTab: React.FC = () => {
         if(transaction.items && transaction.items.length > 0) {
             setSelectedTransaction(transaction);
         }
-    }
+    };
 
     const getFilterTitle = () => {
         if (!date?.from) return "Carregando...";
@@ -170,7 +199,7 @@ export const FinancialsTab: React.FC = () => {
             case 'fiado': return `Clientes com Saldo Devedor (Total)`;
             default: return `Todas as Transações ${period}`;
         }
-    }
+    };
 
     if (loading) {
         return <div className="flex justify-center items-center h-full"><Spinner /></div>;
@@ -178,249 +207,312 @@ export const FinancialsTab: React.FC = () => {
 
     return (
         <div className="p-1 md:p-4 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <h2 className="text-3xl font-bold text-foreground flex items-center"><History className="mr-3" /> Financeiro</h2>
-                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
+                <div>
+                    <h2 className="text-3xl font-bold text-foreground flex items-center">
+                        <History className="mr-3 text-primary" /> Financeiro
+                    </h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fluxo de Caixa e Inadimplência</p>
+                </div>
+                 <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                     <DateRangePicker date={date} onDateChange={setDate} className="w-full sm:w-auto" />
+                    <Button onClick={() => setIsExpenseModalOpen(true)} className="w-full sm:w-auto bg-destructive hover:bg-destructive/90 text-white font-bold gap-2">
+                        <PlusCircle size={18} /> Nova Despesa
+                    </Button>
                 </div>
             </div>
+
+            {/* Summary Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-                <Button variant={filter === 'income' ? 'secondary' : 'outline'} onClick={() => setFilter('income')} className="h-auto bg-card p-3 rounded-xl flex items-center text-left hover:bg-secondary"><TrendingUp className="text-accent mr-2 md:mr-4" size={24}/><div> <p className="text-xs md:text-sm text-muted-foreground">Entradas (Período)</p><p className="text-lg md:text-2xl font-bold text-accent">R$ {totalIncome.toFixed(2)}</p></div></Button>
-                <Button variant={filter === 'expense' ? 'secondary' : 'outline'} onClick={() => setFilter('expense')} className="h-auto bg-card p-3 rounded-xl flex items-center text-left hover:bg-secondary"><TrendingDown className="text-destructive mr-2 md:mr-4" size={24}/><div ><p className="text-xs md:text-sm text-muted-foreground">Saídas (Período)</p><p className="text-lg md:text-2xl font-bold text-destructive">R$ {totalExpense.toFixed(2)}</p></div></Button>
-                <Card className="p-3 rounded-xl flex items-center"><Scale className="text-primary mr-2 md:mr-4" size={24}/><div ><p className="text-xs md:text-sm text-muted-foreground">Saldo (Período)</p><p className="text-lg md:text-2xl font-bold text-primary">R$ {(totalIncome - totalExpense).toFixed(2)}</p></div></Card>
-                <Button variant={filter === 'fiado' ? 'secondary' : 'outline'} onClick={() => setFilter('fiado')} className="h-auto bg-card p-3 rounded-xl flex items-center text-left hover:bg-secondary"><Users className="text-yellow-400 mr-2 md:mr-4" size={24}/><div ><p className="text-xs md:text-sm text-muted-foreground">A Receber (Total)</p><p className="text-lg md:text-2xl font-bold text-yellow-400">R$ {totalFiadoGeral.toFixed(2)}</p></div></Button>
+                <Button 
+                    variant={filter === 'income' ? 'secondary' : 'outline'} 
+                    onClick={() => setFilter('income')} 
+                    className={cn(
+                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
+                        filter === 'income' ? "border-accent" : "border-transparent"
+                    )}
+                >
+                    <TrendingUp className="text-accent mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <div> 
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Entradas (Período)</p>
+                        <p className="text-xl md:text-2xl font-black text-accent">R$ {totalIncome.toFixed(2)}</p>
+                    </div>
+                </Button>
+
+                <Button 
+                    variant={filter === 'expense' ? 'secondary' : 'outline'} 
+                    onClick={() => setFilter('expense')} 
+                    className={cn(
+                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
+                        filter === 'expense' ? "border-destructive" : "border-transparent"
+                    )}
+                >
+                    <TrendingDown className="text-destructive mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saídas (Período)</p>
+                        <p className="text-xl md:text-2xl font-black text-destructive">R$ {totalExpense.toFixed(2)}</p>
+                    </div>
+                </Button>
+
+                <div className="bg-card p-4 rounded-xl flex items-center border-2 border-transparent">
+                    <Scale className="text-primary mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saldo (Período)</p>
+                        <p className="text-xl md:text-2xl font-black text-primary">R$ {(totalIncome - totalExpense).toFixed(2)}</p>
+                    </div>
+                </div>
+
+                <Button 
+                    variant={filter === 'fiado' ? 'secondary' : 'outline'} 
+                    onClick={() => setFilter('fiado')} 
+                    className={cn(
+                        "h-auto bg-card p-4 rounded-xl flex items-center text-left hover:bg-secondary border-2 transition-all",
+                        filter === 'fiado' ? "border-yellow-400" : "border-transparent"
+                    )}
+                >
+                    <Users className="text-yellow-400 mr-3 md:mr-4 hidden sm:block" size={28}/>
+                    <div>
+                        <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">A Receber (Total)</p>
+                        <p className="text-xl md:text-2xl font-black text-yellow-400">R$ {totalFiadoGeral.toFixed(2)}</p>
+                    </div>
+                </Button>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader><CardTitle>Registrar Saída Financeira</CardTitle></CardHeader>
-                    <CardContent>
-                        <Form {...form}>
-                            <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4">
-                                <FormItem>
-                                    <FormLabel>Tipo de Saída</FormLabel>
-                                    <Select onValueChange={(value: 'variable' | 'fixed') => {
-                                        setExpenseType(value);
-                                        form.setValue('category', '');
-                                        if (value === 'variable') form.setValue('replicate', false);
-                                    }} value={expenseType}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="variable">Despesa Variável/Operacional</SelectItem>
-                                            <SelectItem value="fixed">Custo Fixo Mensal</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                        Custos fixos são usados para calcular metas no Cockpit.
-                                    </FormDescription>
-                                </FormItem>
+
+            {/* Main Content Area */}
+            <Card className="shadow-lg border-none bg-card">
+                <CardHeader className="border-b pb-4 bg-muted/20">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle className="text-xl">{getFilterTitle()}</CardTitle>
+                            <CardDescription>Detalhamento de todas as movimentações financeiras registradas.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <ScrollArea className="h-[60vh]">
+                        <div className="p-4 space-y-2">
+                            {filteredList.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                    <Info size={48} className="text-muted-foreground opacity-20" />
+                                    <p className="text-muted-foreground font-medium">Nenhuma transação encontrada para este filtro ou período.</p>
+                                </div>
+                            ) : (
+                                filteredList.map(item => {
+                                    const transaction = item as Transaction;
+                                    
+                                    // Renderização para Clientes Devedores
+                                    if (filter === 'fiado') {
+                                        const customer = item as Customer;
+                                        return (
+                                            <div key={customer.id} className="flex items-center p-4 rounded-lg bg-background border hover:border-yellow-400 transition-colors">
+                                                <Users className="mr-4 text-yellow-400" size={24} />
+                                                <div className="flex-grow">
+                                                    <p className="font-bold text-sm">{customer.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">{customer.contact || 'Sem contato registrado'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[10px] text-muted-foreground font-bold uppercase">Saldo devedor</p>
+                                                    <p className="font-black text-xl text-yellow-400">R$ {(customer.balance || 0).toFixed(2)}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    // Renderização para Transações
+                                    const hasItems = transaction.items && transaction.items.length > 0;
+                                    let icon;
+                                    let description = transaction.description || '';
+                                    let subDescription = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
+                                    const amountColor = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
+
+                                    switch (transaction.type) {
+                                        case 'sale':
+                                            icon = <ShoppingCart className="text-accent" size={20} />;
+                                            const customerName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
+                                            description = customerName ? `Venda: ${customerName}` : 'Venda de Balcão';
+                                            if (transaction.paymentMethod) subDescription += ` • ${transaction.paymentMethod}`;
+                                            break;
+                                        case 'expense':
+                                            icon = <ArrowDownCircle className="text-destructive" size={20} />;
+                                            if (transaction.expenseCategory) subDescription += ` • ${transaction.expenseCategory}`;
+                                            break;
+                                        case 'payment':
+                                            icon = <HandCoins className="text-primary" size={20} />;
+                                            if (transaction.paymentMethod) subDescription += ` • ${transaction.paymentMethod}`;
+                                            break;
+                                    }
+
+                                    return (
+                                        <div 
+                                            key={transaction.id}
+                                            className={cn(
+                                                "group flex items-center p-4 rounded-lg bg-background border transition-all",
+                                                hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10'
+                                            )}
+                                            onClick={() => hasItems && handleRowClick(transaction)}
+                                        >
+                                            <div className="mr-4 p-2 bg-muted rounded-full">{icon}</div>
+                                            <div className="flex-grow min-w-0">
+                                                <p className="font-bold text-sm truncate">{description}</p>
+                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">{subDescription}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <span className={cn("font-black text-lg", amountColor)}>
+                                                        {transaction.type === 'expense' ? '-' : '+'} R$ {transaction.total.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                {transaction.type === 'expense' && (
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={(e) => {e.stopPropagation(); setTransactionToDelete(transaction)}}>
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+
+            {/* Modal de Nova Despesa (Refatoração de UX) */}
+            <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <TrendingDown className="text-destructive" /> Registrar Saída
+                        </DialogTitle>
+                        <DialogDescription>Preencha os dados da despesa para atualizar o fluxo de caixa.</DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
+                            <FormItem>
+                                <FormLabel>Tipo de Saída</FormLabel>
+                                <Select onValueChange={(value: 'variable' | 'fixed') => {
+                                    setExpenseType(value);
+                                    form.setValue('category', '');
+                                    if (value === 'variable') form.setValue('replicate', false);
+                                }} value={expenseType}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="variable">Despesa Variável (Insumos, Manutenção)</SelectItem>
+                                        <SelectItem value="fixed">Custo Fixo (Aluguel, Luz, etc)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FormItem>
+                            
+                            <FormField
+                                control={control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Descrição</FormLabel>
+                                        <FormControl><Input placeholder="Ex: Compra de Gelo" required {...field} /></FormControl>
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={control}
+                                name="category"
+                                render={({ field }) => {
+                                    const categories = expenseType === 'fixed' ? fixedCategories : variableCategories;
+                                    const categoryOptions = Object.entries(categories).map(([value, label]) => ({ value, label }));
+                                    return (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Categoria</FormLabel>
+                                            <FormControl>
+                                                <Combobox
+                                                    options={categoryOptions}
+                                                    value={field.value}
+                                                    onChange={(val, isCreation) => {
+                                                        field.onChange(val);
+                                                        if (isCreation) {
+                                                            if (expenseType === 'fixed') setFixedCategories(prev => ({...prev, [val]: val}));
+                                                            else setVariableCategories(prev => ({...prev, [val]: val}));
+                                                        }
+                                                    }}
+                                                    placeholder="Selecione ou crie..."
+                                                    createLabel="Criar categoria:"
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )
+                                }}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={control}
-                                    name="description"
+                                    name="amount"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Descrição</FormLabel>
-                                            <FormControl><Input placeholder={expenseType === 'fixed' ? "Ex: Aluguel de Março" : "Ex: Compra de gelo"} required {...field} /></FormControl>
+                                            <FormLabel>Valor (R$)</FormLabel>
+                                            <FormControl><Input type="number" step="0.01" placeholder="0.00" required {...field} /></FormControl>
                                         </FormItem>
                                     )}
                                 />
                                 <FormField
-                                    control={control}
-                                    name="category"
-                                    render={({ field }) => {
-                                        const categories = expenseType === 'fixed' ? fixedCategories : variableCategories;
-                                        const categoryOptions = Object.entries(categories).map(([value, label]) => ({ value, label }));
-                                        
-                                        const handleCategoryChange = (value: string, isCreation?: boolean) => {
-                                            field.onChange(value);
-                                            if (isCreation) {
-                                                if (expenseType === 'fixed') {
-                                                    setFixedCategories(prev => ({...prev, [value]: value}));
-                                                } else {
-                                                    setVariableCategories(prev => ({...prev, [value]: value}));
-                                                }
-                                            }
-                                        };
-                                        
-                                        return (
-                                            <FormItem className="flex flex-col">
-                                                <FormLabel>Categoria</FormLabel>
-                                                 <FormControl>
-                                                    <Combobox
-                                                        options={categoryOptions}
-                                                        value={field.value}
-                                                        onChange={handleCategoryChange}
-                                                        placeholder="Selecione ou crie uma categoria"
-                                                        createLabel="Criar nova categoria:"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )
-                                    }}
+                                    control={form.control}
+                                    name="expenseDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Data</FormLabel>
+                                            <FormControl><Input type="date" required {...field} /></FormControl>
+                                        </FormItem>
+                                    )}
                                 />
-                                <div className="grid grid-cols-2 gap-4">
+                            </div>
+
+                            {expenseType === 'fixed' && (
+                                <div className="p-3 border rounded-lg bg-muted/30 space-y-3">
                                     <FormField
                                         control={control}
-                                        name="amount"
+                                        name="replicate"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Valor (R$)</FormLabel>
-                                                <FormControl><Input type="number" step="0.01" placeholder="Ex: 150.00" required {...field} className="text-base" /></FormControl>
+                                            <FormItem className="flex items-center justify-between">
+                                                <div className="space-y-0.5"><FormLabel>Replicar mensalmente?</FormLabel></div>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange}/></FormControl>
                                             </FormItem>
                                         )}
                                     />
-                                     <FormField
-                                        control={form.control}
-                                        name="expenseDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Data da Despesa</FormLabel>
-                                                <FormControl><Input type="date" required {...field} className="text-base"/></FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                {expenseType === 'fixed' && (
-                                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                                    {isReplicating && (
                                         <FormField
                                             control={control}
-                                            name="replicate"
+                                            name="monthsToReplicate"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
-                                                    <div className="space-y-0.5">
-                                                        <FormLabel>Replicar para meses subsequentes?</FormLabel>
-                                                        <FormDescription>
-                                                            Cria lançamentos futuros automaticamente.
-                                                        </FormDescription>
-                                                    </div>
-                                                    <FormControl>
-                                                        <Switch
-                                                            checked={field.value}
-                                                            onCheckedChange={field.onChange}
-                                                        />
-                                                    </FormControl>
+                                                <FormItem>
+                                                    <FormLabel>Quantos meses?</FormLabel>
+                                                    <FormControl><Input type="number" {...field} /></FormControl>
                                                 </FormItem>
                                             )}
                                         />
-                                        {isReplicating && (
-                                            <FormField
-                                                control={control}
-                                                name="monthsToReplicate"
-                                                render={({ field }) => (
-                                                    <FormItem className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                        <FormLabel>Quantidade de meses extras (ex: 11 para um ano total)</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="number" {...field} className="bg-card" />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        )}
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                            )}
 
-                                <div><Button type="submit" disabled={processing} className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/80 disabled:bg-muted-foreground">{processing ? <Spinner size="h-5 w-5"/> : "Adicionar Despesa"}</Button></div>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader><CardTitle>{getFilterTitle()}</CardTitle></CardHeader>
-                    <CardContent className="p-0">
-                        <ScrollArea className="h-72">
-                            <div className="space-y-1 pr-2">
-                                {filteredList.length === 0 ? (
-                                    <p className="text-center text-muted-foreground py-8">Nenhuma transação encontrada.</p>
-                                ) : (
-                                    filteredList.map(item => {
-                                        const transaction = item as Transaction;
-                                        if (filter === 'fiado') {
-                                            const customer = item as Customer;
-                                            return (
-                                                <div key={customer.id} className="flex items-center p-3 rounded-md">
-                                                    <Users className="mr-4 text-yellow-400" size={20} />
-                                                    <div className="flex-grow">
-                                                        <p className="font-semibold">{customer.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{customer.contact}</p>
-                                                    </div>
-                                                    <div className="font-bold text-yellow-400">
-                                                        R$ {(customer.balance || 0).toFixed(2)}
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        
-                                        const hasItems = transaction.items && transaction.items.length > 0;
-                                        let icon;
-                                        let description = transaction.description || '';
-                                        let subDescription = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
-                                        const amountColor = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
-
-                                        switch (transaction.type) {
-                                            case 'sale':
-                                                icon = <ShoppingCart className="text-accent" size={20} />;
-                                                const customerName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
-                                                description = customerName ? `Venda para ${customerName}` : 'Venda Avulsa';
-                                                if (transaction.paymentMethod) {
-                                                    subDescription += ` • ${transaction.paymentMethod}`;
-                                                }
-                                                break;
-                                            case 'expense':
-                                                icon = <ArrowDownCircle className="text-destructive" size={20} />;
-                                                if (transaction.expenseCategory) {
-                                                     subDescription += ` • ${transaction.expenseCategory}`;
-                                                }
-                                                break;
-                                            case 'payment':
-                                                icon = <HandCoins className="text-primary" size={20} />;
-                                                 if (transaction.paymentMethod) {
-                                                     subDescription += ` • ${transaction.paymentMethod}`;
-                                                }
-                                                break;
-                                        }
-
-                                        return (
-                                            <div 
-                                                key={transaction.id}
-                                                className={`group flex items-center p-3 rounded-md ${hasItems ? 'cursor-pointer hover:bg-muted/50' : ''}`}
-                                                onClick={() => hasItems && handleRowClick(transaction)}
-                                            >
-                                                <div className="mr-4">{icon}</div>
-                                                <div className="flex-grow">
-                                                    <p className="font-semibold">{description}</p>
-                                                    <p className="text-sm text-muted-foreground">{subDescription}</p>
-                                                </div>
-                                                <div className="flex items-center">
-                                                    <span className={`font-bold text-lg mr-2 ${amountColor}`}>
-                                                        {transaction.type === 'expense' ? '-' : '+'} R$ {transaction.total.toFixed(2)}
-                                                    </span>
-                                                    {transaction.type === 'expense' && (
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive" onClick={(e) => {e.stopPropagation(); setTransactionToDelete(transaction)}}>
-                                                            <Trash2 size={16} />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </div>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
-            </div>
+                            <DialogFooter className="pt-4">
+                                <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)}>Cancelar</Button>
+                                <Button type="submit" disabled={processing} className="bg-destructive text-white">
+                                    {processing ? <Spinner size="h-4 w-4"/> : "Confirmar Despesa"}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
              
+             {/* Alert Deletar */}
              {transactionToDelete && (
                 <AlertDialog open={!!transactionToDelete} onOpenChange={() => setTransactionToDelete(null)}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogTitle>Excluir Transação?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Essa ação não pode ser desfeita. Isso excluirá permanentemente a transação de <strong>{(transactionToDelete as Transaction).description}</strong> no valor de R$ {(transactionToDelete as Transaction).total.toFixed(2)}.
+                                Essa ação removerá permanentemente o lançamento de <strong>{transactionToDelete.description}</strong> no valor de R$ {transactionToDelete.total.toFixed(2)}.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -432,6 +524,8 @@ export const FinancialsTab: React.FC = () => {
                     </AlertDialogContent>
                 </AlertDialog>
             )}
+
+            {/* Modal Detalhes */}
             {selectedTransaction && (
                 <TransactionDetailModal
                     transaction={selectedTransaction}

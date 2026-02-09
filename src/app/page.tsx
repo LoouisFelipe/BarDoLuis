@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,6 +20,9 @@ export default function RootPage() {
   if (!isAuthReady) {
     return (
       <div className="flex items-center justify-center min-h-screen">
+        {/* 
+         * CPO: Para uma experiência mais rápida, considere um Skeleton UI aqui
+         * que se assemelhe ao layout do dashboard, em vez de apenas um spinner. */}
         <Spinner size="h-12 w-12" />
       </div>
     );
