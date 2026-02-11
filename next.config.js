@@ -2,12 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Otimização extrema para ambientes com pouco espaço em disco
-  experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
-  },
-  // Desativa a geração de sourcemaps em produção para economizar disco
-  productionBrowserSourceMaps: false,
+  // Simplificação para build estável no Firebase
   images: {
     remotePatterns: [
       {
