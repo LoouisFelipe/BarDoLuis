@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -7,7 +8,7 @@ import { getFirestore } from 'firebase/firestore'
 
 /**
  * Inicializa os serviços do Firebase e retorna as instâncias dos SDKs.
- * Configurado explicitamente para usar o banco de dados 'bardoluis'.
+ * Configurado para usar o banco de dados padrão '(default)'.
  */
 export function initializeFirebase() {
   if (!getApps().length) {
@@ -27,13 +28,13 @@ export function initializeFirebase() {
 
 /**
  * Retorna instâncias inicializadas do Auth e Firestore.
- * O Firestore é conectado especificamente à instância do banco 'bardoluis'.
+ * O Firestore é conectado à instância padrão do projeto.
  */
 export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp, 'bardoluis')
+    firestore: getFirestore(firebaseApp) // Removido 'bardoluis' para usar o banco (default)
   };
 }
 

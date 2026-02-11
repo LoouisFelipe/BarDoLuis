@@ -1,3 +1,4 @@
+
 {
   "hosting": {
     "source": ".",
@@ -11,8 +12,6 @@
     }
   },
   "firestore": {
-    "database": "bardoluis",
-    "location": "us-central1",
     "rules": "src/firestore.rules",
     "indexes": "firestore.indexes.json"
   }
