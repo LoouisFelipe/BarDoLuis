@@ -4,10 +4,10 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
-// Inicializa o Firebase usando a configuração centralizada
+// Inicializa o Firebase apenas uma vez
 const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Inicializa os serviços apontando para a instância correta 'bardoluis'
+// Conecta explicitamente à instância 'bardoluis' do seu projeto
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp, 'bardoluis');
 
