@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -18,6 +18,16 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface OrderManagementModalProps {
   open: boolean;
@@ -42,6 +52,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [processing, setProcessing] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isLinkCustomerOpen, setIsLinkCustomerOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -61,6 +72,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setCurrentItems(JSON.parse(JSON.stringify(existingOrder.items ?? [])));
       setIsPaymentModalOpen(false);
       setIsLinkCustomerOpen(false);
+      setIsDeleteAlertOpen(false);
       setSearchTerm('');
       setSelectedCustomerId(existingOrder.customerId || '');
     }
@@ -190,6 +202,22 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     } catch (error) {
         console.error(error);
         toast({ title: "Erro", description: "Falha ao vincular cliente.", variant: "destructive" });
+    } finally {
+        setProcessing(false);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!existingOrder?.id) return;
+    setProcessing(true);
+    try {
+        await onDeleteOrder(existingOrder.id);
+        toast({ title: "Comanda Excluída", description: `A comanda "${displayName}" foi removida.` });
+        setIsDeleteAlertOpen(false);
+        onOpenChange(false);
+    } catch (error) {
+        console.error(error);
+        toast({ title: "Erro ao excluir", description: "Não foi possível excluir a comanda.", variant: "destructive" });
     } finally {
         setProcessing(false);
     }
@@ -356,10 +384,18 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             </div>
 
             <div className="w-full md:w-[400px] flex flex-col bg-card shrink-0">
-              <div className="p-4 border-b bg-muted/30">
+              <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
                 <h3 className="text-sm font-bold flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4" /> ITENS NA COMANDA ({currentItems.length})
+                  <ShoppingCart className="h-4 w-4" /> ITENS ({currentItems.length})
                 </h3>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => setIsDeleteAlertOpen(true)}
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
               
               <ScrollArea className="flex-grow">
@@ -445,6 +481,31 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           }}
         />
       )}
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="text-destructive h-5 w-5" />
+                Excluir Comanda?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a apagar a comanda <strong>{displayName}</strong>. 
+              Isso removerá todos os itens e não poderá ser desfeito. O estoque não será afetado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={handleDeleteOrder} 
+                className="bg-destructive text-white hover:bg-destructive/90"
+                disabled={processing}
+            >
+              {processing ? <Spinner size="h-4 w-4" /> : "Sim, Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
