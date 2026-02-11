@@ -1,14 +1,4 @@
-
-// src/lib/schemas.ts
-
 import { FieldValue } from 'firebase/firestore';
-
-// Base para documentos do Firestore com ID e timestamps
-interface FirestoreDocument {
-  id?: string;
-  createdAt?: FieldValue | Date;
-  updatedAt?: FieldValue | Date;
-}
 
 export interface DoseOption {
   name: string;
@@ -17,7 +7,8 @@ export interface DoseOption {
   enabled: boolean;
 }
 
-export interface Product extends FirestoreDocument {
+export interface Product {
+  id?: string;
   name: string;
   category: string;
   subcategory?: string;
@@ -29,6 +20,8 @@ export interface Product extends FirestoreDocument {
   saleType: 'unit' | 'dose' | 'service';
   doseOptions?: DoseOption[];
   baseUnitSize?: number | null;
+  createdAt?: FieldValue | Date;
+  updatedAt?: FieldValue | Date;
 }
 
 export interface Customer {
@@ -41,13 +34,16 @@ export interface Customer {
   updatedAt?: FieldValue | Date;
 }
 
-export interface Supplier extends FirestoreDocument {
+export interface Supplier {
+  id?: string;
   name: string;
   contactPerson?: string;
   phone?: string;
   email?: string;
   address?: string;
   cnpj?: string;
+  createdAt?: FieldValue | Date;
+  updatedAt?: FieldValue | Date;
 }
 
 export interface OrderItem {
@@ -61,12 +57,14 @@ export interface OrderItem {
   identifier?: string;
 }
 
-export interface Order extends FirestoreDocument {
+export interface Order {
+  id?: string;
   displayName: string;
   customerId: string | null;
   items: OrderItem[];
   total: number;
   status: 'open' | 'pending_payment' | 'closed';
+  createdAt?: FieldValue | Date;
   closedAt?: FieldValue | Date | null;
 }
 
@@ -77,14 +75,17 @@ export interface PurchaseItem {
   unitCost: number; 
 }
 
-export interface Purchase extends FirestoreDocument {
+export interface Purchase {
+  id?: string;
   supplierId: string;
   supplierName: string;
   items: PurchaseItem[];
   totalCost: number;
+  createdAt: FieldValue | Date;
 }
 
-export interface Transaction extends FirestoreDocument {
+export interface Transaction {
+  id?: string;
   type: 'sale' | 'expense' | 'payment';
   total: number;
   timestamp: FieldValue | Date;

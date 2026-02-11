@@ -1,30 +1,11 @@
-
 'use client';
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  useCallback,
-} from 'react';
-import {
-  onAuthStateChanged,
-  User,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth';
-import {
-  doc,
-  onSnapshot,
-  DocumentData,
-} from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { onAuthStateChanged, User, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, onSnapshot, DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-// Exportando o tipo para uso global no sistema
 export type FirebaseUser = User;
 
-// UID do CEO para Bypass de Auditoria e Controle Total
 const CEO_UID = "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
 
 export interface UserProfile extends DocumentData {
@@ -60,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileError, setProfileError] = useState<Error | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
-  // Lógica de Permissões Centralizada
   const isAdmin = user?.uid === CEO_UID || userProfile?.role === 'admin';
   const isCaixaOrAdmin = isAdmin || userProfile?.role === 'cashier';
 
@@ -93,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (docSnap.exists()) {
             setUserProfile({ ...docSnap.data(), uid: docSnap.id } as UserProfile);
           } else if (user.uid === CEO_UID) {
-            // Virtual Profile para o CEO se o doc ainda não existir
             setUserProfile({ uid: CEO_UID, name: 'CEO (Luis)', role: 'admin' } as UserProfile);
           } else {
             setUserProfile(null);

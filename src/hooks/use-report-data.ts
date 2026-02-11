@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -81,7 +80,6 @@ export const useReportData = ({
                 const costPerMl = (product.costPrice || 0) / baseUnitSize;
                 const itemSize = item.size || 1; 
                 const effectiveCost = item.size ? (costPerMl * itemSize) : (product.costPrice || 0);
-                
                 cogs += effectiveCost * (item.quantity || 1);
               }
             });
