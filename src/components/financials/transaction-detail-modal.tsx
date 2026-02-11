@@ -61,7 +61,6 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
                                 transaction.items.map((item, index) => {
-                                    // Use type guard to safely access properties
                                     const isOrderItem = 'unitPrice' in item;
                                     const name = item.name;
                                     const quantity = item.quantity;
