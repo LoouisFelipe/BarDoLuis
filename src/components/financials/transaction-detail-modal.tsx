@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Transaction } from '@/lib/schemas';
+import { Transaction, OrderItem, PurchaseItem } from '@/lib/schemas';
 
 interface TransactionDetailModalProps {
     transaction: Transaction;
@@ -44,7 +44,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                 <DialogHeader>
                     <DialogTitle>{getTransactionTitle()}</DialogTitle>
                     <DialogDescription>
-                        Realizada em {(transaction.timestamp as Date).toLocaleDateString('pt-BR')} às {(transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                        Realizada em {transaction.timestamp instanceof Date ? transaction.timestamp.toLocaleDateString('pt-BR') : 'Data Indisponível'} às {transaction.timestamp instanceof Date ? transaction.timestamp.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="my-4">
@@ -61,13 +61,22 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         </TableHeader>
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
-                                transaction.items.map((item, index) => (
-                                    <TableRow key={`${item.identifier}-${index}`}>
-                                        <TableCell className="font-medium">{item.name}{item.subcategory && ` (${item.subcategory})`}</TableCell>
-                                        <TableCell className="text-center">{item.quantity}</TableCell>
-                                        <TableCell className="text-right">R$ {(item.price * item.quantity).toFixed(2)}</TableCell>
-                                    </TableRow>
-                                ))
+                                transaction.items.map((item, index) => {
+                                    // CTO: Type-safe property access for different item types
+                                    const name = item.name;
+                                    const quantity = item.quantity;
+                                    const subcategory = 'subcategory' in item ? item.subcategory : null;
+                                    const price = 'unitPrice' in item ? item.unitPrice : ('unitCost' in item ? item.unitCost : 0);
+                                    const productId = item.productId;
+
+                                    return (
+                                        <TableRow key={`${productId}-${index}`}>
+                                            <TableCell className="font-medium">{name}{subcategory && ` (${subcategory})`}</TableCell>
+                                            <TableCell className="text-center">{quantity}</TableCell>
+                                            <TableCell className="text-right">R$ {(price * quantity).toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={3} className="text-center text-muted-foreground">Esta transação não possui itens detalhados.</TableCell>
