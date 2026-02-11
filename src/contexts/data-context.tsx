@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useMemo, useCallback, useContext } from 'react';
+import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
 import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
-import { useToast } from '@/hooks/use-toast';
-import {
+import { useToast } from "@/components/ui/use-toast";
+import { 
   collection,
   doc,
   setDoc,
@@ -17,7 +17,7 @@ import {
   query,
   updateDoc,
 } from 'firebase/firestore';
-import { useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { addMonths, format } from 'date-fns';
 
@@ -50,13 +50,13 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const DataProvider = ({ children }: { children: React.Node }) => {
-  const { toast } = useToast();
-  const db = useFirestore();
-  const { user, isAdmin, userProfile } = useAuth();
+export const DataProvider = ({ children }: { children: ReactNode }) => {
+  const { toast } = useToast(); 
+  const db = useFirestore(); // Usa a instância correta vinda do provedor Firebase
+  const { user, userProfile } = useAuth();
 
-  // CEO Bypass logic in the app too
-  const isCeo = user?.uid === "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
+  const isAdmin = userProfile?.role === 'admin';
+  const isCeo = user?.uid === "o0FzqC1oYoYYwjgJXbbgL4QoCe42"; 
 
   const usersQuery = useMemoFirebase(() => (db && user && (isAdmin || isCeo)) ? collection(db, 'users') : null, [db, user, isAdmin, isCeo]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
@@ -96,23 +96,13 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
   const handleAction = useCallback(async <T,>(
     action: () => Promise<T>,
     successMessage: string,
-    errorMessage: string,
-    context?: { path: string, operation: 'create' | 'update' | 'delete' | 'write', data?: any }
+    errorMessage: string
   ): Promise<T> => {
     try {
       const result = await action();
       toast({ title: 'Sucesso!', description: successMessage });
       return result;
     } catch (e: any) {
-      if (e.code === 'permission-denied' && context) {
-        const permissionError = new FirestorePermissionError({
-          path: context.path,
-          operation: context.operation,
-          requestResourceData: context.data,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        throw permissionError;
-      }
       toast({ title: 'Erro!', description: `${errorMessage}: ${e.message}`, variant: 'destructive' });
       throw e;
     }
@@ -136,16 +126,13 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
         ...(!id && { createdAt: serverTimestamp() }) 
     };
     
-    await setDoc(docRef, JSON.parse(JSON.stringify(finalData)), { merge: true });
+    await setDoc(docRef, finalData, { merge: true });
     return docRef.id;
   }, [db]);
 
   const saveProduct = (productData: Omit<Product, 'id'>, productId?: string) => 
     handleAction(
-      () => genericSave('products', productData, productId), 
-      'Produto salvo.', 
-      'Falha ao salvar produto.',
-      { path: `products`, operation: productId ? 'update' : 'create', data: productData }
+      () => genericSave('products', productData, productId), 'Produto salvo.', 'Falha ao salvar produto.'
     );
 
   const deleteProduct = (productId: string) => 
@@ -153,7 +140,6 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
       () => deleteDoc(doc(db, 'products', productId)), 
       'Produto excluído.', 
       'Falha ao excluir produto.',
-      { path: `products/${productId}`, operation: 'delete' }
     );
 
   const addStock = (productId: string, quantity: number, costPrice?: number) =>
@@ -172,8 +158,7 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
         return genericSave('customers', data, customerId);
       }, 
       'Cliente salvo.', 
-      'Falha ao salvar cliente.',
-      { path: `customers`, operation: customerId ? 'update' : 'create', data: customerData }
+      'Falha ao salvar cliente.'
     );
 
   const deleteCustomer = (customerId: string) => 
@@ -181,7 +166,6 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
       () => deleteDoc(doc(db, 'customers', customerId)), 
       'Cliente excluído.', 
       'Falha ao excluir cliente.',
-      { path: `customers/${customerId}`, operation: 'delete' }
     );
 
   const receiveCustomerPayment = (customer: Customer, amount: number, paymentMethod: string) =>
@@ -210,8 +194,7 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
     handleAction(
       () => genericSave('suppliers', supplierData, supplierId), 
       'Fornecedor salvo.', 
-      'Falha ao salvar fornecedor.',
-      { path: `suppliers`, operation: supplierId ? 'update' : 'create', data: supplierData }
+      'Falha ao salvar fornecedor.'
     );
 
   const deleteSupplier = (supplierId: string) =>
@@ -219,7 +202,6 @@ export const DataProvider = ({ children }: { children: React.Node }) => {
       () => deleteDoc(doc(db, 'suppliers', supplierId)), 
       'Fornecedor excluído.', 
       'Falha ao excluir fornecedor.',
-      { path: `suppliers/${supplierId}`, operation: 'delete' }
     );
 
   const recordPurchaseAndUpdateStock = (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) =>

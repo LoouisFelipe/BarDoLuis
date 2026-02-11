@@ -1,14 +1,19 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { LogOut, User as UserIcon } from 'lucide-react';
-import { Logo } from '@/components/ui/logo';
+'use client';
 
-// Definir tipos para as props, alinhado com "ZERO UNDEFINED" & TYPING
+import React from 'react';
+import { FirebaseUser, UserProfile } from '@/contexts/auth-context';
+import { Button } from '@/components/ui/button'; // Assumindo que você tem um componente Button
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Assumindo que você tem componentes Avatar
+import { Skeleton } from '@/components/ui/skeleton'; // Para placeholders
+import { LogOut, User } from 'lucide-react'; // Ícones
+
 interface DashboardHeaderProps {
-  user: any; // Substituir 'any' pelo tipo real do usuário do Firebase
-  userProfile: { name: string; role: string } | null; // Substituir pelo tipo real do perfil
-  logout: (() => Promise<void>) | undefined;
+  user: FirebaseUser | null;
+  userProfile: UserProfile | null;
+  logout: () => Promise<void>;
   isAuthReady: boolean;
+  isLoadingProfile: boolean;
+  profileError: Error | null;
 }
 
 export function DashboardHeader({
@@ -16,32 +21,48 @@ export function DashboardHeader({
   userProfile,
   logout,
   isAuthReady,
+  isLoadingProfile,
+  profileError,
 }: DashboardHeaderProps) {
+  const displayName = userProfile?.name || user?.email || 'Usuário';
+  const userRole = userProfile?.role ? `(${userProfile.role})` : '';
+
   return (
-    <header className="border-b bg-card px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Logo size={32} />
-        <h1 className="text-xl font-bold tracking-tight hidden sm:block">BARDOLUIS POS</h1>
+    <header className="flex items-center justify-between p-4 border-b bg-card text-card-foreground">
+      <div className="flex items-center space-x-2">
+        {/* CPO: Logo ou Título do BarDoLuis */}
+        <h1 className="text-xl font-bold">BarDoLuis</h1>
       </div>
-      {isAuthReady && user && userProfile && logout ? ( // Adicionado 'user' na condição para consistência
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
-            <UserIcon size={16} />
-            <span className="hidden md:inline font-medium">{userProfile.name}</span>
-            <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">{userProfile.role}</span>
+
+      <div className="flex items-center space-x-4">
+        {isLoadingProfile ? (
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="text-muted-foreground hover:text-destructive transition-colors"
-          >
-            <LogOut className="mr-2 h-4 w-4" /> Sair
-          </Button>
-        </div>
-      ) : (
-        <div className="h-10 w-24 bg-muted animate-pulse rounded-md"></div> // Placeholder for loading state
-      )}
+        ) : profileError ? (
+          <span className="text-sm text-red-500" title={profileError.message}>
+            Erro ao carregar perfil
+          </span>
+        ) : (
+          <>
+            <div className="flex items-center space-x-2">
+              <Avatar>
+                <AvatarImage src={user?.photoURL || undefined} alt={displayName} />
+                <AvatarFallback>
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">
+                {displayName} {userRole}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </>
+        )}
+      </div>
     </header>
   );
 }

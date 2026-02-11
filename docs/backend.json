@@ -33,6 +33,45 @@
         "total": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "Perfis de usuários do sistema, com roles e informações básicas.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome completo do usuário." },
+        "email": { "type": "string", "format": "email", "description": "Email do usuário, usado para login." },
+        "role": { "type": "string", "enum": ["admin", "waiter", "manager"], "description": "Nível de acesso do usuário." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp de criação do perfil." },
+        "lastLogin": { "type": "string", "format": "date-time", "description": "Último login do usuário." }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "OpenOrder": {
+      "title": "Open Order",
+      "description": "Comandas em aberto no PDV.",
+      "type": "object",
+      "properties": {
+        "tableNumber": { "type": "string", "description": "Número ou identificador da mesa/comanda." },
+        "status": { "type": "string", "enum": ["open", "pending_payment", "closed"], "description": "Status atual da comanda." },
+        "items": { "type": "array", "items": { "$ref": "#/entities/OrderItem" }, "description": "Lista de itens na comanda." },
+        "totalAmount": { "type": "number", "description": "Valor total da comanda." },
+        "openedAt": { "type": "string", "format": "date-time", "description": "Timestamp de abertura da comanda." },
+        "waiterId": { "type": "string", "description": "ID do garçom responsável pela comanda." }
+      },
+      "required": ["tableNumber", "status", "items", "totalAmount", "openedAt"]
+    },
+    "OrderItem": {
+      "title": "Order Item",
+      "description": "Item individual dentro de uma comanda ou transação.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "description": "ID do produto." },
+        "name": { "type": "string", "description": "Nome do produto." },
+        "quantity": { "type": "number", "description": "Quantidade do produto." },
+        "unitPrice": { "type": "number", "description": "Preço unitário do produto no momento da venda." }
+      },
+      "required": ["productId", "name", "quantity", "unitPrice"]
     }
   },
   "auth": {
@@ -52,11 +91,11 @@
       "description": "Histórico financeiro."
     },
     "/open_orders/{orderId}": {
-      "schema": "object",
+      "schema": { "$ref": "#/entities/OpenOrder" },
       "description": "Comandas em aberto."
     },
     "/users/{userId}": {
-      "schema": "object",
+      "schema": { "$ref": "#/entities/User" },
       "description": "Perfis de usuários do sistema."
     }
   }
