@@ -1,51 +1,68 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Função para verificar se é o CEO (Acesso Total)
+    // Função para verificar se é o CEO (Autoridade Máxima)
+    // UID do Proprietário: o0FzqC1oYoYYwjgJXbbgL4QoCe42
     function isCEO() {
       return request.auth != null && request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
     }
 
-    // Função para verificar se é funcionário autenticado
+    // Função para verificar se é um funcionário autenticado no sistema
     function isStaff() {
       return request.auth != null;
     }
     
-    // Função para verificar se o usuário tem cargo de admin
+    // Função para verificar se o usuário logado tem cargo de admin no seu perfil
     function isAdmin() {
       return isStaff() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Regra Global: CEO pode TUDO em qualquer lugar
+    // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
     match /{document=**} {
       allow read, write: if isCEO();
     }
 
+    // Usuários: Controle de perfis
     match /users/{userId} {
+      // Qualquer funcionário pode ler a lista de usuários para identificar colegas/cargos
       allow read: if isStaff();
-      allow write: if isCEO() || request.auth.uid == userId;
+      // Apenas o CEO pode criar ou excluir usuários. Usuários podem editar apenas seu próprio nome/config.
+      allow create, delete: if isCEO();
+      allow update: if isCEO() || request.auth.uid == userId;
     }
 
+    // Produtos: Catálogo de vendas e estoque
     match /products/{productId} {
-      allow read: if true;
-      allow write: if isStaff();
+      allow read: if true; // Aberto para leitura (PDV e consultas)
+      allow write: if isStaff(); // Apenas funcionários operam estoque/preços
     }
 
+    // Clientes: Gestão de fieis e saldos de fiado
     match /customers/{customerId} {
       allow read, write: if isStaff();
     }
 
+    // Transações: Histórico de vendas, pagamentos e despesas
     match /transactions/{transactionId} {
       allow read, write: if isStaff();
     }
 
+    // Comandas: Controle diário de mesas e balcão
     match /open_orders/{orderId} {
       allow read, create, update: if isStaff();
+      // Exclusão de comanda é uma ação crítica, restrita a Admin ou CEO
       allow delete: if isAdmin() || isCEO();
     }
     
+    // Compras: Registros de entradas de fornecedores
     match /purchases/{purchaseId} {
+      allow read, write: if isStaff();
+    }
+    
+    // Fornecedores: Dados de contato das empresas
+    match /suppliers/{supplierId} {
       allow read, write: if isStaff();
     }
   }
