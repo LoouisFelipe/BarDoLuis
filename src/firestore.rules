@@ -11,6 +11,11 @@ service cloud.firestore {
     function isStaff() {
       return request.auth != null;
     }
+    
+    // Função para verificar se o usuário tem cargo de admin
+    function isAdmin() {
+      return isStaff() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
     // Regra Global: CEO pode TUDO em qualquer lugar
     match /{document=**} {
@@ -36,7 +41,8 @@ service cloud.firestore {
     }
 
     match /open_orders/{orderId} {
-      allow read, write: if isStaff();
+      allow read, create, update: if isStaff();
+      allow delete: if isAdmin() || isCEO();
     }
     
     match /purchases/{purchaseId} {

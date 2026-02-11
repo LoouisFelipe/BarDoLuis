@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import { useAuth } from '@/contexts/auth-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   onDeleteOrder,
 }) => {
   const { products, customers, saveCustomer, loading: productsLoading } = useData();
+  const { isAdmin } = useAuth();
   const { updateOrderCustomer } = useOpenOrders();
   const { toast } = useToast();
   
@@ -209,6 +211,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const handleDeleteOrder = async () => {
     if (!existingOrder?.id) return;
+    if (!isAdmin) {
+        toast({ title: "Acesso Negado", description: "Apenas administradores podem excluir comandas.", variant: "destructive" });
+        return;
+    }
     setProcessing(true);
     try {
         await onDeleteOrder(existingOrder.id);
@@ -388,14 +394,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 <h3 className="text-sm font-bold flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4" /> ITENS ({currentItems.length})
                 </h3>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => setIsDeleteAlertOpen(true)}
-                >
-                    <Trash2 className="h-4 w-4" />
-                </Button>
+                {isAdmin && (
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => setIsDeleteAlertOpen(true)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
               </div>
               
               <ScrollArea className="flex-grow">
