@@ -2,51 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🎩 CEO MODE: Autoridade máxima e acesso total para o seu UID
+    // Função para verificar se é o CEO (Acesso Total)
     function isCEO() {
       return request.auth != null && request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
     }
 
-    // Membros da equipe autenticados
+    // Função para verificar se é funcionário autenticado
     function isStaff() {
       return request.auth != null;
     }
 
-    // Gestão de Usuários
-    match /users/{userId} {
-      // CEO tem controle total. Staff pode listar para gestão de cargos.
-      allow read: if isCEO() || isStaff();
-      allow write: if isCEO() || (isStaff() && request.auth.uid == userId);
-    }
-
-    // Produtos: Aberto para leitura (cardápio), Staff edita.
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if isCEO() || isStaff();
-    }
-
-    // Gestão Operacional: Clientes e Fornecedores
-    match /customers/{customerId} {
-      allow read, write: if isCEO() || isStaff();
-    }
-    match /suppliers/{supplierId} {
-      allow read, write: if isCEO() || isStaff();
-    }
-
-    // Movimentação Financeira: Comandas, Compras e Transações
-    match /open_orders/{orderId} {
-      allow read, write: if isCEO() || isStaff();
-    }
-    match /purchases/{purchaseId} {
-      allow read, write: if isCEO() || isStaff();
-    }
-    match /transactions/{transactionId} {
-      allow read, write: if isCEO() || isStaff();
-    }
-
-    // Regra de Segurança Final: Caso não caia em nenhuma regra específica, CEO ainda tem acesso.
+    // Regra Global: CEO pode TUDO em qualquer lugar
     match /{document=**} {
       allow read, write: if isCEO();
+    }
+
+    match /users/{userId} {
+      allow read: if isStaff();
+      allow write: if isCEO() || request.auth.uid == userId;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+
+    match /customers/{customerId} {
+      allow read, write: if isStaff();
+    }
+
+    match /transactions/{transactionId} {
+      allow read, write: if isStaff();
+    }
+
+    match /open_orders/{orderId} {
+      allow read, write: if isStaff();
+    }
+    
+    match /purchases/{purchaseId} {
+      allow read, write: if isStaff();
     }
   }
 }

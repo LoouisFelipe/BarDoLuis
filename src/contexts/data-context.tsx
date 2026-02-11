@@ -50,14 +50,15 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const DataProvider = ({ children }: { children: React.ReactNode }) => {
+export const DataProvider = ({ children }: { children: React.Node }) => {
   const { toast } = useToast();
   const db = useFirestore();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, userProfile } = useAuth();
 
-  // CTO Rule: Só buscamos a lista de usuários se o usuário logado for Admin.
-  // Isso evita erros de permissão para waiters/cashiers e economiza leituras.
-  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [db, user, isAdmin]);
+  // CEO Bypass logic in the app too
+  const isCeo = user?.uid === "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
+
+  const usersQuery = useMemoFirebase(() => (db && user && (isAdmin || isCeo)) ? collection(db, 'users') : null, [db, user, isAdmin, isCeo]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [db, user]);
@@ -267,14 +268,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const uniqueProductIds = Array.from(new Set(order.items.map(i => i.productId)));
 
         return runTransaction(db, async (t) => {
-            // CTO: Otimização de leitura de estoque para garantir consistência
             await Promise.all(uniqueProductIds.map(id => t.get(doc(db, 'products', id))));
 
             const saleRef = doc(collection(db, 'transactions'));
             
             order.items.forEach(item => {
                 const productRef = doc(db, 'products', item.productId);
-                // CTO: Decremento inteligente - Se for dose, subtrai ML, se for unitário, subtrai 1.
                 const decrementAmount = item.size ? item.size * item.quantity : item.quantity;
                 t.update(productRef, { stock: increment(-decrementAmount) });
             });
