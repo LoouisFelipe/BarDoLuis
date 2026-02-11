@@ -19,15 +19,18 @@ service cloud.firestore {
       return isStaff() && (isCEO() || get(/databases/bardoluis/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
-    // REGRA DE OURO: CEO possui acesso total irrestrito em qualquer coleção do banco 'bardoluis'
+    // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
     match /{document=**} {
       allow read, write: if isCEO();
     }
 
     // Usuários: Controle de perfis
     match /users/{userId} {
+      // Funcionários podem ler a lista de usuários
       allow read: if isStaff();
+      // Apenas o CEO pode criar ou excluir usuários do sistema.
       allow create, delete: if isCEO();
+      // Usuários podem editar apenas seu próprio perfil (nome/config).
       allow update: if isCEO() || request.auth.uid == userId;
     }
 
@@ -50,7 +53,7 @@ service cloud.firestore {
     // Comandas: Controle diário de mesas e balcão
     match /open_orders/{orderId} {
       allow read, create, update: if isStaff();
-      // Exclusão de comanda é uma ação administrativa restrita
+      // Exclusão de comanda é uma ação crítica, restrita a Admin ou CEO
       allow delete: if isAdmin();
     }
     
