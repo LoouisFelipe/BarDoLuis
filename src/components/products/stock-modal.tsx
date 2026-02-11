@@ -2,7 +2,7 @@
 'use client';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Form, FormField, FormItem, FormControl, FormLabel } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,10 +87,11 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
                                     name="amount"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="stock-amount">Quantidade a adicionar ({addAmountLabel}):</FormLabel>
+                                        <FormLabel>Quantidade a adicionar ({addAmountLabel}):</FormLabel>
                                         <FormControl>
-                                            <Input id="stock-amount" type="number" min="1" required {...field} className="text-base" />
+                                            <Input type="number" min="1" required {...field} className="text-base" />
                                         </FormControl>
+                                        <FormMessage />
                                     </FormItem>
                                     )}
                                 />
@@ -99,10 +100,11 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
                                     name="cost"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="stock-cost">Custo Total da Compra (R$, opcional):</FormLabel>
+                                        <FormLabel>Custo Total da Compra (R$, opcional):</FormLabel>
                                         <FormControl>
-                                            <Input id="stock-cost" type="number" step="0.01" placeholder="Ex: 150.00" {...field} className="text-base" />
+                                            <Input type="number" step="0.01" placeholder="Ex: 150.00" {...field} className="text-base" />
                                         </FormControl>
+                                        <FormMessage />
                                     </FormItem>
                                     )}
                                 />
@@ -111,10 +113,10 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
                                     name="supplierId"
                                     render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel htmlFor="stock-supplier">Fornecedor (opcional):</FormLabel>
+                                        <FormLabel>Fornecedor (opcional):</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger id="stock-supplier" name="supplierId"><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="null">Nenhum</SelectItem>
@@ -123,6 +125,7 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        <FormMessage />
                                     </FormItem>
                                     )}
                                 />

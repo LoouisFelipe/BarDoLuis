@@ -69,8 +69,8 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, 
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="supplier-name">Nome da Empresa</FormLabel>
-                      <FormControl><Input id="supplier-name" placeholder="Nome da Empresa" {...field} autoComplete="organization" /></FormControl>
+                      <FormLabel>Nome da Empresa</FormLabel>
+                      <FormControl><Input placeholder="Nome da Empresa" {...field} autoComplete="organization" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -80,8 +80,8 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, 
                   name="contactPerson"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="supplier-contact-person">Pessoa de Contato</FormLabel>
-                      <FormControl><Input id="supplier-contact-person" placeholder="Pessoa de Contato (opcional)" {...field} value={field.value || ''} autoComplete="name" /></FormControl>
+                      <FormLabel>Pessoa de Contato</FormLabel>
+                      <FormControl><Input placeholder="Pessoa de Contato (opcional)" {...field} value={field.value || ''} autoComplete="name" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -91,8 +91,8 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, 
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="supplier-phone">Telefone</FormLabel>
-                      <FormControl><Input id="supplier-phone" type="tel" placeholder="Telefone" {...field} value={field.value || ''} autoComplete="tel" /></FormControl>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl><Input type="tel" placeholder="Telefone" {...field} value={field.value || ''} autoComplete="tel" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -102,8 +102,8 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, 
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="supplier-email">E-mail</FormLabel>
-                      <FormControl><Input id="supplier-email" type="email" placeholder="E-mail (opcional)" {...field} value={field.value || ''} autoComplete="email" /></FormControl>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl><Input type="email" placeholder="E-mail (opcional)" {...field} value={field.value || ''} autoComplete="email" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -113,8 +113,8 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({ supplier, 
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="supplier-address">Endereço</FormLabel>
-                      <FormControl><Input id="supplier-address" placeholder="Endereço (opcional)" {...field} value={field.value || ''} autoComplete="address-line1" /></FormControl>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl><Input placeholder="Endereço (opcional)" {...field} value={field.value || ''} autoComplete="address-line1" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

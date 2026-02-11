@@ -70,9 +70,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({ customer, 
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel htmlFor="customer-name">Nome Completo</FormLabel>
+                        <FormLabel>Nome Completo</FormLabel>
                         <FormControl>
-                            <Input id="customer-name" placeholder="Nome do Cliente" {...field} autoComplete="name"/>
+                            <Input placeholder="Nome do Cliente" {...field} autoComplete="name"/>
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -83,9 +83,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({ customer, 
                     name="contact"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel htmlFor="customer-contact">Contato (Telefone ou E-mail)</FormLabel>
+                        <FormLabel>Contato (Telefone ou E-mail)</FormLabel>
                         <FormControl>
-                            <Input id="customer-contact" placeholder="(XX) XXXXX-XXXX ou email@exemplo.com" {...field} value={field.value || ''} autoComplete="tel" />
+                            <Input placeholder="(XX) XXXXX-XXXX ou email@exemplo.com" {...field} value={field.value || ''} autoComplete="tel" />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -96,10 +96,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({ customer, 
                       name="creditLimit"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel htmlFor="customer-credit-limit">Limite de Crédito (R$)</FormLabel>
+                          <FormLabel>Limite de Crédito (R$)</FormLabel>
                           <FormControl>
                             <Input
-                              id="customer-credit-limit"
                               type="number"
                               step="0.01"
                               placeholder="Deixe em branco para sem limite"

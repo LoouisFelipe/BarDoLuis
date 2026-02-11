@@ -154,7 +154,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                             onChange={field.onChange}
                                             placeholder="Selecione ou digite o nome"
                                             createLabel="Usar novo nome:"
-                                            id="product-name"
                                             disabled={isEditing && !!initialProduct?.name}
                                         />
                                     </FormControl>
@@ -176,7 +175,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                                 onChange={field.onChange}
                                                 placeholder="Selecione ou crie uma categoria"
                                                 createLabel="Criar nova categoria:"
-                                                id="product-category"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -197,7 +195,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                         onChange={field.onChange}
                                         placeholder="Selecione ou crie uma subcategoria"
                                         createLabel="Criar nova subcategoria:"
-                                        id="product-subcategory"
                                     />
                                     </FormControl>
                                     <FormMessage />
@@ -226,7 +223,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                     <FormLabel>Como este produto é vendido?</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} >
                                         <FormControl>
-                                            <SelectTrigger id="product-saleType">
+                                            <SelectTrigger>
                                                 <SelectValue/>
                                             </SelectTrigger>
                                         </FormControl>
