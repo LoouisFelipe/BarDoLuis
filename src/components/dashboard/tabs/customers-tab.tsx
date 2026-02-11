@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -29,6 +29,11 @@ export const CustomersTab: React.FC = () => {
 
     const [modalState, setModalState] = useState({ form: false, payment: false, history: false, delete: false });
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+    // CTO: Sort customers alphabetically by name
+    const sortedCustomers = useMemo(() => {
+        return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    }, [customers]);
 
     const closeAllModals = useCallback(() => {
         setModalState({ form: false, payment: false, history: false, delete: false });
@@ -69,7 +74,6 @@ export const CustomersTab: React.FC = () => {
     };
 
     const confirmDelete = async () => {
-        // CTO Rule: Ensure ID exists before calling deleteCustomer.
         if (selectedCustomer?.id) { 
             await deleteCustomer(selectedCustomer.id);
             closeAllModals();
@@ -90,7 +94,7 @@ export const CustomersTab: React.FC = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {customers.map(c => (
+                        {sortedCustomers.map(c => (
                             <TableRow key={c.id}>
                                 <TableCell className="font-medium">{c.name}</TableCell>
                                 <TableCell>{c.contact}</TableCell>
@@ -119,7 +123,7 @@ export const CustomersTab: React.FC = () => {
     
     const renderMobileView = () => (
         <div className="grid grid-cols-1 gap-4 md:hidden">
-            {customers.map(c => (
+            {sortedCustomers.map(c => (
                 <Card key={c.id} className="bg-card shadow-lg">
                     <CardHeader>
                         <CardTitle>{c.name}</CardTitle>
