@@ -1,18 +1,14 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
-import { Transaction, Product, Customer, Supplier } from '@/lib/schemas';
-import { UserProfile } from '@/contexts/auth-context';
+import { Transaction, Product, Customer } from '@/lib/schemas';
 import { DateRange } from 'react-day-picker';
 
 interface UseReportDataProps {
   transactions: Transaction[];
   products: Product[];
   customers: Customer[];
-  suppliers: Supplier[];
-  users: UserProfile[];
   date: DateRange | undefined;
   periodGoal: number;
 }
@@ -21,8 +17,6 @@ export const useReportData = ({
   transactions,
   products,
   customers,
-  suppliers,
-  users,
   date,
   periodGoal,
 }: UseReportDataProps) => {
@@ -83,10 +77,9 @@ export const useReportData = ({
             t.items.forEach((item: any) => {
               const product = (products || []).find((p) => p.id === item.productId);
               if (product) {
-                // CFO: Cálculo de COGS fracionado para doses
                 const baseUnitSize = product.baseUnitSize || 1;
                 const costPerMl = (product.costPrice || 0) / baseUnitSize;
-                const itemSize = item.size || 1; // Se não tiver size, assume 1 (unidade)
+                const itemSize = item.size || 1; 
                 const effectiveCost = item.size ? (costPerMl * itemSize) : (product.costPrice || 0);
                 
                 cogs += effectiveCost * (item.quantity || 1);
@@ -146,7 +139,6 @@ export const useReportData = ({
           t.items.forEach((item: any) => {
             topProductsMap.set(item.name, (topProductsMap.get(item.name) || 0) + (item.quantity || 1));
             
-            // CFO: Lucro Brutal detalhado por produto
             const product = (products || []).find((p) => p.id === item.productId);
             if (product) {
                 const baseUnitSize = product.baseUnitSize || 1;
@@ -220,8 +212,7 @@ export const useReportData = ({
       customersWithDebt: (customers || []).filter((c) => (c.balance || 0) > 0).length,
       totalCustomerDebt: (customers || []).reduce((sum, c) => sum + (c.balance || 0), 0),
       outOfStockProducts: (products || []).filter((p) => p.saleType !== 'service' && (p.stock || 0) <= 0).length,
-      totalUsers: (users || []).length,
       totalProducts: (products || []).length,
     };
-  }, [transactions, products, customers, suppliers, users, date, periodGoal]);
+  }, [transactions, products, customers, date, periodGoal]);
 };

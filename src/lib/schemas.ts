@@ -9,13 +9,25 @@ interface FirestoreDocument {
   updatedAt?: FieldValue | Date;
 }
 
+export interface DoseOption {
+  name: string;
+  size: number;
+  price: number;
+  enabled: boolean;
+}
+
 export interface Product extends FirestoreDocument {
   name: string;
   category: string;
+  subcategory?: string;
+  description?: string;
   costPrice: number;
   unitPrice: number;
   stock: number;
+  lowStockThreshold?: number | null;
   saleType: 'unit' | 'dose' | 'service';
+  doseOptions?: DoseOption[];
+  baseUnitSize?: number | null;
 }
 
 export interface Customer {
@@ -23,12 +35,17 @@ export interface Customer {
   name: string;
   contact?: string;
   balance: number;
-  creditLimit?: number | null; // ✅ ESSA LINHA É OBRIGATÓRIA
+  creditLimit?: number | null;
+  createdAt?: FieldValue | Date;
+  updatedAt?: FieldValue | Date;
 }
 
 export interface Supplier extends FirestoreDocument {
   name: string;
-  contact?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
   cnpj?: string;
 }
 
@@ -38,6 +55,18 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   size?: number; // Para produtos vendidos por dose/tamanho
+  doseName?: string; // Nome da dose (ex: "Dose 50ml")
+  subcategory?: string;
+  identifier?: string;
+}
+
+export interface Order extends FirestoreDocument {
+  displayName: string;
+  customerId: string | null;
+  items: OrderItem[];
+  total: number;
+  status: 'open' | 'pending_payment' | 'closed';
+  closedAt?: FieldValue | Date | null;
 }
 
 export interface PurchaseItem {
@@ -45,6 +74,13 @@ export interface PurchaseItem {
   name: string;
   quantity: number;
   unitCost: number; // Custo unitário na compra
+}
+
+export interface Purchase extends FirestoreDocument {
+  supplierId: string;
+  supplierName: string;
+  items: PurchaseItem[];
+  totalCost: number;
 }
 
 export interface Transaction extends FirestoreDocument {
@@ -60,23 +96,3 @@ export interface Transaction extends FirestoreDocument {
   tabName?: string; // Nome da comanda/mesa (para vendas)
   userId?: string | null; // Usuário que realizou a transação
 }
-
-// UserProfile já está definido em auth-context.tsx, mas pode ser re-exportado aqui se preferir
-// export interface UserProfile extends DocumentData {
-//   name?: string;
-//   email?: string;
-//   role?: 'admin' | 'waiter' | 'manager';
-//   createdAt?: FieldValue | Date;
-//   lastLogin?: FieldValue | Date;
-// }
-
-// Se você tiver outras entidades como OpenOrder, elas também deveriam estar aqui.
-// OpenOrder já está no backend.json, mas a interface TypeScript seria:
-// export interface OpenOrder extends FirestoreDocument {
-//   tableNumber: string;
-//   status: 'open' | 'pending_payment' | 'closed';
-//   items: OrderItem[];
-//   totalAmount: number;
-//   openedAt: FieldValue | Date;
-//   waiterId?: string;
-// }
