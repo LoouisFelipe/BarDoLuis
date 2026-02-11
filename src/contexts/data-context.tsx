@@ -259,3 +259,4 @@ export const useData = () => {
   if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 };
+// Atualização forçada para o Git
