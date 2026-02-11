@@ -1,4 +1,3 @@
-
 'use client';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -86,7 +85,7 @@ const DashboardLayoutContent: React.FC = () => {
     
     useEffect(() => {
         const isTabAvailable = availableTabs.some(([key]) => key === activeTab);
-        if (!isTabAvailable) {
+        if (!isTabAvailable && isAuthReady) {
             router.replace('/?tab=cockpit');
         }
     }, [activeTab, availableTabs, router]);
@@ -95,11 +94,6 @@ const DashboardLayoutContent: React.FC = () => {
         router.push(`/?tab=${value}`, { scroll: false });
     };
     
-    const isTabAvailable = availableTabs.some(([key]) => key === activeTab);
-    if (!isTabAvailable) {
-        return <div className="flex items-center justify-center h-full"><Spinner size="h-12 w-12"/></div>;
-    }
-
     return (
         <main className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-6 bg-muted/20 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
