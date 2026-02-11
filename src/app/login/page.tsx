@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
+import { auth } from '@/firebase/config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   
   const router = useRouter();
-  const { user, loginWithEmail, loginWithGoogle } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -33,22 +35,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginWithEmail(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
       console.error(err);
-      setError('Credenciais inválidas. Verifique seu e-mail e senha.');
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-    } catch (err: any) {
-      console.error(err);
-      setError('Erro ao conectar com Google. Verifique se sua conta está autorizada.');
+      setError('Acesso negado. Verifique suas credenciais.');
       setLoading(false);
     }
   };
@@ -62,8 +52,8 @@ export default function LoginPage() {
           </div>
           <div className="space-y-1">
             <CardTitle className="text-3xl font-bold tracking-tight">Bar do Luis</CardTitle>
-            <CardDescription className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest">
-              Sistema de Gestão Privado
+            <CardDescription className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest flex items-center justify-center gap-1">
+              <Lock size={10} /> Sistema de Gestão Privado
             </CardDescription>
           </div>
         </CardHeader>
@@ -82,7 +72,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="usuario@bardoluis.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -114,25 +104,14 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-tighter">
               <span className="bg-card px-2 text-muted-foreground">
-                Acesso Administrativo
+                Acesso Restrito
               </span>
             </div>
           </div>
-
-          <Button variant="outline" onClick={handleGoogleLogin} disabled={loading} className="w-full font-bold uppercase text-xs tracking-wider">
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-              </svg>
-            )}
-            Entrar com Google
-          </Button>
         </CardContent>
         <CardFooter className="flex flex-col gap-4 border-t border-border/20 pt-6">
             <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50">
-                Acesso restrito a funcionários autorizados.<br/>Contate o administrador para novas credenciais.
+                Somente funcionários autorizados.<br/>Contate o CEO para novas credenciais.
             </p>
         </CardFooter>
       </Card>

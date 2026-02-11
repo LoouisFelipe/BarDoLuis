@@ -20,6 +20,7 @@ service cloud.firestore {
     }
 
     // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
+    // Isso garante que você nunca fique "trancado" fora do seu próprio banco de dados.
     match /{document=**} {
       allow read, write: if isCEO();
     }
@@ -28,14 +29,15 @@ service cloud.firestore {
     match /users/{userId} {
       // Qualquer funcionário pode ler a lista de usuários para identificar colegas/cargos
       allow read: if isStaff();
-      // Apenas o CEO pode criar ou excluir usuários. Usuários podem editar apenas seu próprio nome/config.
+      // Apenas o CEO pode criar ou excluir usuários.
+      // Usuários podem editar apenas seu próprio perfil (nome/config).
       allow create, delete: if isCEO();
       allow update: if isCEO() || request.auth.uid == userId;
     }
 
     // Produtos: Catálogo de vendas e estoque
     match /products/{productId} {
-      allow read: if true; // Aberto para leitura (PDV e consultas)
+      allow read: if true; // Aberto para leitura no PDV
       allow write: if isStaff(); // Apenas funcionários operam estoque/preços
     }
 
