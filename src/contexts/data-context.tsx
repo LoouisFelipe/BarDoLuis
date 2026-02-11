@@ -3,25 +3,28 @@
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
 import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
-import { useToast } from "@/components/ui/use-toast";
-import { 
-  collection,
-  doc,
-  setDoc,
-  deleteDoc,
-  runTransaction,
-  serverTimestamp,
-  increment,
-  writeBatch,
-  orderBy,
-  query,
-  updateDoc,
-} from 'firebase/firestore';
+// ✅ Importação corrigida do Toast
+import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { addMonths, format } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+// 🚨 ESTAVA FALTANDO ESTE BLOCO DE IMPORTAÇÕES DO FIREBASE:
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  updateDoc, 
+  increment, 
+  serverTimestamp, 
+  runTransaction, 
+  writeBatch, 
+  query, 
+  orderBy 
+} from 'firebase/firestore';
 
 interface DataContextType {
   users: UserProfile[];
@@ -101,6 +104,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Sucesso!', description: successMessage });
       return result;
     } catch (e: any) {
+      console.error("Erro na ação:", e); // Log útil para debug
       const permissionError = new FirestorePermissionError({
         path,
         operation,
@@ -114,32 +118,49 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   // Mutations
   const saveProduct = (data: Omit<Product, 'id'>, id?: string) => 
     handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
       const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
       await setDoc(docRef, { ...data, updatedAt: serverTimestamp(), createdAt: id ? undefined : serverTimestamp() }, { merge: true });
       return docRef.id;
     }, 'Produto salvo.', id ? 'update' : 'create', 'products', data);
 
   const deleteProduct = (id: string) => 
-    handleAction(() => deleteDoc(doc(db, 'products', id)), 'Produto excluído.', 'delete', `products/${id}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await deleteDoc(doc(db, 'products', id));
+    }, 'Produto excluído.', 'delete', `products/${id}`);
 
   const addStock = (id: string, qty: number, cost?: number) =>
-    handleAction(() => updateDoc(doc(db, 'products', id), { stock: increment(qty), ...(cost && { costPrice: cost }) }), 'Estoque atualizado.', 'update', `products/${id}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await updateDoc(doc(db, 'products', id), { stock: increment(qty), ...(cost && { costPrice: cost }) });
+    }, 'Estoque atualizado.', 'update', `products/${id}`);
 
   const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => 
     handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
       const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
       await setDoc(docRef, { ...data, balance: id ? undefined : 0, updatedAt: serverTimestamp() }, { merge: true });
       return docRef.id;
     }, 'Cliente salvo.', id ? 'update' : 'create', 'customers', data);
 
   const deleteCustomer = (id: string) => 
-    handleAction(() => deleteDoc(doc(db, 'customers', id)), 'Cliente excluído.', 'delete', `customers/${id}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await deleteDoc(doc(db, 'customers', id));
+    }, 'Cliente excluído.', 'delete', `customers/${id}`);
 
   const receiveCustomerPayment = (customer: Customer, amount: number, paymentMethod: string) =>
     handleAction(async () => {
+        if (!db) throw new Error("Firestore não inicializado");
         await runTransaction(db, async (transaction) => {
             const customerRef = doc(db, 'customers', customer.id!);
             const paymentRef = doc(collection(db, 'transactions'));
+            
+            // Verifica se o cliente ainda existe antes de abater
+            const customerDoc = await transaction.get(customerRef);
+            if (!customerDoc.exists()) throw new Error("Cliente não encontrado!");
+
             transaction.update(customerRef, { balance: increment(-amount) });
             transaction.set(paymentRef, {
                 id: paymentRef.id,
@@ -157,16 +178,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) =>
     handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
       const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
       await setDoc(docRef, data, { merge: true });
       return docRef.id;
     }, 'Fornecedor salvo.', id ? 'update' : 'create', 'suppliers', data);
 
   const deleteSupplier = (id: string) =>
-    handleAction(() => deleteDoc(doc(db, 'suppliers', id)), 'Fornecedor excluído.', 'delete', `suppliers/${id}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await deleteDoc(doc(db, 'suppliers', id));
+    }, 'Fornecedor excluído.', 'delete', `suppliers/${id}`);
 
   const recordPurchaseAndUpdateStock = (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) =>
     handleAction(async () => {
+        if (!db) throw new Error("Firestore não inicializado");
         const batch = writeBatch(db);
         const purchaseRef = doc(collection(db, 'purchases'));
         const expenseRef = doc(collection(db, 'transactions'));
@@ -180,6 +206,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string) =>
     handleAction(async () => {
+        if (!db) throw new Error("Firestore não inicializado");
         return runTransaction(db, async (t) => {
             const saleRef = doc(collection(db, 'transactions'));
             order.items.forEach(item => {
@@ -189,13 +216,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             if (paymentMethod === 'Fiado' && customerId) {
                 t.update(doc(db, 'customers', customerId), { balance: increment(order.total) });
             }
-            t.set(saleRef, { id: saleRef.id, timestamp: serverTimestamp(), type: 'sale', description: `Venda ${order.displayName}`, total: order.total, items, paymentMethod, customerId, tabName: order.displayName, userId: user?.uid || null });
+            t.set(saleRef, { id: saleRef.id, timestamp: serverTimestamp(), type: 'sale', description: `Venda ${order.displayName}`, total: order.total, items: order.items, paymentMethod, customerId, tabName: order.displayName, userId: user?.uid || null });
             return saleRef.id;
         });
     }, 'Venda finalizada.', 'write', 'transactions');
   
   const addExpense = (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) =>
     handleAction(async () => {
+        if (!db) throw new Error("Firestore não inicializado");
         const batch = writeBatch(db);
         const baseDate = new Date(dateString + 'T12:00:00');
         for (let i = 0; i <= replicateMonths; i++) {
@@ -207,10 +235,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }, 'Despesa registrada.', 'write', 'transactions');
 
   const deleteTransaction = (id: string) =>
-    handleAction(() => deleteDoc(doc(db, 'transactions', id)), 'Transação excluída.', 'delete', `transactions/${id}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await deleteDoc(doc(db, 'transactions', id));
+    }, 'Transação excluída.', 'delete', `transactions/${id}`);
 
   const saveUserRole = (uid: string, role: 'admin' | 'cashier' | 'waiter') =>
-    handleAction(() => setDoc(doc(db, 'users', uid), { role }, { merge: true }), 'Cargo atualizado.', 'update', `users/${uid}`);
+    handleAction(async () => {
+      if (!db) throw new Error("Firestore não inicializado");
+      await setDoc(doc(db, 'users', uid), { role }, { merge: true });
+    }, 'Cargo atualizado.', 'update', `users/${uid}`);
 
   const value = {
     users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
