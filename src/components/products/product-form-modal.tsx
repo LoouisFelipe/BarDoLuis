@@ -240,7 +240,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
 
                             {saleType !== 'service' && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                                    <div className="grid grid-cols-2 gap-4">
                                         <FormField control={control} name="costPrice" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Preço de Custo (R$)</FormLabel>
@@ -261,7 +261,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                         control={control}
                                         name="lowStockThreshold"
                                         render={({ field }) => (
-                                        <FormItem className="animate-fade-in">
+                                        <FormItem>
                                             <FormLabel>Alerta de Estoque Mínimo (Opcional)</FormLabel>
                                             <FormControl><Input type="number" placeholder={`Nº de ${saleType === 'unit' ? 'unidades' : 'garrafas'}`} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl>
                                             <FormMessage />
@@ -272,7 +272,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
 
                             {saleType === 'unit' && (
                                 <FormField control={control} name="unitPrice" render={({ field }) => (
-                                    <FormItem className="animate-fade-in">
+                                    <FormItem>
                                         <FormLabel>Preço de Venda (R$)</FormLabel>
                                         <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value || '0'))} /></FormControl>
                                         <FormMessage />
@@ -281,7 +281,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                             )}
                             
                             {saleType === 'dose' && (
-                                <div className="space-y-4 p-4 border border-dashed border-border rounded-lg animate-fade-in">
+                                <div className="space-y-4 p-4 border border-dashed border-border rounded-lg">
                                     <FormField control={control} name="baseUnitSize" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Tamanho da Unidade Base (ml)</FormLabel>
@@ -293,13 +293,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                     {fields.map((item, index) => (
                                         <div key={item.id} className="grid grid-cols-12 gap-2 items-start bg-secondary p-2 rounded-md">
                                             <FormField control={control} name={`doseOptions.${index}.name`} render={({ field }) => (
-                                                <FormItem className="col-span-12 sm:col-span-4"><FormLabel className="sr-only">Nome da dose</FormLabel><FormControl><Input placeholder="Nome da dose" {...field} /></FormControl><FormMessage/></FormItem>
+                                                <FormItem className="col-span-12 sm:col-span-4"><FormControl><Input placeholder="Nome da dose" {...field} /></FormControl><FormMessage/></FormItem>
                                             )}/>
                                             <FormField control={control} name={`doseOptions.${index}.size`} render={({ field }) => (
-                                                <FormItem className="col-span-6 sm:col-span-3"><FormLabel className="sr-only">Tamanho (ml)</FormLabel><FormControl><Input type="number" placeholder="Tamanho (ml)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage/></FormItem>
+                                                <FormItem className="col-span-6 sm:col-span-3"><FormControl><Input type="number" placeholder="Tamanho (ml)" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage/></FormItem>
                                             )}/>
                                             <FormField control={control} name={`doseOptions.${index}.price`} render={({ field }) => (
-                                                <FormItem className="col-span-6 sm:col-span-3"><FormLabel className="sr-only">Preço (R$)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="Preço (R$)" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)}/></FormControl><FormMessage/></FormItem>
+                                                <FormItem className="col-span-6 sm:col-span-3"><FormControl><Input type="number" step="0.01" placeholder="Preço (R$)" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)}/></FormControl><FormMessage/></FormItem>
                                             )}/>
                                             <div className="col-span-12 sm:col-span-2 flex items-center justify-between gap-2 pt-1 sm:pt-0">
                                                 <FormField control={control} name={`doseOptions.${index}.enabled`} render={({ field }) => (
