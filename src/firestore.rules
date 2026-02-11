@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/bardoluis/documents {
@@ -18,7 +19,7 @@ service cloud.firestore {
       return isStaff() && (isCEO() || get(/databases/bardoluis/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
-    // REGRA DE OURO: CEO possui acesso total irrestrito em qualquer coleção
+    // REGRA DE OURO: CEO possui acesso total irrestrito em qualquer coleção do banco 'bardoluis'
     match /{document=**} {
       allow read, write: if isCEO();
     }
@@ -49,7 +50,7 @@ service cloud.firestore {
     // Comandas: Controle diário de mesas e balcão
     match /open_orders/{orderId} {
       allow read, create, update: if isStaff();
-      // Exclusão de comanda é uma ação administrativa
+      // Exclusão de comanda é uma ação administrativa restrita
       allow delete: if isAdmin();
     }
     
