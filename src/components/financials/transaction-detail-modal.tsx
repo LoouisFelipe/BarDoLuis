@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Transaction } from '@/lib/schemas';
+import { Transaction, OrderItem, PurchaseItem } from '@/lib/schemas';
 
 interface TransactionDetailModalProps {
     transaction: Transaction;
@@ -60,14 +60,13 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         </TableHeader>
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
-                                (transaction.items as any[]).map((item, index) => {
+                                transaction.items.map((item, index) => {
+                                    const isOrderItem = 'unitPrice' in item;
                                     const name = item.name;
                                     const quantity = item.quantity;
-                                    const subcategory = item.subcategory || null;
-                                    // Handle unitPrice for sales and unitCost for purchases
-                                    const price = item.unitPrice ?? item.unitCost ?? 0;
-                                    // Use a safe key for list rendering
-                                    const key = item.productId ?? `item-${index}`;
+                                    const price = isOrderItem ? (item as OrderItem).unitPrice : (item as PurchaseItem).unitCost;
+                                    const subcategory = isOrderItem ? (item as OrderItem).subcategory : null;
+                                    const key = isOrderItem && (item as OrderItem).productId ? (item as OrderItem).productId : `item-${index}`;
 
                                     return (
                                         <TableRow key={`${key}-${index}`}>

@@ -1,4 +1,3 @@
-
 import { FieldValue } from 'firebase/firestore';
 
 export interface DoseOption {
@@ -95,7 +94,7 @@ export interface Transaction {
   customerId?: string; 
   supplierId?: string; 
   expenseCategory?: string; 
-  items?: OrderItem[] | PurchaseItem[]; 
+  items?: (OrderItem | PurchaseItem)[]; 
   tabName?: string; 
   userId?: string | null; 
 }
