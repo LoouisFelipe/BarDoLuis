@@ -1,11 +1,10 @@
 'use client';
 
-import * as React from 'react'; // Importa React explicitamente
-
+import * as React from 'react';
 import { ToastActionElement, ToastProps } from '@/components/ui/toast';
 
 const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000; // Aumentado para 1 segundo
+const TOAST_REMOVE_DELAY = 5000;
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -56,8 +55,6 @@ const reducer = (state: State, action: Action): State => {
 
     case actionTypes.DISMISS_TOAST:
       const { toastId } = action;
-
-      // ! Side effects ! - Should be in a middleware
       if (toastId) {
         return {
           ...state,
@@ -81,12 +78,11 @@ const reducer = (state: State, action: Action): State => {
       }
       return state;
     default:
-      return state; // Retorna o estado atual para ações não reconhecidas
+      return state;
   }
 };
 
 const listeners: ((state: State) => void)[] = [];
-
 let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
@@ -94,9 +90,7 @@ function dispatch(action: Action) {
   listeners.forEach((listener) => listener(memoryState));
 }
 
-type Toast = ({ ...props }: Omit<ToasterToast, 'id'>) => { id: string };
-
-function useToast() {
+export function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
 
   React.useEffect(() => {
@@ -111,30 +105,22 @@ function useToast() {
 
   return {
     ...state,
-    toast: React.useCallback<Toast>(
-      ({ ...props }) => {
-        const id = genId();
+    toast: React.useCallback(({ ...props }: Omit<ToasterToast, 'id'>) => {
+      const id = genId();
 
-        const update = (props: Partial<ToasterToast>) =>
-          dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } });
-        const dismiss = () =>
-          dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
-        const remove = () =>
-          dispatch({ type: actionTypes.REMOVE_TOAST, toastId: id });
+      const update = (props: Partial<ToasterToast>) =>
+        dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } });
+      const dismiss = () =>
+        dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
+      const remove = () =>
+        dispatch({ type: actionTypes.REMOVE_TOAST, toastId: id });
 
-        dispatch({ type: actionTypes.ADD_TOAST, toast: { ...props, id, open: true, onOpenChange: (open) => {
-            if (!open) dismiss();
-        } } });
+      dispatch({ 
+        type: actionTypes.ADD_TOAST, 
+        toast: { ...props, id, open: true, onOpenChange: (open) => { if (!open) dismiss(); } } 
+      });
 
-        if (props.duration) {
-          setTimeout(() => dismiss(), props.duration);
-        }
-
-        return { id, update, dismiss, remove };
-      },
-      [dispatch]
-    ),
+      return { id, update, dismiss, remove };
+    }, []),
   };
 }
-
-export { useToast, reducer };

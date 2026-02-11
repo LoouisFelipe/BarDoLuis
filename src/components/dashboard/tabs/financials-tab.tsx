@@ -101,7 +101,7 @@ export const FinancialsTab: React.FC = () => {
         });
     }, [transactions, date]);
     
-    const { totalIncome, totalExpense } = useMemo(() => {
+    const totals = useMemo(() => {
         return filteredTransactions.reduce((acc, t) => {
             if (t.type === 'sale' && t.paymentMethod !== 'Fiado') {
                 acc.totalIncome += t.total;
@@ -121,7 +121,7 @@ export const FinancialsTab: React.FC = () => {
         const sortedTransactions = [...(filteredTransactions || [])].sort((a,b) => {
             const dateA = (a.timestamp as any)?.toDate ? (a.timestamp as any).toDate() : a.timestamp;
             const dateB = (b.timestamp as any)?.toDate ? (b.timestamp as any).toDate() : b.timestamp;
-            return dateB.getTime() - dateA.getTime();
+            return (dateB as Date).getTime() - (dateA as Date).getTime();
         });
         if (filter === 'all') return sortedTransactions;
         if (filter === 'income') return sortedTransactions.filter(t => (t.type === 'sale' && t.paymentMethod !== 'Fiado') || t.type === 'payment');
@@ -163,24 +163,17 @@ export const FinancialsTab: React.FC = () => {
         }
     };
 
-    const handleRowClick = (item: Transaction | Customer) => {
-        const transaction = item as Transaction;
-        if(transaction.items && transaction.items.length > 0) {
-            setSelectedTransaction(transaction);
-        }
-    };
-
     const getFilterTitle = () => {
         if (!date?.from) return "Carregando...";
         const fromDate = format(date.from, 'dd/MM/yy');
         const toDate = date.to ? format(date.to, 'dd/MM/yy') : fromDate;
         const period = fromDate === toDate ? fromDate : `de ${fromDate} a ${toDate}`;
         switch(filter) {
-            case 'income': return `Entradas (Recebimentos) ${period}`;
-            case 'expense': return `Saídas (Despesas) ${period}`;
+            case 'income': return `Entradas ${period}`;
+            case 'expense': return `Saídas ${period}`;
             case 'sales': return `Vendas ${period}`;
-            case 'fiado': return `Clientes com Saldo Devedor`;
-            default: return `Todas as Transações ${period}`;
+            case 'fiado': return `Saldo Devedor`;
+            default: return `Transações ${period}`;
         }
     };
 
@@ -212,7 +205,7 @@ export const FinancialsTab: React.FC = () => {
                     <TrendingUp className="text-accent mr-3 hidden sm:block" size={28}/>
                     <div> 
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Entradas</p>
-                        <p className="text-xl md:text-2xl font-black text-accent">R$ {totalIncome.toFixed(2)}</p>
+                        <p className="text-xl md:text-2xl font-black text-accent">R$ {totals.totalIncome.toFixed(2)}</p>
                     </div>
                 </Button>
                 <Button 
@@ -223,14 +216,14 @@ export const FinancialsTab: React.FC = () => {
                     <TrendingDown className="text-destructive mr-3 hidden sm:block" size={28}/>
                     <div>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saídas</p>
-                        <p className="text-xl md:text-2xl font-black text-destructive">R$ {totalExpense.toFixed(2)}</p>
+                        <p className="text-xl md:text-2xl font-black text-destructive">R$ {totals.totalExpense.toFixed(2)}</p>
                     </div>
                 </Button>
                 <div className="bg-card p-4 rounded-xl flex items-center border-2 border-transparent">
                     <Scale className="text-primary mr-3 hidden sm:block" size={28}/>
                     <div>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">Saldo</p>
-                        <p className="text-xl md:text-2xl font-black text-primary">R$ {(totalIncome - totalExpense).toFixed(2)}</p>
+                        <p className="text-xl md:text-2xl font-black text-primary">R$ {(totals.totalIncome - totals.totalExpense).toFixed(2)}</p>
                     </div>
                 </div>
                 <Button 
@@ -279,28 +272,26 @@ export const FinancialsTab: React.FC = () => {
                                     
                                     const transaction = item as Transaction;
                                     const hasItems = transaction.items && transaction.items.length > 0;
-                                    let icon, desc = transaction.description || '', sub = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
+                                    let icon = <Info className="text-muted-foreground" size={20} />;
+                                    let desc = transaction.description || '';
+                                    let sub = transaction.timestamp ? (transaction.timestamp as Date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '';
                                     const color = transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'sale' ? 'text-accent' : 'text-primary';
                                     
-                                    switch (transaction.type) {
-                                        case 'sale':
-                                            icon = <ShoppingCart className="text-accent" size={20} />;
-                                            const cName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
-                                            desc = cName ? `Venda: ${cName}` : 'Venda Balcão';
-                                            if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
-                                            break;
-                                        case 'expense':
-                                            icon = <ArrowDownCircle className="text-destructive" size={20} />;
-                                            if (transaction.expenseCategory) sub += ` • ${transaction.expenseCategory}`;
-                                            break;
-                                        case 'payment':
-                                            icon = <HandCoins className="text-primary" size={20} />;
-                                            if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
-                                            break;
+                                    if (transaction.type === 'sale') {
+                                        icon = <ShoppingCart className="text-accent" size={20} />;
+                                        const cName = transaction.customerId ? customerMap.get(transaction.customerId) : null;
+                                        desc = cName ? `Venda: ${cName}` : 'Venda Balcão';
+                                        if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
+                                    } else if (transaction.type === 'expense') {
+                                        icon = <ArrowDownCircle className="text-destructive" size={20} />;
+                                        if (transaction.expenseCategory) sub += ` • ${transaction.expenseCategory}`;
+                                    } else if (transaction.type === 'payment') {
+                                        icon = <HandCoins className="text-primary" size={20} />;
+                                        if (transaction.paymentMethod) sub += ` • ${transaction.paymentMethod}`;
                                     }
                                     
                                     return (
-                                        <div key={transaction.id} className={cn("group flex items-center p-4 rounded-lg bg-background border transition-all", hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10')} onClick={() => hasItems && handleRowClick(transaction)}>
+                                        <div key={transaction.id} className={cn("group flex items-center p-4 rounded-lg bg-background border transition-all", hasItems ? 'cursor-pointer hover:bg-muted/30 hover:border-primary' : 'hover:bg-muted/10')} onClick={() => { if(hasItems) setSelectedTransaction(transaction); }}>
                                             <div className="mr-4 p-2 bg-muted rounded-full">{icon}</div>
                                             <div className="flex-grow min-w-0">
                                                 <p className="font-bold text-sm truncate">{desc}</p>
@@ -336,7 +327,7 @@ export const FinancialsTab: React.FC = () => {
                         <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
                             <FormItem>
                                 <FormLabel>Tipo de Saída</FormLabel>
-                                <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value as any); form.setValue('category', ''); }} value={expenseType}>
+                                <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value); form.setValue('category', ''); }} value={expenseType}>
                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="variable">Despesa Variável</SelectItem>
