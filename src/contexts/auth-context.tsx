@@ -56,12 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileError, setProfileError] = useState<Error | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
-  // Lógica de Permissões
+  // Lógica de Permissões Centralizada
   const isAdmin = user?.uid === CEO_UID || userProfile?.role === 'admin';
   const isCaixaOrAdmin = isAdmin || userProfile?.role === 'cashier';
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoadingAuth(false);
       setAuthError(null);
@@ -69,11 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (currentUser) {
         setIsLoadingProfile(true);
-        setProfileError(null);
       } else {
         setUserProfile(null);
         setIsLoadingProfile(false);
-        setProfileError(null);
       }
     });
 
@@ -90,13 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (docSnap) => {
           if (docSnap.exists()) {
             setUserProfile({ ...docSnap.data(), uid: docSnap.id } as UserProfile);
+          } else if (user.uid === CEO_UID) {
+            // Virtual Profile para o CEO se o doc ainda não existir
+            setUserProfile({ uid: CEO_UID, name: 'CEO (Luis)', role: 'admin' } as UserProfile);
           } else {
-            // Se for o CEO e não tiver perfil, criamos um objeto virtual para não travar o app
-            if (user.uid === CEO_UID) {
-              setUserProfile({ uid: CEO_UID, name: 'CEO (Luis)', role: 'admin' } as UserProfile);
-            } else {
-              setUserProfile(null);
-            }
+            setUserProfile(null);
           }
           setIsLoadingProfile(false);
           setProfileError(null);
@@ -106,22 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoadingProfile(false);
         }
       );
-    } else {
-      setUserProfile(null);
-      setProfileError(null);
-      setIsLoadingProfile(false);
     }
 
     return () => {
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-      }
+      if (unsubscribeProfile) unsubscribeProfile();
     };
   }, [user]);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoadingAuth(true);
-    setAuthError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
@@ -133,37 +122,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    setIsLoadingAuth(true);
     try {
       await signOut(auth);
     } catch (error: any) {
       setAuthError(error);
-    } finally {
-      setIsLoadingAuth(false);
     }
   }, []);
 
-  const value = { 
-    user, 
-    userProfile, 
-    isLoadingAuth, 
-    authError, 
-    isLoadingProfile, 
-    profileError, 
-    isAuthReady,
-    isAdmin,
-    isCaixaOrAdmin,
-    login, 
-    logout 
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ 
+      user, userProfile, isLoadingAuth, authError, isLoadingProfile, 
+      profileError, isAuthReady, isAdmin, isCaixaOrAdmin, login, logout 
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }

@@ -3,26 +3,15 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
 
 /**
  * Inicializa os serviços do Firebase e retorna as instâncias dos SDKs.
  * Configurado para usar o banco de dados específico 'bardoluis'.
  */
 export function initializeFirebase() {
-  if (!getApps().length) {
-    let firebaseApp;
-    try {
-      firebaseApp = initializeApp(firebaseConfig);
-    } catch (e) {
-      console.error("Erro ao inicializar Firebase App:", e);
-      throw e;
-    }
-
-    return getSdks(firebaseApp);
-  }
-
-  return getSdks(getApp());
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  return getSdks(app);
 }
 
 /**

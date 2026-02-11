@@ -70,7 +70,7 @@ type TabName = keyof typeof TABS_CONFIG;
 const DashboardLayoutContent: React.FC = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { isAdmin, isCaixaOrAdmin } = useAuth();
+    const { isAdmin, isCaixaOrAdmin, isAuthReady } = useAuth();
 
     const availableTabs = useMemo(() => {
         return Object.entries(TABS_CONFIG).filter(([_, tab]) => {
@@ -84,11 +84,12 @@ const DashboardLayoutContent: React.FC = () => {
     const activeTab = (searchParams.get('tab') as TabName) || 'cockpit';
     
     useEffect(() => {
+        if (!isAuthReady) return;
         const isTabAvailable = availableTabs.some(([key]) => key === activeTab);
-        if (!isTabAvailable && isAuthReady) {
+        if (!isTabAvailable) {
             router.replace('/?tab=cockpit');
         }
-    }, [activeTab, availableTabs, router]);
+    }, [activeTab, availableTabs, router, isAuthReady]);
 
     const handleTabChange = (value: string) => {
         router.push(`/?tab=${value}`, { scroll: false });

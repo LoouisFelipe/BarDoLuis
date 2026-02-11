@@ -20,6 +20,8 @@ import {
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { addMonths, format } from 'date-fns';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface DataContextType {
   users: UserProfile[];
@@ -52,13 +54,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
-  const db = useFirestore(); // Usa a instância correta vinda do provedor Firebase
-  const { user, userProfile } = useAuth();
+  const db = useFirestore(); 
+  const { user, isAdmin } = useAuth();
 
-  const isAdmin = userProfile?.role === 'admin';
-  const isCeo = user?.uid === "o0FzqC1oYoYYwjgJXbbgL4QoCe42"; 
-
-  const usersQuery = useMemoFirebase(() => (db && user && (isAdmin || isCeo)) ? collection(db, 'users') : null, [db, user, isAdmin, isCeo]);
+  // Queries Memoizadas vinculadas à instância 'bardoluis'
+  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [db, user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
   const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [db, user]);
@@ -77,13 +77,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     if (!rawTransactionsData) return [];
     return rawTransactionsData.map(t => {
       let dateValue: Date;
-      if (t.timestamp instanceof Date) {
-        dateValue = t.timestamp;
-      } else if (t.timestamp && typeof (t.timestamp as any).toDate === 'function') {
-        dateValue = (t.timestamp as any).toDate();
-      } else {
-        dateValue = new Date(); 
-      }
+      if (t.timestamp instanceof Date) dateValue = t.timestamp;
+      else if (t.timestamp && (t.timestamp as any).toDate) dateValue = (t.timestamp as any).toDate();
+      else dateValue = new Date(); 
       return { ...t, timestamp: dateValue };
     });
   }, [rawTransactionsData]);
@@ -96,85 +92,54 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const handleAction = useCallback(async <T,>(
     action: () => Promise<T>,
     successMessage: string,
-    errorMessage: string
+    operation: 'write' | 'create' | 'update' | 'delete',
+    path: string,
+    data?: any
   ): Promise<T> => {
     try {
       const result = await action();
       toast({ title: 'Sucesso!', description: successMessage });
       return result;
     } catch (e: any) {
-      toast({ title: 'Erro!', description: `${errorMessage}: ${e.message}`, variant: 'destructive' });
+      const permissionError = new FirestorePermissionError({
+        path,
+        operation,
+        requestResourceData: data,
+      });
+      errorEmitter.emit('permission-error', permissionError);
       throw e;
     }
   }, [toast]);
-  
-  const genericSave = useCallback(async <T extends object>(path: string, data: T, id?: string): Promise<string> => {
-    if (!db) throw new Error("Firestore not initialized");
-    const collectionRef = collection(db, path);
-    const docRef = id ? doc(collectionRef, id) : doc(collectionRef);
-    
-    const cleanData: any = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (key !== 'id' && value !== undefined) {
-        cleanData[key] = value ?? null;
-      }
-    });
-    
-    const finalData = { 
-        ...cleanData, 
-        updatedAt: serverTimestamp(), 
-        ...(!id && { createdAt: serverTimestamp() }) 
-    };
-    
-    await setDoc(docRef, finalData, { merge: true });
-    return docRef.id;
-  }, [db]);
 
-  const saveProduct = (productData: Omit<Product, 'id'>, productId?: string) => 
-    handleAction(
-      () => genericSave('products', productData, productId), 'Produto salvo.', 'Falha ao salvar produto.'
-    );
-
-  const deleteProduct = (productId: string) => 
-    handleAction(
-      () => deleteDoc(doc(db, 'products', productId)), 
-      'Produto excluído.', 
-      'Falha ao excluir produto.',
-    );
-
-  const addStock = (productId: string, quantity: number, costPrice?: number) =>
+  // Mutations
+  const saveProduct = (data: Omit<Product, 'id'>, id?: string) => 
     handleAction(async () => {
-      if (!db) throw new Error("Firestore not initialized");
-      const productRef = doc(db, 'products', productId);
-      const updateData: any = { stock: increment(quantity) };
-      if (costPrice !== undefined) updateData.costPrice = costPrice;
-      await updateDoc(productRef, updateData);
-    }, 'Estoque atualizado.', 'Falha ao atualizar estoque.');
+      const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
+      await setDoc(docRef, { ...data, updatedAt: serverTimestamp(), createdAt: id ? undefined : serverTimestamp() }, { merge: true });
+      return docRef.id;
+    }, 'Produto salvo.', id ? 'update' : 'create', 'products', data);
 
-  const saveCustomer = (customerData: Omit<Customer, 'id' | 'balance'>, customerId?: string) => 
-    handleAction(
-      () => {
-        const data = customerId ? customerData : { ...customerData, balance: 0 };
-        return genericSave('customers', data, customerId);
-      }, 
-      'Cliente salvo.', 
-      'Falha ao salvar cliente.'
-    );
+  const deleteProduct = (id: string) => 
+    handleAction(() => deleteDoc(doc(db, 'products', id)), 'Produto excluído.', 'delete', `products/${id}`);
 
-  const deleteCustomer = (customerId: string) => 
-    handleAction(
-      () => deleteDoc(doc(db, 'customers', customerId)), 
-      'Cliente excluído.', 
-      'Falha ao excluir cliente.',
-    );
+  const addStock = (id: string, qty: number, cost?: number) =>
+    handleAction(() => updateDoc(doc(db, 'products', id), { stock: increment(qty), ...(cost && { costPrice: cost }) }), 'Estoque atualizado.', 'update', `products/${id}`);
+
+  const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => 
+    handleAction(async () => {
+      const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
+      await setDoc(docRef, { ...data, balance: id ? undefined : 0, updatedAt: serverTimestamp() }, { merge: true });
+      return docRef.id;
+    }, 'Cliente salvo.', id ? 'update' : 'create', 'customers', data);
+
+  const deleteCustomer = (id: string) => 
+    handleAction(() => deleteDoc(doc(db, 'customers', id)), 'Cliente excluído.', 'delete', `customers/${id}`);
 
   const receiveCustomerPayment = (customer: Customer, amount: number, paymentMethod: string) =>
     handleAction(async () => {
-        if (!db) throw new Error("Firestore not initialized");
         await runTransaction(db, async (transaction) => {
             const customerRef = doc(db, 'customers', customer.id!);
             const paymentRef = doc(collection(db, 'transactions'));
-            
             transaction.update(customerRef, { balance: increment(-amount) });
             transaction.set(paymentRef, {
                 id: paymentRef.id,
@@ -188,158 +153,75 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.uid || null,
             });
         });
-    }, 'Pagamento recebido.', 'Falha ao receber pagamento.');
+    }, 'Pagamento recebido.', 'write', 'transactions');
 
-  const saveSupplier = (supplierData: Omit<Supplier, 'id'>, supplierId?: string) =>
-    handleAction(
-      () => genericSave('suppliers', supplierData, supplierId), 
-      'Fornecedor salvo.', 
-      'Falha ao salvar fornecedor.'
-    );
+  const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) =>
+    handleAction(async () => {
+      const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
+      await setDoc(docRef, data, { merge: true });
+      return docRef.id;
+    }, 'Fornecedor salvo.', id ? 'update' : 'create', 'suppliers', data);
 
-  const deleteSupplier = (supplierId: string) =>
-    handleAction(
-      () => deleteDoc(doc(db, 'suppliers', supplierId)), 
-      'Fornecedor excluído.', 
-      'Falha ao excluir fornecedor.',
-    );
+  const deleteSupplier = (id: string) =>
+    handleAction(() => deleteDoc(doc(db, 'suppliers', id)), 'Fornecedor excluído.', 'delete', `suppliers/${id}`);
 
   const recordPurchaseAndUpdateStock = (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) =>
     handleAction(async () => {
-        if (!db) throw new Error("Firestore not initialized");
         const batch = writeBatch(db);
         const purchaseRef = doc(collection(db, 'purchases'));
         const expenseRef = doc(collection(db, 'transactions'));
-
-        batch.set(purchaseRef, {
-            id: purchaseRef.id,
-            supplierId,
-            supplierName,
-            items: JSON.parse(JSON.stringify(items)),
-            totalCost,
-            createdAt: serverTimestamp(),
+        batch.set(purchaseRef, { id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() });
+        batch.set(expenseRef, { id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null });
+        items.forEach(item => {
+            batch.update(doc(db, 'products', item.productId), { stock: increment(item.quantity), costPrice: item.unitCost });
         });
-
-        batch.set(expenseRef, {
-            id: expenseRef.id,
-            timestamp: serverTimestamp(),
-            type: 'expense',
-            description: `Compra de Fornecedor: ${supplierName}`,
-            total: totalCost,
-            expenseCategory: 'Insumos',
-            items: JSON.parse(JSON.stringify(items)),
-            supplierId,
-            userId: user?.uid || null,
-        });
-
-        for (const item of items) {
-            const productRef = doc(db, 'products', item.productId);
-            batch.update(productRef, { 
-                stock: increment(item.quantity),
-                costPrice: item.unitCost
-            });
-        }
-
         await batch.commit();
-    }, 'Compra registrada.', 'Falha ao registrar compra.');
+    }, 'Compra registrada.', 'write', 'purchases');
 
   const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string) =>
     handleAction(async () => {
-        if (!db) throw new Error("Firestore not initialized");
-        
-        const uniqueProductIds = Array.from(new Set(order.items.map(i => i.productId)));
-
         return runTransaction(db, async (t) => {
-            await Promise.all(uniqueProductIds.map(id => t.get(doc(db, 'products', id))));
-
             const saleRef = doc(collection(db, 'transactions'));
-            
             order.items.forEach(item => {
-                const productRef = doc(db, 'products', item.productId);
-                const decrementAmount = item.size ? item.size * item.quantity : item.quantity;
-                t.update(productRef, { stock: increment(-decrementAmount) });
+                const dec = item.size ? item.size * item.quantity : item.quantity;
+                t.update(doc(db, 'products', item.productId), { stock: increment(-dec) });
             });
-
             if (paymentMethod === 'Fiado' && customerId) {
-                const customerRef = doc(db, 'customers', customerId);
-                t.update(customerRef, { balance: increment(order.total) });
+                t.update(doc(db, 'customers', customerId), { balance: increment(order.total) });
             }
-
-            t.set(saleRef, {
-                id: saleRef.id,
-                timestamp: serverTimestamp(),
-                type: 'sale',
-                description: `Venda ${order.displayName}`,
-                total: order.total,
-                items: JSON.parse(JSON.stringify(order.items)),
-                paymentMethod,
-                customerId,
-                tabName: order.displayName,
-                userId: user?.uid || null,
-            });
+            t.set(saleRef, { id: saleRef.id, timestamp: serverTimestamp(), type: 'sale', description: `Venda ${order.displayName}`, total: order.total, items, paymentMethod, customerId, tabName: order.displayName, userId: user?.uid || null });
             return saleRef.id;
         });
-    }, 'Venda da comanda finalizada.', 'Falha ao finalizar venda.');
+    }, 'Venda finalizada.', 'write', 'transactions');
   
   const addExpense = (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) =>
     handleAction(async () => {
-        if (!db) throw new Error("Firestore not initialized");
         const batch = writeBatch(db);
         const baseDate = new Date(dateString + 'T12:00:00');
-
         for (let i = 0; i <= replicateMonths; i++) {
             const expenseRef = doc(collection(db, 'transactions'));
             const currentDate = addMonths(baseDate, i);
-            
-            batch.set(expenseRef, {
-                id: expenseRef.id,
-                timestamp: currentDate,
-                type: 'expense',
-                description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`,
-                total: amount,
-                expenseCategory: category,
-                items: [],
-                userId: user?.uid || null,
-            });
+            batch.set(expenseRef, { id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null });
         }
         await batch.commit();
-    }, replicateMonths > 0 ? 'Despesas replicadas com sucesso.' : 'Despesa adicionada.', 'Falha ao adicionar despesa.');
+    }, 'Despesa registrada.', 'write', 'transactions');
 
-  const deleteTransaction = (transactionId: string) =>
-    handleAction(() => deleteDoc(doc(db, 'transactions', transactionId)), 'Transação excluída.', 'Falha ao excluir transação.');
+  const deleteTransaction = (id: string) =>
+    handleAction(() => deleteDoc(doc(db, 'transactions', id)), 'Transação excluída.', 'delete', `transactions/${id}`);
 
   const saveUserRole = (uid: string, role: 'admin' | 'cashier' | 'waiter') =>
-    handleAction(() => setDoc(doc(db, 'users', uid), { role }, { merge: true }), 'Cargo do usuário atualizado.', 'Falha ao atualizar cargo.');
+    handleAction(() => setDoc(doc(db, 'users', uid), { role }, { merge: true }), 'Cargo atualizado.', 'update', `users/${uid}`);
 
-  const value: DataContextType = {
-    users: usersData || [],
-    products: productsData || [],
-    customers: customersData || [],
-    suppliers: suppliersData || [],
-    transactions: transactionsData || [],
-    loading,
-    saveProduct,
-    deleteProduct,
-    addStock,
-    saveCustomer,
-    deleteCustomer,
-    receiveCustomerPayment,
-    saveSupplier,
-    deleteSupplier,
-    recordPurchaseAndUpdateStock,
-    finalizeOrder,
-    addExpense,
-    deleteTransaction,
-    saveUserRole,
+  const value = {
+    users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
+    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
-export const useData = (): DataContextType => {
+export const useData = () => {
   const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useData must be used within a DataProvider');
-  }
+  if (context === undefined) throw new Error('useData must be used within a DataProvider');
   return context;
 };
