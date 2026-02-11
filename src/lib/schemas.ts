@@ -18,10 +18,12 @@ export interface Product extends FirestoreDocument {
   saleType: 'unit' | 'dose' | 'service';
 }
 
-export interface Customer extends FirestoreDocument {
+export interface Customer {
+  id?: string;
   name: string;
-  balance: number; // Saldo devedor (para fiado)
   contact?: string;
+  balance: number;
+  creditLimit?: number | null; // ✅ ESSA LINHA É OBRIGATÓRIA
 }
 
 export interface Supplier extends FirestoreDocument {

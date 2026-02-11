@@ -1,3 +1,4 @@
+
 // src/hooks/use-memo-firebase.ts
 
 import { useMemo } from 'react';
@@ -18,7 +19,8 @@ export function useMemoFirebase<T extends CollectionReference<DocumentData> | Qu
   factory: () => T,
   deps: React.DependencyList
 ): T & { __memo?: boolean } {
-  const memoizedValue = useMemo(factory, deps);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedValue = useMemo(factory, [factory, ...deps]);
   if (memoizedValue) {
     (memoizedValue as any).__memo = true; // Adiciona a propriedade __memo para validação
   }

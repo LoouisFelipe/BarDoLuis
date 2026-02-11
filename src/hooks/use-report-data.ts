@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -222,5 +223,5 @@ export const useReportData = ({
       totalUsers: (users || []).length,
       totalProducts: (products || []).length,
     };
-  }, [transactions, products, customers, date, periodGoal]);
+  }, [transactions, products, customers, suppliers, users, date, periodGoal]);
 };

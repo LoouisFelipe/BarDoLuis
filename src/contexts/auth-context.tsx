@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import {
   onAuthStateChanged,
-  User as FirebaseUser,
+  User,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -20,6 +20,9 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+
+// Exportando o tipo para uso global no sistema
+export type FirebaseUser = User;
 
 // UID do CEO para Bypass de Auditoria e Controle Total
 const CEO_UID = "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
