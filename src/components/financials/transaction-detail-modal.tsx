@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Transaction, OrderItem, PurchaseItem } from '@/lib/schemas';
+import { Transaction } from '@/lib/schemas';
 
 interface TransactionDetailModalProps {
     transaction: Transaction;
@@ -61,16 +61,15 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         </TableHeader>
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
-                                transaction.items.map((item, index) => {
-                                    // CTO: Type-safe property access for different item types
+                                transaction.items.map((item: any, index: number) => {
                                     const name = item.name;
                                     const quantity = item.quantity;
-                                    const subcategory = 'subcategory' in item ? item.subcategory : null;
-                                    const price = 'unitPrice' in item ? item.unitPrice : ('unitCost' in item ? item.unitCost : 0);
-                                    const productId = item.productId;
+                                    const subcategory = item.subcategory || null;
+                                    const price = item.unitPrice || item.unitCost || 0;
+                                    const key = item.productId || `item-${index}`;
 
                                     return (
-                                        <TableRow key={`${productId}-${index}`}>
+                                        <TableRow key={`${key}-${index}`}>
                                             <TableCell className="font-medium">{name}{subcategory && ` (${subcategory})`}</TableCell>
                                             <TableCell className="text-center">{quantity}</TableCell>
                                             <TableCell className="text-right">R$ {(price * quantity).toFixed(2)}</TableCell>
