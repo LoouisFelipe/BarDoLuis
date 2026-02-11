@@ -1,3 +1,4 @@
+
 // src/lib/schemas.ts
 
 import { FieldValue } from 'firebase/firestore';
@@ -54,8 +55,8 @@ export interface OrderItem {
   name: string;
   quantity: number;
   unitPrice: number;
-  size?: number; // Para produtos vendidos por dose/tamanho
-  doseName?: string; // Nome da dose (ex: "Dose 50ml")
+  size?: number; 
+  doseName?: string; 
   subcategory?: string;
   identifier?: string;
 }
@@ -73,7 +74,7 @@ export interface PurchaseItem {
   productId: string;
   name: string;
   quantity: number;
-  unitCost: number; // Custo unitário na compra
+  unitCost: number; 
 }
 
 export interface Purchase extends FirestoreDocument {
@@ -88,11 +89,11 @@ export interface Transaction extends FirestoreDocument {
   total: number;
   timestamp: FieldValue | Date;
   description?: string;
-  paymentMethod?: string; // Para vendas e pagamentos
-  customerId?: string; // Para vendas e pagamentos de clientes
-  supplierId?: string; // Para despesas de fornecedores
-  expenseCategory?: string; // Para despesas
-  items?: OrderItem[] | PurchaseItem[]; // Itens da transação (venda ou compra)
-  tabName?: string; // Nome da comanda/mesa (para vendas)
-  userId?: string | null; // Usuário que realizou a transação
+  paymentMethod?: string; 
+  customerId?: string; 
+  supplierId?: string; 
+  expenseCategory?: string; 
+  items?: OrderItem[] | PurchaseItem[]; 
+  tabName?: string; 
+  userId?: string | null; 
 }

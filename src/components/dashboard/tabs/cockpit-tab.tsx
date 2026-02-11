@@ -1,13 +1,13 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns'; 
-import { BarChart2, Banknote, Package, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,14 +43,13 @@ interface CockpitTabProps {
 }
 
 export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
-    const { transactions, products, customers, suppliers, users, loading } = useData();
+    const { transactions, products, customers, loading } = useData();
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
         from: subDays(new Date(), 6),
         to: new Date(),
     }));
     
-    // Deixamos a meta manual como 0 por padrão para priorizar a meta dinâmica de custos
     const [manualGoal, setManualGoal] = useState(0);
     const [isEditingGoal, setIsEditingGoal] = useState(false);
     
@@ -62,14 +61,12 @@ export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
         transactions,
         products,
         customers,
-        suppliers,
-        users,
         date: dateRange,
         periodGoal: manualGoal,
     });
 
     if (loading || !reportData) {
-        return <CockpitSkeleton />
+        return <CockpitSkeleton />;
     }
     
     return (
@@ -108,7 +105,7 @@ export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
                                             <Edit className="h-3 w-3 text-muted-foreground" />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Definir Meta Manual (Sobrepõe Custo)</p></TooltipContent>
+                                    <TooltipContent><p>Definir Meta Manual</p></TooltipContent>
                                 </Tooltip>
                             )}
                             <Tooltip>
@@ -160,7 +157,7 @@ export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
                 </Card>
 
                 <Card className="cursor-pointer hover:bg-secondary/50 transition-colors"> 
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><Banknote className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><HandCoins className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
                 </Card>
 
                 <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => onTabChange?.('daily')}> 

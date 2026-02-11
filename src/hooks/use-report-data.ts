@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -32,7 +33,6 @@ export const useReportData = ({
       return timestamp && isWithinInterval(timestamp, interval);
     });
 
-    // --- Meta Dinâmica baseada em Custos ---
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = getDaysInMonth(from);
