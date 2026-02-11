@@ -1,4 +1,3 @@
-
 'use client';
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -19,7 +18,7 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
     const getTransactionTitle = () => {
         switch(transaction.type) {
             case 'sale':
-                return `Detalhes da Venda: ${transaction.tabName || transaction.description || ''}`;
+                return `Detalhes da Venda: ${transaction.tabName || transaction.description || 'Balcão'}`;
             case 'expense':
                  return `Detalhes da Despesa: ${transaction.description}`;
             case 'payment':
@@ -61,12 +60,14 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         </TableHeader>
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
-                                transaction.items.map((item: any, index: number) => {
+                                (transaction.items as any[]).map((item, index) => {
                                     const name = item.name;
                                     const quantity = item.quantity;
                                     const subcategory = item.subcategory || null;
-                                    const price = item.unitPrice || item.unitCost || 0;
-                                    const key = item.productId || `item-${index}`;
+                                    // Handle unitPrice for sales and unitCost for purchases
+                                    const price = item.unitPrice ?? item.unitCost ?? 0;
+                                    // Use a safe key for list rendering
+                                    const key = item.productId ?? `item-${index}`;
 
                                     return (
                                         <TableRow key={`${key}-${index}`}>
