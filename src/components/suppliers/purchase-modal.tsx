@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Lightbulb, PlusCircle, Trash2 } from 'lucide-react';
+import { Lightbulb, PlusCircle, Trash2, ShoppingCart, Search } from 'lucide-react';
 import { Product, Supplier, PurchaseItem } from '@/lib/schemas';
 import { useToast } from '@/hooks/use-toast';
 
@@ -143,19 +142,22 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
     return (
         <TooltipProvider>
             <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Registrar Nova Compra</DialogTitle>
-                    <DialogDescription>Selecione um fornecedor e adicione itens para registrar a entrada de estoque e despesas.</DialogDescription>
+            <DialogContent className="sm:max-w-4xl max-h-[95vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-2 shrink-0 border-b bg-card">
+                    <div className="flex items-center gap-2 mb-1">
+                        <ShoppingCart className="text-primary h-5 w-5" />
+                        <DialogTitle className="text-xl font-bold">Registrar Nova Compra</DialogTitle>
+                    </div>
+                    <DialogDescription>Dê entrada de estoque e registre a despesa automaticamente.</DialogDescription>
                 </DialogHeader>
                 
-                <div className="flex-grow overflow-y-auto -mr-6 pr-6">
-                    <div className="py-4 space-y-4">
-                        <div>
-                            <Label htmlFor="purchase-supplier">Fornecedor</Label>
+                <div className="flex-grow overflow-y-auto px-6">
+                    <div className="py-6 space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="purchase-supplier" className="text-xs font-bold uppercase text-muted-foreground">Fornecedor</Label>
                             <Select value={supplierId} onValueChange={setSupplierId} disabled={!!preselectedSupplier}>
-                                <SelectTrigger id="purchase-supplier" name="supplier">
-                                    <SelectValue placeholder="Selecione um fornecedor..." />
+                                <SelectTrigger id="purchase-supplier" className="h-12 bg-background border-2">
+                                    <SelectValue placeholder="Selecione o fornecedor..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>)}
@@ -163,55 +165,82 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
                             </Select>
                         </div>
 
-                        <div className="bg-secondary p-4 rounded-lg space-y-4">
-                            <h4 className="font-semibold">Itens da Compra</h4>
+                        <div className="bg-muted/30 rounded-xl p-4 border border-dashed space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-bold uppercase tracking-tight">Itens da Compra</h4>
+                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">{purchaseItems.length} itens</span>
+                            </div>
+                            
                             <div className="space-y-3">
                                 {purchaseItems.map((item, index) => {
                                     const suggestedPrice = (parseFloat(String(item.unitCost)) || 0) * 2.5;
                                     return (
-                                        <div key={index} className="grid grid-cols-12 gap-x-3 gap-y-2 items-center bg-background p-3 rounded-md">
-                                            <span className="col-span-12 sm:col-span-4 font-medium">{item.name}{item.subcategory ? ` (${item.subcategory})` : ''}</span>
+                                        <div key={index} className="grid grid-cols-12 gap-x-3 gap-y-2 items-start bg-background p-3 rounded-lg border shadow-sm relative group">
+                                            <div className="col-span-12 sm:col-span-4 flex flex-col">
+                                                <span className="font-bold text-sm leading-tight">{item.name}</span>
+                                                {item.subcategory && <span className="text-[10px] text-muted-foreground uppercase">{item.subcategory}</span>}
+                                            </div>
                                             <div className="col-span-4 sm:col-span-2">
-                                                <Label htmlFor={`qty-${index}`} className="sr-only">Quantidade</Label>
-                                                <Input name={`qty-${index}`} id={`qty-${index}`} type="number" placeholder="Qtd" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} className="text-base" />
+                                                <Label htmlFor={`qty-${index}`} className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Qtd</Label>
+                                                <Input name={`qty-${index}`} id={`qty-${index}`} type="number" placeholder="0" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} className="h-9 font-bold" />
                                             </div>
                                             <div className="col-span-8 sm:col-span-3">
-                                                <Label htmlFor={`cost-${index}`} className="sr-only">Custo por Unidade</Label>
-                                                <Input name={`cost-${index}`} id={`cost-${index}`} type="number" step="0.01" placeholder="Custo/Un" value={item.unitCost} onChange={e => handleItemChange(index, 'unitCost', e.target.value)} className="text-base" />
+                                                <Label htmlFor={`cost-${index}`} className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Custo Unitário</Label>
+                                                <Input name={`cost-${index}`} id={`cost-${index}`} type="number" step="0.01" placeholder="0.00" value={item.unitCost} onChange={e => handleItemChange(index, 'unitCost', e.target.value)} className="h-9 font-bold" />
                                                 {suggestedPrice > 0 && (
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className="flex items-center text-xs text-yellow-400 mt-1 cursor-help"><Lightbulb size={14} className="mr-1" /><span>Sug. Venda: R$ {suggestedPrice.toFixed(2)}</span></div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent><p>Baseado em um markup de 150% (custo x 2.5). Edite o preço de venda no cadastro do produto.</p></TooltipContent>
-                                                    </Tooltip>
+                                                    <div className="flex items-center text-[9px] text-yellow-500 mt-1 font-bold">
+                                                        <Lightbulb size={10} className="mr-1" />
+                                                        <span>Sug. Venda: R$ {suggestedPrice.toFixed(2)}</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <span className="col-span-8 sm:col-span-2 text-left sm:text-right font-semibold">R$ {((parseFloat(String(item.quantity)) || 0) * (parseFloat(String(item.unitCost)) || 0)).toFixed(2)}</span>
-                                            <div className="col-span-4 sm:col-span-1 flex justify-end">
-                                               <Button onClick={() => handleRemoveItem(index)} variant="ghost" size="icon" className="text-destructive hover:text-red-300"><Trash2 size={18} /></Button>
+                                            <div className="col-span-10 sm:col-span-2 flex flex-col justify-center h-full pt-4 sm:pt-0">
+                                                <span className="text-[10px] font-bold text-muted-foreground uppercase sm:text-right">Subtotal</span>
+                                                <span className="text-sm font-black text-primary sm:text-right">R$ {((parseFloat(String(item.quantity)) || 0) * (parseFloat(String(item.unitCost)) || 0)).toFixed(2)}</span>
+                                            </div>
+                                            <div className="col-span-2 sm:col-span-1 flex justify-end pt-4 sm:pt-0">
+                                               <Button onClick={() => handleRemoveItem(index)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
                                             </div>
                                         </div>
                                     );
                                 })}
-                                 {purchaseItems.length === 0 && <p className="text-center text-muted-foreground py-4">Nenhum item adicionado.</p>}
+                                 {purchaseItems.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground opacity-50 italic">
+                                        <ShoppingCart size={32} className="mb-2" />
+                                        <p className="text-xs">Nenhum produto adicionado à lista.</p>
+                                    </div>
+                                 )}
                             </div>
-                            <div className="relative">
-                                <Label htmlFor="product-search" className="sr-only">Buscar produto</Label>
-                                <Input id="product-search" name="product-search" type="text" placeholder="Buscar produto para adicionar..." value={productSearch} onChange={e => setProductSearch(e.target.value)} />
+
+                            <div className="relative pt-2">
+                                <Label htmlFor="product-search" className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Adicionar Produto</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        id="product-search" 
+                                        name="product-search" 
+                                        type="text" 
+                                        placeholder="Busque pelo nome do produto..." 
+                                        value={productSearch} 
+                                        onChange={e => setProductSearch(e.target.value)} 
+                                        className="h-11 pl-10 border-2 border-primary/20 focus:border-primary"
+                                    />
+                                </div>
+                                
                                 {availableProducts.length > 0 && (
-                                    <div className="absolute w-full z-20 max-h-40 overflow-y-auto bg-popover border rounded-md shadow-lg bottom-12">
+                                    <div className="absolute w-full z-20 max-h-40 overflow-y-auto bg-popover border-2 rounded-lg shadow-xl mt-1">
                                         {availableProducts.map(p => (
-                                            <div key={p.id} onClick={() => handleAddProduct(p)} className="p-2 hover:bg-primary/20 cursor-pointer">
-                                              {p.name} {p.subcategory && `(${p.subcategory})`}
+                                            <div key={p.id} onClick={() => handleAddProduct(p)} className="p-3 hover:bg-primary/10 cursor-pointer flex justify-between items-center border-b last:border-0">
+                                              <span className="text-sm font-bold">{p.name} {p.subcategory && <span className="text-[10px] text-muted-foreground ml-1">({p.subcategory})</span>}</span>
+                                              <PlusCircle size={16} className="text-primary" />
                                             </div>
                                         ))}
                                     </div>
                                 )}
                                 {productSearch && !availableProducts.some(p => p.name.toLowerCase() === productSearch.toLowerCase()) && (
-                                    <div className="absolute w-full z-20 bg-popover border rounded-md shadow-lg bottom-12">
-                                        <div onClick={() => handleOpenNewProductModal(productSearch)} className="p-2 text-primary hover:bg-primary/20 cursor-pointer flex items-center">
-                                            <PlusCircle size={16} className="mr-2"/> Criar novo produto: &quot;{productSearch}&quot;
+                                    <div className="absolute w-full z-20 bg-popover border-2 rounded-lg shadow-xl mt-1">
+                                        <div onClick={() => handleOpenNewProductModal(productSearch)} className="p-3 text-primary hover:bg-primary/10 cursor-pointer flex items-center font-bold text-sm">
+                                            <PlusCircle size={18} className="mr-2"/> Criar novo produto: "{productSearch}"
                                         </div>
                                     </div>
                                 )}
@@ -220,15 +249,19 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
                     </div>
                 </div>
 
-                <DialogFooter className="flex-shrink-0 border-t pt-4 mt-4 -mx-6 px-6 bg-background">
-                    <div className="w-full flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-2">
-                        <span className="text-xl font-bold text-primary">
-                            Custo Total: R$ {totalCost.toFixed(2)}
-                        </span>
-                        <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
-                            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
-                            <Button onClick={handleSubmit} disabled={processing} className="w-full sm:w-auto">
-                                {processing ? <Spinner /> : 'Finalizar e Registrar Compra'}
+                <DialogFooter className="flex-shrink-0 border-t p-6 bg-card">
+                    <div className="w-full flex flex-col gap-4">
+                        <div className="flex justify-between items-center px-1">
+                            <span className="text-sm font-black text-muted-foreground uppercase tracking-widest">Custo Total</span>
+                            <span className="text-3xl font-black text-primary">R$ {totalCost.toFixed(2)}</span>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button onClick={handleSubmit} disabled={processing} className="h-12 flex-grow text-base font-black uppercase">
+                                {processing ? <Spinner size="h-5 w-5" /> : 'Finalizar e Registrar'}
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-12 font-bold text-muted-foreground uppercase text-xs">
+                                Cancelar
                             </Button>
                         </div>
                     </div>
