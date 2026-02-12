@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -10,7 +11,6 @@ const nextConfig = {
       },
     ],
   },
-  // Configuração para permitir conexões via Cloud Workstation e porta 3000
   experimental: {
     serverActions: {
       allowedOrigins: [

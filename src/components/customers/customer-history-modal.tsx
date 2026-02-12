@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -35,38 +36,37 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
             <p className="text-center text-muted-foreground py-8">Nenhuma transação encontrada.</p>
           ) : (
             <div className="space-y-4">
-              {customerTransactions.map((transaction) => (
-                <div key={transaction.id} className="border-b pb-4 last:border-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">
-                        {transaction.type === 'sale' ? 'Venda' : 'Pagamento/Crédito'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(
-                          transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date(),
-                          "PPp",
-                          { locale: ptBR }
-                        )}
-                      </p>
+              {customerTransactions.map((transaction) => {
+                const date = transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date();
+                return (
+                  <div key={transaction.id} className="border-b pb-4 last:border-0">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">
+                          {transaction.type === 'sale' ? 'Venda' : 'Pagamento/Crédito'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(date, "PPp", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div className={`font-bold ${transaction.type === 'sale' ? 'text-red-600' : 'text-green-600'}`}>
+                        {transaction.type === 'sale' ? '-' : '+'} 
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.total)}
+                      </div>
                     </div>
-                    <div className={`font-bold ${transaction.type === 'sale' ? 'text-red-600' : 'text-green-600'}`}>
-                      {transaction.type === 'sale' ? '-' : '+'} 
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.total)}
-                    </div>
-                  </div>
 
-                  {transaction.type === 'sale' && transaction.items && (
-                    <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside pl-2">
-                      {transaction.items.map((item, idx) => (
-                        <li key={`${transaction.id}-${idx}`}>
-                          {item.quantity}x {item.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+                    {transaction.type === 'sale' && transaction.items && (
+                      <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside pl-2">
+                        {transaction.items.map((item, idx) => (
+                          <li key={`${transaction.id}-${idx}`}>
+                            {item.quantity}x {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

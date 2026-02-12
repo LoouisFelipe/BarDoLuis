@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -111,11 +112,11 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
             const quantity = parseFloat(item.quantity);
             const unitCost = parseFloat(item.unitCost);
             if (isNaN(quantity) || quantity <= 0) {
-                toast({ title: 'Quantidade Inválida', description: `A quantidade para &quot;${item.name}&quot; deve ser um número positivo.`, variant: 'destructive' });
+                toast({ title: 'Quantidade Inválida', description: `A quantidade para "${item.name}" deve ser um número positivo.`, variant: 'destructive' });
                 return;
             }
              if (isNaN(unitCost) || unitCost < 0) {
-                toast({ title: 'Custo Inválido', description: `O custo para &quot;${item.name}&quot; deve ser um número válido.`, variant: 'destructive' });
+                toast({ title: 'Custo Inválido', description: `O custo para "${item.name}" deve ser um número válido.`, variant: 'destructive' });
                 return;
             }
             itemsToSave.push({
