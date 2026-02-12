@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Simplificação para build estável no Firebase
   images: {
     remotePatterns: [
       {
@@ -10,6 +9,17 @@ const nextConfig = {
         hostname: 'picsum.photos',
       },
     ],
+  },
+  // Configuração para permitir conexões via Cloud Workstation e porta 3000
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        'localhost:3000',
+        '*.cloudworkstations.dev',
+        '*.firebaseapp.com',
+        '*.web.app'
+      ],
+    },
   },
 };
 
