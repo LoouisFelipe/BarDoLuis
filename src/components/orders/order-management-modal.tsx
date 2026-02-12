@@ -55,6 +55,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [isLinkCustomerOpen, setIsLinkCustomerOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
 
@@ -70,6 +71,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setIsLinkCustomerOpen(false);
       setIsDeleteAlertOpen(false);
       setSearchTerm('');
+      setCustomerSearch('');
       setActiveTab('menu');
     }
   }, [open, existingOrder]);
@@ -87,10 +89,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     return products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = !selectedCategory || p.category === selectedCategory;
-        const hasStock = p.stock > 0 || p.saleType === 'service';
+        const hasStock = (p.stock || 0) > 0 || p.saleType === 'service';
         return matchesSearch && matchesCategory && hasStock;
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [products, searchTerm, selectedCategory]);
+
+  const filteredCustomersForLink = useMemo(() => {
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(customerSearch.toLowerCase())
+    ).sort((a, b) => a.name.localeCompare(b.name));
+  }, [customers, customerSearch]);
 
   const handleUpdateQuantity = (productId: string, doseName: string | undefined | null, change: number) => {
     setCurrentItems(prevItems => {
@@ -151,6 +159,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     try {
         await updateOrderCustomer(existingOrder.id, customerId, name);
         setIsLinkCustomerOpen(false);
+        setCustomerSearch('');
         toast({ title: "Cliente Vinculado!", description: `Comanda agora pertence a ${name}.` });
     } catch (error) {
         console.error(error);
@@ -211,7 +220,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     <div className="flex justify-between items-center">
                       <Badge variant="secondary" className="text-[10px] h-4">{product.category}</Badge>
                       {product.saleType !== 'service' && (
-                        <span className={cn("text-[10px] font-bold", product.stock <= 5 ? "text-destructive" : "text-muted-foreground")}>
+                        <span className={cn("text-[10px] font-bold", (product.stock || 0) <= 5 ? "text-destructive" : "text-muted-foreground")}>
                           {product.stock} {product.saleType === 'dose' ? 'ml' : 'un.'}
                         </span>
                       )}
@@ -317,11 +326,18 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-64 p-0">
                             <div className="p-2 border-b bg-muted/20">
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-2">Vincular Cliente Fiel</p>
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-2 mb-2">Vincular Cliente Fiel</p>
+                                <Input 
+                                    placeholder="Buscar fiel..." 
+                                    className="h-8 text-xs" 
+                                    value={customerSearch}
+                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                                    autoFocus
+                                />
                             </div>
                             <ScrollArea className="h-48">
                                 <div className="p-1">
-                                    {customers.map(c => (
+                                    {filteredCustomersForLink.map(c => (
                                         <Button 
                                             key={c.id} 
                                             variant="ghost" 
@@ -332,7 +348,11 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                                             {c.name}
                                         </Button>
                                     ))}
-                                    {customers.length === 0 && <p className="p-4 text-center text-[10px] text-muted-foreground">Nenhum fiel cadastrado.</p>}
+                                    {filteredCustomersForLink.length === 0 && (
+                                        <p className="p-4 text-center text-[10px] text-muted-foreground">
+                                            Nenhum fiel encontrado.
+                                        </p>
+                                    )}
                                 </div>
                             </ScrollArea>
                         </PopoverContent>
