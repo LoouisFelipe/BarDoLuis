@@ -36,7 +36,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <Receipt className="text-accent" /> Relatório Detalhado de Vendas
@@ -46,8 +46,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <ScrollArea className="flex-grow px-6">
-                        <div className="space-y-6 py-6 pb-10">
+                    <ScrollArea className="flex-grow">
+                        <div className="p-6 space-y-6 pb-12">
                             {/* Período Analisado */}
                             <Card className="bg-muted/20 border-dashed">
                                 <CardHeader className="py-3 px-4">
@@ -66,7 +66,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                         <TrendingUp className="h-4 w-4 text-accent" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-3xl font-black text-accent">R$ {reportData.totalSalesRevenue.toFixed(2)}</div>
+                                        <div className="text-3xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div>
                                         <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Valor total das comandas no período.</p>
                                     </CardContent>
                                 </Card>
@@ -78,8 +78,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                         <Target className="h-4 w-4 text-yellow-400" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-3xl font-black text-yellow-400">R$ {periodGoal.toFixed(2)}</div>
-                                        <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Atingido: {reportData.goalProgress.toFixed(0)}% da meta.</p>
+                                        <div className="text-3xl font-black text-yellow-400">R$ {(periodGoal || 0).toFixed(2)}</div>
+                                        <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Atingido: {(reportData.goalProgress || 0).toFixed(0)}% da meta.</p>
                                     </CardContent>
                                 </Card>
                             </div>
