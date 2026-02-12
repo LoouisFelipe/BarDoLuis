@@ -57,7 +57,6 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
 
     setProcessing(true);
     try {
-      // Pega o nome atualizado do cliente se ele foi selecionado/trocado no modal de pagamento
       const currentCustomer = customers.find(c => c.id === selectedCustomerId);
       const finalDisplayName = currentCustomer ? currentCustomer.name : order.displayName;
 

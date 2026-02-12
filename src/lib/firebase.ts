@@ -10,7 +10,7 @@ const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 const auth = getAuth(firebaseApp);
 
 // Inicializa o Firestore apontando especificamente para o banco de dados 'bardoluis'
-// conforme solicitado pelo CEO para garantir sincronia com os dados reais.
+// garantindo que as regras de segurança e os dados reais estejam em sincronia.
 const db = getFirestore(firebaseApp, "bardoluis");
 
 export { firebaseApp, auth, db };
