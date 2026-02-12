@@ -61,16 +61,17 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                         <TableBody>
                             {transaction.items && transaction.items.length > 0 ? (
                                 transaction.items.map((item, index) => {
+                                    // Verificação de propriedade segura para diferenciar tipos de item
                                     const isOrderItem = 'unitPrice' in item;
                                     const name = item.name;
                                     const quantity = item.quantity;
                                     const price = isOrderItem ? (item as OrderItem).unitPrice : (item as PurchaseItem).unitCost;
-                                    const subcategory = isOrderItem ? (item as OrderItem).subcategory : null;
-                                    const key = isOrderItem && (item as OrderItem).productId ? (item as OrderItem).productId : `item-${index}`;
+                                    const subName = isOrderItem && (item as OrderItem).doseName ? ` (${(item as OrderItem).doseName})` : '';
+                                    const itemId = isOrderItem && (item as OrderItem).productId ? (item as OrderItem).productId : `item-${index}`;
 
                                     return (
-                                        <TableRow key={`${key}-${index}`}>
-                                            <TableCell className="font-medium">{name}{subcategory && ` (${subcategory})`}</TableCell>
+                                        <TableRow key={`${itemId}-${index}`}>
+                                            <TableCell className="font-medium">{name}{subName}</TableCell>
                                             <TableCell className="text-center">{quantity}</TableCell>
                                             <TableCell className="text-right">R$ {(price * quantity).toFixed(2)}</TableCell>
                                         </TableRow>
