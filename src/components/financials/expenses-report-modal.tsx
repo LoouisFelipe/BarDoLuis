@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -32,17 +32,18 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+    const filteredTransactions = useMemo(() => {
+        if (!reportData) return [];
+        const txs = reportData.expenseTransactions || [];
+        if (!selectedCategory) return txs;
+        return txs.filter((t: Transaction) => (t.expenseCategory || 'Geral') === selectedCategory);
+    }, [reportData, selectedCategory]);
+
     if (!reportData) return null;
 
     const formattedPeriod = date?.from
         ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
         : 'Período Indefinido';
-
-    const filteredTransactions = useMemo(() => {
-        const txs = reportData.expenseTransactions || [];
-        if (!selectedCategory) return txs;
-        return txs.filter((t: Transaction) => (t.expenseCategory || 'Geral') === selectedCategory);
-    }, [reportData.expenseTransactions, selectedCategory]);
 
     const toggleCategoryFilter = (category: string) => {
         setSelectedCategory(prev => prev === category ? null : category);

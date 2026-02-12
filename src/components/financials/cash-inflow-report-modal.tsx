@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -32,13 +32,8 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
-    if (!reportData) return null;
-
-    const formattedPeriod = date?.from
-        ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
-        : 'Período Indefinido';
-
     const allInflowTransactions = useMemo(() => {
+        if (!reportData) return [];
         const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
         const payments = reportData.paymentTransactions || [];
         return [...sales, ...payments].sort((a, b) => {
@@ -46,12 +41,18 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
             const dateB = b.timestamp instanceof Date ? b.timestamp : (b.timestamp as any)?.toDate?.() || new Date();
             return dateB.getTime() - dateA.getTime();
         });
-    }, [reportData.salesTransactions, reportData.paymentTransactions]);
+    }, [reportData]);
 
     const filteredTransactions = useMemo(() => {
         if (!selectedMethod) return allInflowTransactions;
         return allInflowTransactions.filter((t: Transaction) => t.paymentMethod === selectedMethod);
     }, [allInflowTransactions, selectedMethod]);
+
+    if (!reportData) return null;
+
+    const formattedPeriod = date?.from
+        ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
+        : 'Período Indefinido';
 
     const toggleMethodFilter = (method: string) => {
         setSelectedMethod(prev => prev === method ? null : method);

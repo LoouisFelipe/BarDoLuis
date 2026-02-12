@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { ProductFormModal } from '@/components/products/product-form-modal';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Lightbulb, PlusCircle, Trash2, ShoppingCart, Search } from 'lucide-react';
 import { Product, Supplier, PurchaseItem } from '@/lib/schemas';
 import { useToast } from '@/hooks/use-toast';
@@ -237,7 +237,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
                                         ))}
                                         {productSearch && (
                                             <div onClick={() => handleOpenNewProductModal(productSearch)} className="p-3 text-primary hover:bg-primary/10 cursor-pointer flex items-center font-bold text-sm">
-                                                <PlusCircle size={18} className="mr-2"/> Criar novo produto: "{productSearch}"
+                                                <PlusCircle size={18} className="mr-2"/> Criar novo produto: &quot;{productSearch}&quot;
                                             </div>
                                         )}
                                     </div>
@@ -271,7 +271,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
                     allProducts={products}
                     open={isNewProductModalOpen}
                     onOpenChange={setIsNewProductModalOpen}
-                    onSave={onSaveProduct}
+                    onSave={handleNewProductSaved}
                     product={initialProduct}
                 />
             )}
