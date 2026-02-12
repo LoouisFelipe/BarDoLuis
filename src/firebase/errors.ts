@@ -91,7 +91,7 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   return {
     auth: authObject,
     method: context.operation,
-    path: `/databases/(default)/documents/${context.path}`,
+    path: `/databases/bardoluis/documents/${context.path}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
 }

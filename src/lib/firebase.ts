@@ -9,8 +9,8 @@ const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 // Inicializa os serviços core
 const auth = getAuth(firebaseApp);
 
-// Inicializa o Firestore apontando para o banco de dados padrão do projeto
-// Isso garante compatibilidade com as regras de segurança e o Firebase CLI
-const db = getFirestore(firebaseApp);
+// Inicializa o Firestore apontando especificamente para o banco de dados 'bardoluis'
+// conforme solicitado pelo CEO para garantir sincronia com os dados reais.
+const db = getFirestore(firebaseApp, "bardoluis");
 
 export { firebaseApp, auth, db };

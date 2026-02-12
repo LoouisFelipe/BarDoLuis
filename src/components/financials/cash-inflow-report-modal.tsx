@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -38,10 +38,15 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
         ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
         : 'Período Indefinido';
 
-    // Filtrar transações que geraram entrada de caixa (vendas não-fiado e pagamentos)
     const allInflowTransactions = useMemo(() => {
-        return reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
-    }, [reportData.salesTransactions]);
+        const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
+        const payments = reportData.paymentTransactions || [];
+        return [...sales, ...payments].sort((a, b) => {
+            const dateA = a.timestamp instanceof Date ? a.timestamp : (a.timestamp as any)?.toDate?.() || new Date();
+            const dateB = b.timestamp instanceof Date ? b.timestamp : (b.timestamp as any)?.toDate?.() || new Date();
+            return dateB.getTime() - dateA.getTime();
+        });
+    }, [reportData.salesTransactions, reportData.paymentTransactions]);
 
     const filteredTransactions = useMemo(() => {
         if (!selectedMethod) return allInflowTransactions;
@@ -55,7 +60,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <HandCoins className="text-sky-400" /> Relatório de Recebimentos (Caixa)
@@ -65,7 +70,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden">
+                    <div className="flex-grow overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
                             <div className="p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
@@ -127,7 +132,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground mt-1">Toque em uma venda para ver os itens.</p>
+                                        <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <Table>
@@ -166,7 +171,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="text-sm font-bold uppercase">Composição Gráfica</CardTitle>
+                                        <CardTitle className="text-sm font-bold uppercase">Distribuição por Método</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="h-[300px] w-full">

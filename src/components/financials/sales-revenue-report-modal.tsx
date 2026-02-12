@@ -49,7 +49,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                     <div className="flex-grow overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
                             <div className="p-6 space-y-6 pb-12">
-                                {/* Período Analisado */}
                                 <Card className="bg-muted/20 border-dashed">
                                     <CardHeader className="py-3 px-4">
                                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
@@ -60,7 +59,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                 </Card>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Receita Bruta Total */}
                                     <Card className="border-l-4 border-l-accent">
                                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                             <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Receita Bruta Total</CardTitle>
@@ -72,7 +70,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                         </CardContent>
                                     </Card>
 
-                                    {/* Comparativo com Metas */}
                                     <Card className="border-l-4 border-l-yellow-400">
                                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                             <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Meta do Período</CardTitle>
@@ -85,7 +82,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                     </Card>
                                 </div>
 
-                                {/* Listagem Analítica de Vendas */}
                                 <Card>
                                     <CardHeader className="border-b bg-muted/10 py-3 px-4">
                                         <div className="flex items-center gap-2">
@@ -141,7 +137,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                     </CardContent>
                                 </Card>
 
-                                {/* Produtos/Serviços Mais Vendidos */}
                                 <Card>
                                     <CardHeader className="border-b bg-muted/10 py-3 px-4">
                                         <CardTitle className="text-sm font-bold uppercase">Top 10 Produtos Vendidos</CardTitle>

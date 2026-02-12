@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +51,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <TrendingDown className="text-destructive" /> Relatório de Despesas
@@ -61,7 +61,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden">
+                    <div className="flex-grow overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
                             <div className="p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
@@ -123,7 +123,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground mt-1">Clique em uma despesa para ver detalhes.</p>
+                                        <CardDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <Table>
