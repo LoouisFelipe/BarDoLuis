@@ -15,7 +15,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
@@ -45,7 +44,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   onUpdateOrder,
   onDeleteOrder,
 }) => {
-  const { products, customers, saveCustomer, loading: productsLoading } = useData();
+  const { products, customers, loading: productsLoading } = useData();
   const { isAdmin } = useAuth();
   const { updateOrderCustomer } = useOpenOrders();
   const { toast } = useToast();
@@ -152,8 +151,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     try {
         await updateOrderCustomer(existingOrder.id, customerId, name);
         setIsLinkCustomerOpen(false);
+        toast({ title: "Cliente Vinculado!", description: `Comanda agora pertence a ${name}.` });
     } catch (error) {
         console.error(error);
+        toast({ title: "Erro ao Vincular", variant: "destructive" });
     } finally {
         setProcessing(false);
     }
@@ -304,9 +305,39 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               <Receipt className="h-6 w-6 text-primary" />
               <div>
                 <DialogTitle className="text-xl font-bold">{existingOrder?.displayName || 'Comanda'}</DialogTitle>
-                <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-tighter">
-                    {linkedCustomer ? `Fiel: ${linkedCustomer.name}` : 'Atendimento Avulso'}
-                </DialogDescription>
+                <div className="flex items-center gap-2">
+                    <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-tighter">
+                        {linkedCustomer ? `Fiel: ${linkedCustomer.name}` : 'Atendimento Avulso'}
+                    </DialogDescription>
+                    <Popover open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 text-accent hover:text-accent/80">
+                                {linkedCustomer ? <Users className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-64 p-0">
+                            <div className="p-2 border-b bg-muted/20">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground px-2">Vincular Cliente Fiel</p>
+                            </div>
+                            <ScrollArea className="h-48">
+                                <div className="p-1">
+                                    {customers.map(c => (
+                                        <Button 
+                                            key={c.id} 
+                                            variant="ghost" 
+                                            className="w-full justify-start text-xs font-medium h-9"
+                                            onClick={() => handleLinkCustomer(c.id!, c.name)}
+                                            disabled={processing}
+                                        >
+                                            {c.name}
+                                        </Button>
+                                    ))}
+                                    {customers.length === 0 && <p className="p-4 text-center text-[10px] text-muted-foreground">Nenhum fiel cadastrado.</p>}
+                                </div>
+                            </ScrollArea>
+                        </PopoverContent>
+                    </Popover>
+                </div>
               </div>
             </div>
             <div className="text-right">
