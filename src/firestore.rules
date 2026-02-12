@@ -1,50 +1,63 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/bardoluis/documents {
+  match /databases/{database}/documents {
 
+    // Função para verificar se é o CEO (Autoridade Máxima)
+    // UID do Proprietário: o0FzqC1oYoYYwjgJXbbgL4QoCe42
     function isCEO() {
       return request.auth != null && request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
     }
 
+    // Função para verificar se é um funcionário autenticado no sistema
     function isStaff() {
       return request.auth != null;
     }
     
+    // Função para verificar se o usuário logado tem cargo de admin no seu perfil
     function isAdmin() {
-      return isStaff() && (isCEO() || get(/databases/bardoluis/documents/users/$(request.auth.uid)).data.role == 'admin');
+      return isStaff() && (isCEO() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
+    // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
     match /{document=**} {
       allow read, write: if isCEO();
     }
 
+    // Usuários: Controle de perfis
     match /users/{userId} {
       allow read: if isStaff();
       allow create, delete: if isCEO();
       allow update: if isCEO() || request.auth.uid == userId;
     }
 
+    // Produtos: Catálogo de vendas e estoque
     match /products/{productId} {
       allow read: if isStaff(); 
       allow write: if isStaff(); 
     }
 
+    // Clientes: Gestão de fieis e saldos de fiado
     match /customers/{customerId} {
       allow read, write: if isStaff();
     }
 
+    // Transações: Histórico de vendas, pagamentos e despesas
     match /transactions/{transactionId} {
       allow read, write: if isStaff();
     }
 
+    // Comandas: Controle diário de mesas e balcão
     match /open_orders/{orderId} {
       allow read, create, update: if isStaff();
       allow delete: if isAdmin();
     }
     
+    // Compras: Registros de entradas de fornecedores
     match /purchases/{purchaseId} {
       allow read, write: if isStaff();
     }
+    
+    // Fornecedores: Dados de contato das empresas
     match /suppliers/{supplierId} {
       allow read, write: if isStaff();
     }
