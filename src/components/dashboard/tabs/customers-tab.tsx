@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,13 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, Filter, AlertCircle } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
 import { CustomerPaymentModal } from '@/components/customers/customer-payment-modal';
 import { CustomerHistoryModal } from '@/components/customers/customer-history-modal';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -29,11 +31,30 @@ export const CustomersTab: React.FC = () => {
 
     const [modalState, setModalState] = useState({ form: false, payment: false, history: false, delete: false });
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
 
-    // CTO: Sort customers alphabetically by name
-    const sortedCustomers = useMemo(() => {
-        return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    // Estatísticas rápidas
+    const stats = useMemo(() => {
+        const debtors = customers.filter(c => (c.balance || 0) > 0);
+        const totalDebt = debtors.reduce((sum, c) => sum + (c.balance || 0), 0);
+        return {
+            count: debtors.length,
+            total: totalDebt
+        };
     }, [customers]);
+
+    // Filtragem e Ordenação
+    const filteredCustomers = useMemo(() => {
+        return customers
+            .filter(c => {
+                const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    (c.contact && c.contact.toLowerCase().includes(searchTerm.toLowerCase()));
+                const matchesFilter = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
+                return matchesSearch && matchesFilter;
+            })
+            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    }, [customers, searchTerm, filterType]);
 
     const closeAllModals = useCallback(() => {
         setModalState({ form: false, payment: false, history: false, delete: false });
@@ -81,36 +102,38 @@ export const CustomersTab: React.FC = () => {
     };
 
     const renderDesktopView = () => (
-        <div className="bg-card rounded-xl shadow-lg overflow-hidden hidden md:block">
+        <div className="bg-card rounded-xl shadow-lg overflow-hidden hidden md:block border">
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Contato</TableHead>
-                            <TableHead>Saldo Devedor</TableHead>
-                            <TableHead>Limite de Crédito</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                        <TableRow className="bg-muted/30">
+                            <TableHead className="font-bold">Nome</TableHead>
+                            <TableHead className="font-bold">Contato</TableHead>
+                            <TableHead className="font-bold">Saldo Devedor</TableHead>
+                            <TableHead className="font-bold">Limite</TableHead>
+                            <TableHead className="text-right font-bold">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedCustomers.map(c => (
-                            <TableRow key={c.id}>
+                        {filteredCustomers.map(c => (
+                            <TableRow key={c.id} className="hover:bg-muted/10 transition-colors">
                                 <TableCell className="font-medium">{c.name}</TableCell>
-                                <TableCell>{c.contact}</TableCell>
-                                <TableCell className={`font-bold ${c.balance && c.balance > 0 ? 'text-yellow-400' : 'text-accent'}`}>R$ {(Number(c.balance) || 0).toFixed(2)}</TableCell>
-                                <TableCell>
+                                <TableCell className="text-muted-foreground">{c.contact || '—'}</TableCell>
+                                <TableCell className={cn("font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
+                                    R$ {(Number(c.balance) || 0).toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-xs">
                                     {typeof c.creditLimit === 'number'
                                         ? `R$ ${c.creditLimit.toFixed(2)}`
-                                        : <span className="text-muted-foreground">N/A</span>
+                                        : <span className="text-muted-foreground opacity-50">N/A</span>
                                     }
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center justify-end space-x-1">
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="text-muted-foreground hover:text-foreground"><History size={20} /></Button></TooltipTrigger><TooltipContent><p>Histórico de Compras</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="text-accent hover:text-accent/80" disabled={!c.balance || c.balance <= 0}><DollarSign size={20} /></Button></TooltipTrigger><TooltipContent><p>Receber Pagamento</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="text-primary hover:text-primary/80"><Edit size={20} /></Button></TooltipTrigger><TooltipContent><p>Editar Cliente</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="text-destructive hover:text-destructive/80" disabled={(c.balance || 0) > 0}><Trash2 size={20} /></Button></TooltipTrigger><TooltipContent><p>Excluir Cliente</p></TooltipContent></Tooltip>
+                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-8 w-8 text-muted-foreground hover:text-foreground"><History size={18} /></Button></TooltipTrigger><TooltipContent><p>Extrato</p></TooltipContent></Tooltip>
+                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-8 w-8 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button></TooltipTrigger><TooltipContent><p>Receber</p></TooltipContent></Tooltip>
+                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={18} /></Button></TooltipTrigger><TooltipContent><p>Editar</p></TooltipContent></Tooltip>
+                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button></TooltipTrigger><TooltipContent><p>Excluir</p></TooltipContent></Tooltip>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -123,34 +146,32 @@ export const CustomersTab: React.FC = () => {
     
     const renderMobileView = () => (
         <div className="grid grid-cols-1 gap-4 md:hidden">
-            {sortedCustomers.map(c => (
-                <Card key={c.id} className="bg-card shadow-lg">
-                    <CardHeader>
-                        <CardTitle>{c.name}</CardTitle>
-                        <CardDescription>{c.contact}</CardDescription>
+            {filteredCustomers.map(c => (
+                <Card key={c.id} className="bg-card shadow-md border-2 border-transparent hover:border-primary/20 transition-all">
+                    <CardHeader className="p-4 pb-2">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-base">{c.name}</CardTitle>
+                                <CardDescription className="text-[10px] uppercase font-bold">{c.contact || 'Sem contato'}</CardDescription>
+                            </div>
+                            <Badge variant={(c.balance || 0) > 0 ? "warning" : "outline"} className="text-[10px]">
+                                {(c.balance || 0) > 0 ? "DÉBITO" : "EM DIA"}
+                            </Badge>
+                        </div>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div>
-                            <p className="text-sm text-muted-foreground">Saldo Devedor</p>
-                            <p className={`text-lg font-bold ${c.balance && c.balance > 0 ? 'text-yellow-400' : 'text-accent'}`}>
+                    <CardContent className="p-4 pt-0 space-y-2">
+                        <div className="flex justify-between items-baseline">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Saldo Devedor</p>
+                            <p className={cn("text-lg font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
                                 R$ {(Number(c.balance) || 0).toFixed(2)}
                             </p>
                         </div>
-                         <div>
-                            <p className="text-sm text-muted-foreground">Limite de Crédito</p>
-                            <p className="text-base font-semibold">
-                                {typeof c.creditLimit === 'number'
-                                    ? `R$ ${c.creditLimit.toFixed(2)}`
-                                    : <span className="text-muted-foreground">N/A</span>
-                                }
-                            </p>
-                        </div>
                     </CardContent>
-                    <CardFooter className="grid grid-cols-2 gap-2">
-                         <Button variant="outline" size="sm" onClick={() => handleHistory(c)}><History size={16} className="mr-2"/> Histórico</Button>
-                         <Button variant="outline" size="sm" onClick={() => handlePayment(c)} disabled={!c.balance || c.balance <= 0} className="text-accent border-accent hover:bg-accent/10 hover:text-accent/80"><DollarSign size={16} className="mr-2"/> Pagar</Button>
-                         <Button variant="outline" size="sm" onClick={() => handleEdit(c)} className="text-primary border-primary hover:bg-primary/10 hover:text-primary/80"><Edit size={16} className="mr-2"/> Editar</Button>
-                         <Button variant="outline" size="sm" onClick={() => handleDeleteClick(c)} className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive/80" disabled={(c.balance || 0) > 0}><Trash2 size={16} className="mr-2"/> Excluir</Button>
+                    <CardFooter className="p-2 bg-muted/20 grid grid-cols-4 gap-1">
+                         <Button variant="ghost" size="sm" onClick={() => handleHistory(c)} className="h-10 flex flex-col items-center gap-0.5"><History size={16}/><span className="text-[8px] uppercase font-bold">Extrato</span></Button>
+                         <Button variant="ghost" size="sm" onClick={() => handlePayment(c)} disabled={!c.balance || c.balance <= 0} className="h-10 text-accent flex flex-col items-center gap-0.5"><DollarSign size={16}/><span className="text-[8px] uppercase font-bold">Pagar</span></Button>
+                         <Button variant="ghost" size="sm" onClick={() => handleEdit(c)} className="h-10 text-primary flex flex-col items-center gap-0.5"><Edit size={16}/><span className="text-[8px] uppercase font-bold">Editar</span></Button>
+                         <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(c)} className="h-10 text-destructive flex flex-col items-center gap-0.5" disabled={(c.balance || 0) > 0}><Trash2 size={16}/><span className="text-[8px] uppercase font-bold">Excluir</span></Button>
                     </CardFooter>
                 </Card>
             ))}
@@ -158,50 +179,117 @@ export const CustomersTab: React.FC = () => {
     );
 
     return (
-        <>
-            <div className="p-1 md:p-4">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-3xl font-bold text-foreground flex items-center"><Users className="mr-3" /> Gerenciar Clientes</h2>
-                    <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-semibold hover:bg-primary/80 w-full md:w-auto">
-                        <UserPlus className="mr-2" size={20} /> Novo Cliente
+        <div className="p-1 md:p-4 space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
+                <div>
+                    <h2 className="text-3xl font-bold text-foreground flex items-center">
+                        <Users className="mr-3 text-primary" /> Clientes
+                    </h2>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fieis e Fiado</p>
+                </div>
+                <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-black uppercase tracking-tight hover:bg-primary/80 w-full md:w-auto h-12 shadow-lg">
+                    <UserPlus className="mr-2" size={20} /> Novo Cliente
+                </Button>
+            </div>
+
+            {/* Resumo de Dívida */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-card border-l-4 border-l-yellow-400 p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total a Receber (Fiado)</p>
+                    <p className="text-2xl font-black text-yellow-400">R$ {stats.total.toFixed(2)}</p>
+                </div>
+                <div className="bg-card border-l-4 border-l-primary p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Clientes Inadimplentes</p>
+                    <p className="text-2xl font-black text-primary">{stats.count} Pessoas</p>
+                </div>
+            </div>
+
+            {/* Busca e Filtros */}
+            <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-grow">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Buscar por nome ou telefone..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-11 bg-card border-2 focus:border-primary transition-all"
+                    />
+                </div>
+                <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+                    <Button 
+                        variant={filterType === 'all' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setFilterType('all')}
+                        className="text-[10px] uppercase font-bold h-9 px-4"
+                    >
+                        Todos
+                    </Button>
+                    <Button 
+                        variant={filterType === 'debtors' ? 'secondary' : 'ghost'} 
+                        size="sm" 
+                        onClick={() => setFilterType('debtors')}
+                        className={cn("text-[10px] uppercase font-bold h-9 px-4", filterType === 'debtors' && "text-yellow-400")}
+                    >
+                        Devedores
                     </Button>
                 </div>
-                {loading ? <div className="flex justify-center"><Spinner /></div> : (
-                     customers.length === 0 ? (
-                        <div className="text-center text-muted-foreground p-8 mt-10 bg-card rounded-lg">
-                            <Users size={48} className="mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-foreground">Nenhum Cliente Cadastrado</h3>
-                            <p className="max-w-sm mx-auto mt-2">Adicione clientes para gerenciar vendas a prazo e ver históricos.</p>
-                        </div>
-                    ) : (
-                        <TooltipProvider>
-                            {renderDesktopView()}
-                            {renderMobileView()}
-                        </TooltipProvider>
-                    )
-                )}
-                {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
-                {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
-                {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
-                 {selectedCustomer && modalState.delete && (
-                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Essa ação não pode ser desfeita. Isso excluirá permanentemente o cliente <strong>{selectedCustomer.name}</strong>.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80">
-                                    Sim, excluir cliente
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
             </div>
-        </>
+
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <Spinner size="h-12 w-12" />
+                    <p className="text-sm text-muted-foreground mt-4 font-bold uppercase tracking-widest animate-pulse">Sincronizando Lista...</p>
+                </div>
+            ) : (
+                filteredCustomers.length === 0 ? (
+                    <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
+                        <AlertCircle size={48} className="opacity-20" />
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">Nenhum cliente encontrado</h3>
+                            <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
+                        </div>
+                        {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
+                    </div>
+                ) : (
+                    <TooltipProvider>
+                        {renderDesktopView()}
+                        {renderMobileView()}
+                    </TooltipProvider>
+                )
+            )}
+
+            {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
+            {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
+            {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
+            
+            {selectedCustomer && modalState.delete && (
+                <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Cliente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white font-bold">
+                                Sim, excluir cliente
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
+        </div>
     );
 };
+
+const Badge = ({ children, variant, className }: { children: React.ReactNode, variant: 'warning' | 'outline', className?: string }) => (
+    <span className={cn(
+        "px-2 py-0.5 rounded-full font-black tracking-tighter",
+        variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : "bg-muted text-muted-foreground border border-border",
+        className
+    )}>
+        {children}
+    </span>
+);

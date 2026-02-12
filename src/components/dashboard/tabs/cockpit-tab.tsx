@@ -37,11 +37,7 @@ const TrendIndicator = ({ value, inverse = false }: { value: number | undefined,
     );
 };
 
-interface CockpitTabProps {
-    onTabChange?: (tab: string) => void;
-}
-
-export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
+export const CockpitTab: React.FC = () => {
     const { transactions, products, customers, loading } = useData();
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
@@ -142,7 +138,7 @@ export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
                         </CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-primary" onClick={() => onTabChange?.('financials')}>
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-primary">
                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle><Target className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-primary">R$ {(reportData.netProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.netProfit} /></div></CardContent>
                     </Card>
 
@@ -154,7 +150,7 @@ export const CockpitTab: React.FC<CockpitTabProps> = ({ onTabChange }) => {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><HandCoins className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => onTabChange?.('daily')}> 
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors"> 
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Vendas</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
                     </Card>
 
