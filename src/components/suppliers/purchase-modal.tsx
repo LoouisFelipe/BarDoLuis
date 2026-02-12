@@ -49,11 +49,11 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
     }, [open, preselectedSupplier]);
 
     const availableProducts = useMemo(() => {
-        if (!productSearch) return [];
+        if (!productSearch || productSearch.length < 2) return [];
         return products.filter(p => 
             p.name.toLowerCase().includes(productSearch.toLowerCase()) && 
             !purchaseItems.some(item => item.productId === p.id)
-        );
+        ).slice(0, 5);
     }, [products, productSearch, purchaseItems]);
 
     const handleAddProduct = (product: Product) => {
@@ -227,21 +227,19 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
                                     />
                                 </div>
                                 
-                                {availableProducts.length > 0 && (
-                                    <div className="absolute w-full z-20 max-h-40 overflow-y-auto bg-popover border-2 rounded-lg shadow-xl mt-1">
+                                {(availableProducts.length > 0 || (productSearch && productSearch.length >= 2)) && (
+                                    <div className="absolute w-full z-20 max-h-60 overflow-y-auto bg-popover border-2 rounded-lg shadow-xl mt-1">
                                         {availableProducts.map(p => (
                                             <div key={p.id} onClick={() => handleAddProduct(p)} className="p-3 hover:bg-primary/10 cursor-pointer flex justify-between items-center border-b last:border-0">
                                               <span className="text-sm font-bold">{p.name} {p.subcategory && <span className="text-[10px] text-muted-foreground ml-1">({p.subcategory})</span>}</span>
                                               <PlusCircle size={16} className="text-primary" />
                                             </div>
                                         ))}
-                                    </div>
-                                )}
-                                {productSearch && !availableProducts.some(p => p.name.toLowerCase() === productSearch.toLowerCase()) && (
-                                    <div className="absolute w-full z-20 bg-popover border-2 rounded-lg shadow-xl mt-1">
-                                        <div onClick={() => handleOpenNewProductModal(productSearch)} className="p-3 text-primary hover:bg-primary/10 cursor-pointer flex items-center font-bold text-sm">
-                                            <PlusCircle size={18} className="mr-2"/> Criar novo produto: "{productSearch}"
-                                        </div>
+                                        {productSearch && (
+                                            <div onClick={() => handleOpenNewProductModal(productSearch)} className="p-3 text-primary hover:bg-primary/10 cursor-pointer flex items-center font-bold text-sm">
+                                                <PlusCircle size={18} className="mr-2"/> Criar novo produto: "{productSearch}"
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
