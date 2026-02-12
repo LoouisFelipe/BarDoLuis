@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns'; 
-import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package } from 'lucide-react'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package, Scale } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SalesRevenueReportModal } from '@/components/financials/sales-revenue-report-modal';
 import { CashInflowReportModal } from '@/components/financials/cash-inflow-report-modal';
 import { ExpensesReportModal } from '@/components/financials/expenses-report-modal';
+import { ProfitReportModal } from '@/components/financials/profit-report-modal';
+import { SalesVolumeReportModal } from '@/components/financials/sales-volume-report-modal';
 import { useReportData } from '@/hooks/use-report-data';
 import { CockpitSkeleton } from '../CockpitSkeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -48,9 +50,12 @@ export const CockpitTab: React.FC = () => {
     const [manualGoal, setManualGoal] = useState(0);
     const [isEditingGoal, setIsEditingGoal] = useState(false);
     
+    // Estados dos Modais
     const [isSalesRevenueModalOpen, setIsSalesRevenueModalOpen] = useState(false);
     const [isCashInflowModalOpen, setIsCashInflowModalOpen] = useState(false);
     const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
+    const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
+    const [isSalesVolumeModalOpen, setIsSalesVolumeModalOpen] = useState(false);
 
     const reportData = useReportData({
         transactions,
@@ -138,7 +143,7 @@ export const CockpitTab: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-primary">
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-primary" onClick={() => setIsProfitModalOpen(true)}>
                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle><Target className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-primary">R$ {(reportData.netProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.netProfit} /></div></CardContent>
                     </Card>
 
@@ -146,15 +151,15 @@ export const CockpitTab: React.FC = () => {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Despesas</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-destructive">R$ {(reportData.totalExpenses || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.expenses} inverse /></div></CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors"> 
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><HandCoins className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsProfitModalOpen(true)}> 
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><Scale className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors"> 
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsSalesVolumeModalOpen(true)}> 
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Vendas</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
                     </Card>
 
-                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors"> 
+                    <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsSalesVolumeModalOpen(true)}> 
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ticket Médio</CardTitle><Package className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.avgTicket || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.avgTicket} /></div></CardContent>
                     </Card>
                 </div>
@@ -210,6 +215,18 @@ export const CockpitTab: React.FC = () => {
                 <ExpensesReportModal
                     open={isExpensesModalOpen}
                     onOpenChange={setIsExpensesModalOpen}
+                    reportData={reportData}
+                    date={dateRange}
+                />
+                <ProfitReportModal
+                    open={isProfitModalOpen}
+                    onOpenChange={setIsProfitModalOpen}
+                    reportData={reportData}
+                    date={dateRange}
+                />
+                <SalesVolumeReportModal
+                    open={isSalesVolumeModalOpen}
+                    onOpenChange={setIsSalesVolumeModalOpen}
                     reportData={reportData}
                     date={dateRange}
                 />

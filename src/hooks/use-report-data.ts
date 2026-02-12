@@ -205,6 +205,8 @@ export const useReportData = ({
       salesHeatmapData,
       salesByHourForChart,
       salesTransactions: filteredTransactions.filter(t => t.type === 'sale'),
+      expenseTransactions: filteredTransactions.filter(t => t.type === 'expense'),
+      paymentTransactions: filteredTransactions.filter(t => t.type === 'payment'),
       salesByPaymentMethodForChart: Array.from(salesByPaymentMethodMap.entries()).map(([name, value]) => ({ name, value })),
       cashInflowByMethodForChart: Array.from(cashInflowByMethodMap.entries()).map(([name, value]) => ({ name, value })),
       expensesByCategoryForChart: Array.from(expensesByCategoryMap.entries()).map(([name, value]) => ({ name, value })),
