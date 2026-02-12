@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { User, CheckCircle2 } from 'lucide-react';
 
 interface OrderPaymentModalProps {
   open: boolean;
@@ -21,7 +22,7 @@ interface OrderPaymentModalProps {
     customerId: string | null;
   };
   onDeleteOrder: (orderId: string) => Promise<void>;
-  onCloseAll: () => void; // Function to close all modals
+  onCloseAll: () => void;
 }
 
 export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
@@ -38,7 +39,6 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(order.customerId);
   const [processing, setProcessing] = useState(false);
 
-  // Sync selected customer if the order already has one
   useEffect(() => {
     if (order.customerId) {
         setSelectedCustomerId(order.customerId);
@@ -57,21 +57,20 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
 
     setProcessing(true);
     try {
-      // Step 1: Create the transaction and update stock
+      // Pega o nome atualizado do cliente se ele foi selecionado/trocado no modal de pagamento
+      const currentCustomer = customers.find(c => c.id === selectedCustomerId);
+      const finalDisplayName = currentCustomer ? currentCustomer.name : order.displayName;
+
       await finalizeOrder(
-        { items: order.items, total: order.total, displayName: order.displayName },
+        { items: order.items, total: order.total, displayName: finalDisplayName },
         selectedCustomerId,
         paymentMethod
       );
 
-      // Step 2: If successful, delete the open order document
       await onDeleteOrder(order.id);
-      
-      // Step 3: Close all modals
       onCloseAll();
 
     } catch (error: any) {
-      // The finalizeOrder function already shows a toast on error
       console.error('Failed to finalize order:', error);
     } finally {
       setProcessing(false);
@@ -80,59 +79,70 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Finalizar {order.displayName}</DialogTitle>
+          <DialogTitle>Finalizar: {order.displayName}</DialogTitle>
           <DialogDescription>
-            Total a Pagar: <span className="font-bold text-lg text-foreground">R$ {order.total.toFixed(2)}</span>
+            Confirme o meio de pagamento e o vínculo com o cliente.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 grid gap-4">
-          <div className="w-full space-y-2">
-            <Label htmlFor="payment-method-select">Forma de Pagamento</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger id="payment-method-select"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                <SelectItem value="PIX">PIX</SelectItem>
-                <SelectItem value="Débito">Débito</SelectItem>
-                <SelectItem value="Crédito">Crédito</SelectItem>
-                <SelectItem value="Fiado">Fiado (A Prazo)</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="py-6 space-y-6">
+          <div className="flex flex-col items-center justify-center bg-muted/30 p-4 rounded-xl border-2 border-dashed border-primary/20">
+             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total a Pagar</p>
+             <p className="text-4xl font-black text-primary">R$ {order.total.toFixed(2)}</p>
           </div>
 
-          {(paymentMethod === 'Fiado' || order.customerId) && (
-            <div className="w-full space-y-2">
-              <Label htmlFor="customer-select">Cliente</Label>
-              <Select value={selectedCustomerId || ''} onValueChange={setSelectedCustomerId}>
-                <SelectTrigger id="customer-select">
-                  <SelectValue placeholder="Selecione o cliente" />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment-method-select" className="text-xs font-bold uppercase text-muted-foreground">Forma de Pagamento</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger id="payment-method-select" className="h-12 bg-background border-2">
+                    <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Débito">Débito</SelectItem>
+                  <SelectItem value="Crédito">Crédito</SelectItem>
+                  <SelectItem value="Fiado">Fiado (A Prazo)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="customer-select" className="text-xs font-bold uppercase text-muted-foreground">Vincular Cliente (Histórico/Fiel)</Label>
+                {selectedCustomerId && <CheckCircle2 size={14} className="text-accent" />}
+              </div>
+              <Select value={selectedCustomerId || 'avulso'} onValueChange={(v) => setSelectedCustomerId(v === 'avulso' ? null : v)}>
+                <SelectTrigger id="customer-select" className="h-12 bg-background border-2">
+                  <SelectValue placeholder="Atendimento Avulso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="avulso">-- Sem Vínculo (Avulso) --</SelectItem>
                   {customers.map((c: Customer) => (
                     <SelectItem key={c.id} value={c.id!}>
-                      {c.name} (Saldo: R$ {(c.balance || 0).toFixed(2)})
+                      {c.name} {c.balance > 0 && `(Dívida: R$ ${c.balance.toFixed(2)})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {order.customerId && (
-                <p className="text-[10px] text-accent font-bold uppercase">
-                  ✓ Cliente vinculado automaticamente à comanda.
+              {selectedCustomerId && (
+                <p className="text-[10px] text-accent font-bold uppercase flex items-center gap-1 mt-1">
+                  <User size={10} /> Esta venda será registrada no histórico deste cliente.
                 </p>
               )}
             </div>
-          )}
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="w-full sm:w-auto order-2 sm:order-1">
             Cancelar
           </Button>
-          <Button onClick={handleFinalize} disabled={processing}>
-            {processing ? <Spinner /> : `Confirmar Pagamento`}
+          <Button onClick={handleFinalize} disabled={processing} className="w-full sm:w-auto h-12 font-black uppercase order-1 sm:order-2 bg-green-600 hover:bg-green-700 text-white">
+            {processing ? <Spinner size="h-4 w-4" /> : `Confirmar Recebimento`}
           </Button>
         </DialogFooter>
       </DialogContent>
