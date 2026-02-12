@@ -15,6 +15,8 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
+        'localhost:6000',
+        'localhost:9000',
         '*.cloudworkstations.dev',
         '*.firebaseapp.com',
         '*.web.app',

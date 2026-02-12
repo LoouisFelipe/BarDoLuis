@@ -14,6 +14,8 @@ import React, { Suspense, useMemo, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/auth-context';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useData } from '@/contexts/data-context';
+import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
 
 const TABS_CONFIG = {
   cockpit: {
@@ -72,6 +74,20 @@ const DashboardLayoutContent: React.FC = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { isAdmin, isCaixaOrAdmin, isAuthReady } = useAuth();
+    const { products, customers } = useData();
+    const { openOrders } = useOpenOrders();
+
+    const stats = useMemo(() => {
+        const lowStockCount = products.filter(p => p.saleType !== 'service' && p.stock <= (p.lowStockThreshold || 0)).length;
+        const activeOrdersCount = openOrders.length;
+        const debtorsCount = customers.filter(c => (c.balance || 0) > 0).length;
+        
+        return {
+            products: lowStockCount > 0 ? lowStockCount : null,
+            daily: activeOrdersCount > 0 ? activeOrdersCount : null,
+            customers: debtorsCount > 0 ? debtorsCount : null,
+        };
+    }, [products, openOrders, customers]);
 
     const availableTabs = useMemo(() => {
         return Object.entries(TABS_CONFIG).filter(([_, tab]) => {
@@ -101,16 +117,24 @@ const DashboardLayoutContent: React.FC = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
                 <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-card p-1">
                     <TabsList className="flex w-max space-x-1 bg-transparent h-auto">
-                        {availableTabs.map(([key, tab]) => (
-                            <TabsTrigger 
-                                key={key} 
-                                value={key} 
-                                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                            >
-                                <tab.icon size={16} />
-                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-tight">{tab.label}</span>
-                            </TabsTrigger>
-                        ))}
+                        {availableTabs.map(([key, tab]) => {
+                            const badge = stats[key as keyof typeof stats];
+                            return (
+                                <TabsTrigger 
+                                    key={key} 
+                                    value={key} 
+                                    className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                                >
+                                    <tab.icon size={16} />
+                                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-tight">{tab.label}</span>
+                                    {badge && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border-2 border-card">
+                                            {badge}
+                                        </span>
+                                    )}
+                                </TabsTrigger>
+                            );
+                        })}
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>
