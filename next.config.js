@@ -17,7 +17,8 @@ const nextConfig = {
         'localhost:3000',
         '*.cloudworkstations.dev',
         '*.firebaseapp.com',
-        '*.web.app'
+        '*.web.app',
+        '*.cluster-kc2r6y3mtba5mswcmol45orivs.cloudworkstations.dev'
       ],
     },
   },

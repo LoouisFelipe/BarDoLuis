@@ -73,4 +73,4 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
       </DialogContent>
     </Dialog>
   );
-}
+};

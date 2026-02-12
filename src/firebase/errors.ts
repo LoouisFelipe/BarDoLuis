@@ -85,12 +85,12 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
     }
   } catch {
     // This will catch errors if the Firebase app is not yet initialized.
-    // In this case, we'll proceed without auth information.
   }
 
   return {
     auth: authObject,
     method: context.operation,
+    // Aponta explicitamente para o banco 'bardoluis'
     path: `/databases/bardoluis/documents/${context.path}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
