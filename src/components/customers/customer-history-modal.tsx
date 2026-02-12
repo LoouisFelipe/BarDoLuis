@@ -74,3 +74,4 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
     </Dialog>
   );
 };
+// Forçando atualização
