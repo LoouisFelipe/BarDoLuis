@@ -1,16 +1,18 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { HandCoins, CreditCard, History } from 'lucide-react';
+import { HandCoins, CreditCard, History, X } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { TransactionDetailModal } from './transaction-detail-modal';
 import { Transaction } from '@/lib/schemas';
+import { cn } from '@/lib/utils';
 
 const CashInflowChart = dynamic(() => import('../dashboard/charts/sales-by-payment-method-chart').then(mod => mod.SalesByPaymentMethodChart), { ssr: false, loading: () => <div className="h-full w-full flex items-center justify-center"><Spinner/></div> });
 
@@ -28,6 +30,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     date,
 }) => {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
     if (!reportData) return null;
 
@@ -36,8 +39,18 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
         : 'Período Indefinido';
 
     // Filtrar transações que geraram entrada de caixa (vendas não-fiado e pagamentos)
-    const inflowTransactions = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
-    const paymentTransactions = inflowTransactions; // Simplificação para o BI
+    const allInflowTransactions = useMemo(() => {
+        return reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
+    }, [reportData.salesTransactions]);
+
+    const filteredTransactions = useMemo(() => {
+        if (!selectedMethod) return allInflowTransactions;
+        return allInflowTransactions.filter((t: Transaction) => t.paymentMethod === selectedMethod);
+    }, [allInflowTransactions, selectedMethod]);
+
+    const toggleMethodFilter = (method: string) => {
+        setSelectedMethod(prev => prev === method ? null : method);
+    };
 
     return (
         <>
@@ -83,10 +96,17 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                         <CardContent className="p-0">
                                             <div className="px-4 py-2 space-y-1">
                                                 {reportData.cashInflowByMethodForChart.map((item: any) => (
-                                                    <div key={item.name} className="flex justify-between text-[11px] font-medium">
-                                                        <span>{item.name}</span>
+                                                    <button 
+                                                        key={item.name} 
+                                                        onClick={() => toggleMethodFilter(item.name)}
+                                                        className={cn(
+                                                            "w-full flex justify-between text-[11px] font-medium p-1 rounded transition-colors hover:bg-muted/50",
+                                                            selectedMethod === item.name ? "bg-sky-400/10 border border-sky-400/20" : "border border-transparent"
+                                                        )}
+                                                    >
+                                                        <span className={cn(selectedMethod === item.name && "font-bold")}>{item.name}</span>
                                                         <span className="text-sky-400 font-bold">R$ {item.value.toFixed(2)}</span>
-                                                    </div>
+                                                    </button>
                                                 ))}
                                             </div>
                                         </CardContent>
@@ -95,11 +115,19 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
 
                                 <Card>
                                     <CardHeader className="border-b bg-muted/10 py-3 px-4">
-                                        <div className="flex items-center gap-2">
-                                            <History size={16} className="text-muted-foreground" />
-                                            <CardTitle className="text-sm font-bold uppercase">Entradas Detalhadas</CardTitle>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <History size={16} className="text-muted-foreground" />
+                                                <CardTitle className="text-sm font-bold uppercase">Entradas Detalhadas</CardTitle>
+                                            </div>
+                                            {selectedMethod && (
+                                                <Badge variant="secondary" className="flex items-center gap-1 text-[9px] bg-sky-400/20 text-sky-400 border-none">
+                                                    Filtrando: {selectedMethod}
+                                                    <X size={10} className="cursor-pointer" onClick={() => setSelectedMethod(null)} />
+                                                </Badge>
+                                            )}
                                         </div>
-                                        <CardDescription className="text-[10px]">Clique para ver detalhes do faturamento.</CardDescription>
+                                        <p className="text-[10px] text-muted-foreground mt-1">Toque em uma venda para ver os itens.</p>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <Table>
@@ -112,8 +140,8 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {inflowTransactions.length > 0 ? (
-                                                    inflowTransactions.map((t: Transaction) => {
+                                                {filteredTransactions.length > 0 ? (
+                                                    filteredTransactions.map((t: Transaction) => {
                                                         const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                                         return (
                                                             <TableRow 
@@ -129,7 +157,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                         );
                                                     })
                                                 ) : (
-                                                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-xs italic">Nenhum recebimento no período.</TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-xs italic">Nenhum recebimento encontrado com este filtro.</TableCell></TableRow>
                                                 )}
                                             </TableBody>
                                         </Table>
