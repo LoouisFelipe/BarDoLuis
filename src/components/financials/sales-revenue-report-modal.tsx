@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DateRange } from 'react-day-picker';
@@ -36,7 +36,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
                         <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                             <Receipt className="text-accent" /> Relatório Detalhado de Vendas
@@ -46,8 +46,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                         </DialogDescription>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden">
-                        <ScrollArea className="h-full">
+                    <div className="flex-grow overflow-hidden relative">
+                        <ScrollArea className="h-full w-full">
                             <div className="p-6 space-y-6 pb-12">
                                 {/* Período Analisado */}
                                 <Card className="bg-muted/20 border-dashed">
