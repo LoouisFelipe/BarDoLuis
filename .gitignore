@@ -1,40 +1,40 @@
-# Dependências (O maior vilão)
+
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-# Testes e Build (Lixo temporário)
+# Testing
 /coverage
+
+# Next.js
 /.next/
 /out/
-/build
-.firebase
-/.firebase
 
-# Arquivos de Sistema e IDE
+# Production
+/build
+
+# Misc
 .DS_Store
 *.pem
-.vscode/
-.idx/
 
-# Logs
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-firebase-debug.log*
 
-# Variáveis de Ambiente (SEGURANÇA MÁXIMA)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Local env files
+.env*.local
 
-# Arquivos temporários de TypeScript
+# Vercel
+.vercel
+
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts.firebase/
+next-env.d.ts
+
+# Firebase
 .firebase/
-.firebase/
-.firebase/
-.next/
-node_modules/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
