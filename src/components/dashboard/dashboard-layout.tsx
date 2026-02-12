@@ -13,6 +13,7 @@ import { BarChart2, ShoppingBasket, DollarSign, Package, Users as UsersIcon, Tru
 import React, { Suspense, useMemo, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/auth-context';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const TABS_CONFIG = {
   cockpit: {
@@ -98,14 +99,22 @@ const DashboardLayoutContent: React.FC = () => {
     return (
         <main className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-6 bg-muted/20 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto gap-1">
-                    {availableTabs.map(([key, tab]) => (
-                        <TabsTrigger key={key} value={key} className="flex flex-col sm:flex-row items-center gap-2 py-2">
-                            <tab.icon size={18} />
-                            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-tight">{tab.label}</span>
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
+                <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-card p-1">
+                    <TabsList className="flex w-max space-x-1 bg-transparent h-auto">
+                        {availableTabs.map(([key, tab]) => (
+                            <TabsTrigger 
+                                key={key} 
+                                value={key} 
+                                className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                            >
+                                <tab.icon size={16} />
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-tight">{tab.label}</span>
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                
                 <div className="flex-1 mt-4">
                     {availableTabs.map(([key, tab]) => (
                         <TabsContent key={key} value={key} className="h-full mt-0 focus-visible:outline-none">
