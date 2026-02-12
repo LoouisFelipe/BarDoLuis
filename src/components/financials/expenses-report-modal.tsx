@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    // Golden Rule: Call Hooks at the top level
+    // Hooks must be at the top level
     const filteredTransactions = useMemo(() => {
         if (!reportData) return [];
         const txs = reportData.expenseTransactions || [];
@@ -125,7 +125,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</CardDescription>
+                                        <DialogDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</DialogDescription>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         <Table>
