@@ -14,7 +14,6 @@ const nextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        'localhost:3000',
         'localhost:6000',
         'localhost:9000',
         '*.cloudworkstations.dev',

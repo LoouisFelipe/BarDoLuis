@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -31,7 +32,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
   const [newCustomerName, setNewCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // UX: Clientes ordenados alfabeticamente para busca rápida
+  // UX: Clientes ordenados alfabeticamente (A-Z) para busca rápida
   const sortedCustomers = useMemo(() => {
     return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [customers]);

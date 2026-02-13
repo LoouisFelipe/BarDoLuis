@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
@@ -109,7 +110,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
     return handleAction(async () => {
-      const payload: any = { ...data, updatedAt: serverTimestamp() };
+      // DATA SANITIZATION: Omit potentially undefined fields
+      const payload: any = { 
+        name: data.name || '',
+        category: data.category || '',
+        subcategory: data.subcategory ?? null,
+        description: data.description ?? null,
+        costPrice: data.costPrice ?? 0,
+        unitPrice: data.unitPrice ?? 0,
+        stock: data.stock ?? 0,
+        lowStockThreshold: data.lowStockThreshold ?? null,
+        saleType: data.saleType || 'unit',
+        doseOptions: data.doseOptions ?? [],
+        baseUnitSize: data.baseUnitSize ?? null,
+        updatedAt: serverTimestamp() 
+      };
       if (!id) payload.createdAt = serverTimestamp();
       await setDoc(docRef, payload, { merge: true });
       return docRef.id;
@@ -129,7 +144,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
     const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
     return handleAction(async () => {
-      // FIREBASE SAFETY: Remove fields that could be undefined
+      // DATA SANITIZATION: Ensure balance is never sent as undefined
       const payload: any = { 
         name: data.name || '',
         contact: data.contact || '',

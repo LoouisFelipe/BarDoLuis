@@ -1,8 +1,9 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +30,10 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     reportData,
     date,
 }) => {
-    // RULES OF HOOKS: All hooks must be at the top level, before any early returns.
+    // RULES OF HOOKS: All hooks must be at the top level
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+
     const allInflowTransactions = useMemo(() => {
         if (!reportData) return [];
         const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
@@ -40,9 +44,6 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
             return dateB.getTime() - dateA.getTime();
         });
     }, [reportData]);
-
-    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
     const filteredTransactions = useMemo(() => {
         if (!selectedMethod) return allInflowTransactions;
@@ -140,7 +141,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
+                                        <DialogDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</DialogDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>
