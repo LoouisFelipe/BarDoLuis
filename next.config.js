@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -14,12 +13,11 @@ const nextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        'localhost:6000',
-        'localhost:9000',
+        'localhost:*',
         '*.cloudworkstations.dev',
         '*.firebaseapp.com',
         '*.web.app',
-        '*.cluster-kc2r6y3mtba5mswcmol45orivs.cloudworkstations.dev'
+        '*.cluster-*.cloudworkstations.dev'
       ],
     },
   },
