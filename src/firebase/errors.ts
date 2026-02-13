@@ -1,3 +1,4 @@
+
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
@@ -78,7 +79,7 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   return {
     auth: authObject,
     method: context.operation,
-    // Aponta explicitamente para o banco 'bardoluis' no simulador de erro para clareza absoluta na auditoria de regras
+    // Aponta explicitamente para o banco 'bardoluis' no simulador de erro para auditoria clara
     path: `/databases/bardoluis/documents/${context.path}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };

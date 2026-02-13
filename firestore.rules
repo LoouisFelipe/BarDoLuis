@@ -15,13 +15,12 @@ service cloud.firestore {
     }
     
     // Função para verificar se o usuário logado tem cargo de admin no seu perfil
-    // Nota: O CEO também é considerado admin por padrão nas regras de negócio
     function isAdmin() {
       return isStaff() && (isCEO() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
-    // Sincronizado para o banco 'bardoluis'
+    // Sincronizado para o banco de dados nomeado 'bardoluis'
     match /{document=**} {
       allow read, write: if isCEO();
     }
