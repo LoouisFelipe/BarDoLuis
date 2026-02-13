@@ -53,7 +53,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
   const { user, isAdmin } = useAuth();
 
-  // Queries sincronizadas com a instância 'bardoluis'
   const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
@@ -97,7 +96,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Sucesso!', description: successMessage });
       return result;
     } catch (e: any) {
-      // Create rich context for error overlay
       const permissionError = new FirestorePermissionError({ 
         path, 
         operation, 
@@ -111,13 +109,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
     return handleAction(async () => {
-      const payload: any = { 
-        ...data, 
-        updatedAt: serverTimestamp() 
-      };
-      // Prevent 'undefined' fields
+      const payload: any = { ...data, updatedAt: serverTimestamp() };
       if (!id) payload.createdAt = serverTimestamp();
-      
       await setDoc(docRef, payload, { merge: true });
       return docRef.id;
     }, 'Produto salvo.', id ? 'update' : 'create', docRef.path, data);
@@ -136,11 +129,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
     const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
     return handleAction(async () => {
+      // FIREBASE SAFETY: Remove fields that could be undefined
       const payload: any = { 
-        ...data, 
+        name: data.name || '',
+        contact: data.contact || '',
+        creditLimit: data.creditLimit ?? null,
         updatedAt: serverTimestamp() 
       };
-      // Prevent 'undefined' fields. Only set balance 0 if it's a new customer.
       if (!id) payload.balance = 0;
       
       await setDoc(docRef, payload, { merge: true });

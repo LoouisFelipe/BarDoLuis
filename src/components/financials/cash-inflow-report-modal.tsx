@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
-    // Rules of Hooks: Top-level useMemo
+    // RULES OF HOOKS: All useMemo MUST be at the top
     const allInflowTransactions = useMemo(() => {
         if (!reportData) return [];
         const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
@@ -140,7 +140,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
+                                        <DialogDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</DialogDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>

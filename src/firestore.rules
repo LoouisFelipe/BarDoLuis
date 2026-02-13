@@ -14,7 +14,6 @@ service cloud.firestore {
     }
     
     // Função para verificar se o usuário logado tem cargo de admin no seu perfil
-    // Agora verifica dinamicamente no banco ativo
     function isAdmin() {
       return isStaff() && (isCEO() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
