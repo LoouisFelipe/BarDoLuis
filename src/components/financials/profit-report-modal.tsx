@@ -1,6 +1,5 @@
-
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,33 +24,40 @@ export const ProfitReportModal: React.FC<ProfitReportModalProps> = ({
     reportData,
     date,
 }) => {
-    if (!reportData) return null;
+    // Rules of Hooks: Always at top
+    const formattedPeriod = useMemo(() => {
+        if (!date?.from) return 'Período Indefinido';
+        return `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`;
+    }, [date]);
 
-    const formattedPeriod = date?.from
-        ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
-        : 'Período Indefinido';
+    if (!reportData) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                 <DialogHeader className="p-6 border-b bg-card shrink-0">
-                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <Scale className="text-primary" /> Relatório de Lucratividade
-                    </DialogTitle>
-                    <DialogDescription>
-                        Análise de eficiência operacional e margens de lucro.
-                    </DialogDescription>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                            <Scale size={24} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <DialogTitle className="text-xl font-bold truncate">Relatório de Lucratividade</DialogTitle>
+                            <DialogDescription className="text-xs truncate">
+                                Análise de eficiência operacional e margens.
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
                 
-                <div className="flex-grow overflow-hidden">
+                <div className="flex-1 overflow-hidden">
                     <ScrollArea className="h-full w-full">
-                        <div className="p-6 space-y-6 pb-12">
+                        <div className="p-4 md:p-6 space-y-6 pb-12">
                             <Card className="bg-muted/20 border-dashed">
                                 <CardHeader className="py-3 px-4">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Período Analisado</CardTitle>
+                                    <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                 </CardHeader>
                                 <CardContent className="px-4 pb-4">
-                                    <p className="text-xl font-bold">{formattedPeriod}</p>
+                                    <p className="text-lg font-bold">{formattedPeriod}</p>
                                 </CardContent>
                             </Card>
 
@@ -62,7 +68,7 @@ export const ProfitReportModal: React.FC<ProfitReportModalProps> = ({
                                         <Target className="h-4 w-4 text-primary" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-3xl font-black text-primary">R$ {reportData.netProfit.toFixed(2)}</div>
+                                        <div className="text-2xl font-black text-primary">R$ {reportData.netProfit.toFixed(2)}</div>
                                         <p className="text-[10px] text-muted-foreground uppercase mt-1">O que sobra após todas as contas.</p>
                                     </CardContent>
                                 </Card>
@@ -72,7 +78,7 @@ export const ProfitReportModal: React.FC<ProfitReportModalProps> = ({
                                         <Banknote className="h-4 w-4 text-accent" />
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-3xl font-black text-accent">R$ {reportData.grossProfit.toFixed(2)}</div>
+                                        <div className="text-2xl font-black text-accent">R$ {reportData.grossProfit.toFixed(2)}</div>
                                         <p className="text-[10px] text-muted-foreground uppercase mt-1">Vendas menos custos de mercadoria.</p>
                                     </CardContent>
                                 </Card>
@@ -84,7 +90,7 @@ export const ProfitReportModal: React.FC<ProfitReportModalProps> = ({
                                         <TrendingUp size={16} className="text-muted-foreground" />
                                         <CardTitle className="text-sm font-bold uppercase">Performance de Mix de Produtos</CardTitle>
                                     </div>
-                                    <CardDescription className="text-[10px]">Top 10 produtos que mais geram lucro bruto.</CardDescription>
+                                    <CardDescription className="text-[10px] mt-1">Top 10 produtos que mais geram lucro bruto.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="pt-6">
                                     <div className="h-[400px] w-full">
@@ -94,8 +100,8 @@ export const ProfitReportModal: React.FC<ProfitReportModalProps> = ({
                             </Card>
 
                             <Card className="bg-primary/5 border-primary/20">
-                                <CardHeader>
-                                    <CardTitle className="text-sm font-bold uppercase">Fórmula de Cálculo</CardTitle>
+                                <CardHeader className="py-3 px-4">
+                                    <CardTitle className="text-xs font-bold uppercase">Fórmula de Cálculo</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-2 text-xs font-medium text-muted-foreground">

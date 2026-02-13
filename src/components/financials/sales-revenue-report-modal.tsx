@@ -1,6 +1,5 @@
-
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,34 +27,53 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
 }) => {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-    if (!reportData) return null;
+    // Rules of Hooks: Always call useMemo at the top
+    const formattedPeriod = useMemo(() => {
+        if (!date?.from) return 'Período Indefinido';
+        return `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`;
+    }, [date]);
 
-    const formattedPeriod = date?.from
-        ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
-        : 'Período Indefinido';
+    const salesTransactions = useMemo(() => {
+        return reportData?.salesTransactions || [];
+    }, [reportData]);
+
+    const topProducts = useMemo(() => {
+        return reportData?.topProducts || [];
+    }, [reportData]);
+
+    const goalProgress = useMemo(() => {
+        return reportData?.goalProgress || 0;
+    }, [reportData]);
+
+    if (!reportData) return null;
 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
-                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                            <Receipt className="text-accent" /> Relatório Detalhado de Vendas
-                        </DialogTitle>
-                        <DialogDescription>
-                            Análise aprofundada da receita, produtos e histórico de comandas.
-                        </DialogDescription>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-accent/10 rounded-lg text-accent">
+                                <Receipt size={24} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-xl font-bold truncate">Relatório Detalhado de Vendas</DialogTitle>
+                                <DialogDescription className="text-xs truncate">
+                                    Análise aprofundada da receita e histórico de comandas.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden relative">
+                    <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-6 space-y-6 pb-12">
+                            <div className="p-4 md:p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
                                     <CardHeader className="py-3 px-4">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
+                                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                     </CardHeader>
                                     <CardContent className="px-4 pb-4">
-                                        <p className="text-xl font-bold">{formattedPeriod}</p>
+                                        <p className="text-lg font-bold">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
@@ -66,7 +84,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                             <TrendingUp className="h-4 w-4 text-accent" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div>
+                                            <div className="text-2xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div>
                                             <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Valor total das comandas no período.</p>
                                         </CardContent>
                                     </Card>
@@ -77,8 +95,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                             <Target className="h-4 w-4 text-yellow-400" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black text-yellow-400">R$ {(periodGoal || 0).toFixed(2)}</div>
-                                            <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Atingido: {(reportData.goalProgress || 0).toFixed(0)}% da meta.</p>
+                                            <div className="text-2xl font-black text-yellow-400">R$ {(periodGoal || 0).toFixed(2)}</div>
+                                            <p className="text-[10px] text-muted-foreground font-medium uppercase mt-1">Atingido: {goalProgress.toFixed(0)}% da meta.</p>
                                         </CardContent>
                                     </Card>
                                 </div>
@@ -89,21 +107,21 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                             <History size={16} className="text-muted-foreground" />
                                             <CardTitle className="text-sm font-bold uppercase">Listagem de Vendas (Analítico)</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Toque em uma venda para ver os itens.</CardDescription>
+                                        <CardDescription className="text-[10px] mt-1">Toque em uma venda para ver os itens.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-0">
+                                    <CardContent className="p-0 overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[10px] font-bold uppercase">Data/Hora</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Identificação</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Pagamento</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-bold uppercase">Valor</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Data/Hora</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Identificação</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Pagamento</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-bold uppercase px-4">Valor</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {reportData.salesTransactions && reportData.salesTransactions.length > 0 ? (
-                                                    reportData.salesTransactions.map((t: Transaction) => {
+                                                {salesTransactions.length > 0 ? (
+                                                    salesTransactions.map((t: Transaction) => {
                                                         const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                                         return (
                                                             <TableRow 
@@ -111,16 +129,16 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                                 className="cursor-pointer hover:bg-muted/20"
                                                                 onClick={() => setSelectedTransaction(t)}
                                                             >
-                                                                <TableCell className="text-[11px] font-medium">
+                                                                <TableCell className="text-[11px] px-4 whitespace-nowrap">
                                                                     {format(date, 'dd/MM HH:mm')}
                                                                 </TableCell>
-                                                                <TableCell className="text-[11px] font-bold truncate max-w-[120px]">
+                                                                <TableCell className="text-[11px] font-bold truncate max-w-[100px] px-4">
                                                                     {t.tabName || t.description || 'Balcão'}
                                                                 </TableCell>
-                                                                <TableCell className="text-[10px] text-muted-foreground">
+                                                                <TableCell className="text-[10px] text-muted-foreground px-4">
                                                                     {t.paymentMethod}
                                                                 </TableCell>
-                                                                <TableCell className="text-right text-xs font-black text-accent">
+                                                                <TableCell className="text-right text-xs font-black text-accent px-4">
                                                                     R$ {t.total.toFixed(2)}
                                                                 </TableCell>
                                                             </TableRow>
@@ -143,19 +161,19 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                         <CardTitle className="text-sm font-bold uppercase">Top 10 Produtos Vendidos</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        {reportData.topProducts && reportData.topProducts.length > 0 ? (
+                                        {topProducts.length > 0 ? (
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow className="bg-muted/30">
-                                                        <TableHead className="text-[10px] font-bold uppercase">Produto/Serviço</TableHead>
-                                                        <TableHead className="text-right text-[10px] font-bold uppercase">Qtd.</TableHead>
+                                                        <TableHead className="text-[10px] font-bold uppercase px-4">Produto/Serviço</TableHead>
+                                                        <TableHead className="text-right text-[10px] font-bold uppercase px-4">Qtd.</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {reportData.topProducts.map((p: any) => (
+                                                    {topProducts.map((p: any) => (
                                                         <TableRow key={p.name}>
-                                                            <TableCell className="text-xs font-medium">{p.name}</TableCell>
-                                                            <TableCell className="text-right text-xs font-bold">{p.quantity} un.</TableCell>
+                                                            <TableCell className="text-xs font-medium px-4">{p.name}</TableCell>
+                                                            <TableCell className="text-right text-xs font-bold px-4">{p.quantity} un.</TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>

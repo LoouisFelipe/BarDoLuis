@@ -1,6 +1,5 @@
-
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -30,34 +29,45 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
 }) => {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-    if (!reportData) return null;
+    // Rules of Hooks: Always at top
+    const formattedPeriod = useMemo(() => {
+        if (!date?.from) return 'Período Indefinido';
+        return `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`;
+    }, [date]);
 
-    const formattedPeriod = date?.from
-        ? `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`
-        : 'Período Indefinido';
+    const salesTransactions = useMemo(() => {
+        return reportData?.salesTransactions || [];
+    }, [reportData]);
+
+    if (!reportData) return null;
 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
-                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                            <ReceiptText className="text-primary" /> Relatório de Volume de Vendas
-                        </DialogTitle>
-                        <DialogDescription>
-                            Análise de fluxo de comandas, ticket médio e comportamento horário.
-                        </DialogDescription>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                <ReceiptText size={24} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-xl font-bold truncate">Relatório de Volume de Vendas</DialogTitle>
+                                <DialogDescription className="text-xs truncate">
+                                    Análise de fluxo, ticket médio e comportamento horário.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden">
+                    <div className="flex-1 overflow-hidden">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-6 space-y-6 pb-12">
+                            <div className="p-4 md:p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
                                     <CardHeader className="py-3 px-4">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Período Analisado</CardTitle>
+                                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                     </CardHeader>
                                     <CardContent className="px-4 pb-4">
-                                        <p className="text-xl font-bold">{formattedPeriod}</p>
+                                        <p className="text-lg font-bold">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
@@ -68,7 +78,7 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
                                             <ReceiptText className="h-4 w-4 text-muted-foreground" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black">+{reportData.salesCount}</div>
+                                            <div className="text-2xl font-black">+{reportData.salesCount}</div>
                                             <p className="text-[10px] text-muted-foreground uppercase mt-1">Comandas fechadas no período.</p>
                                         </CardContent>
                                     </Card>
@@ -78,7 +88,7 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
                                             <Package className="h-4 w-4 text-muted-foreground" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black">R$ {reportData.avgTicket.toFixed(2)}</div>
+                                            <div className="text-2xl font-black">R$ {reportData.avgTicket.toFixed(2)}</div>
                                             <p className="text-[10px] text-muted-foreground uppercase mt-1">Valor médio por comanda.</p>
                                         </CardContent>
                                     </Card>
@@ -90,7 +100,7 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
                                             <Clock size={16} className="text-muted-foreground" />
                                             <CardTitle className="text-sm font-bold uppercase">Volume por Horário</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Identifique os horários de pico operacional.</CardDescription>
+                                        <CardDescription className="text-[10px] mt-1">Identifique os horários de pico operacional.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="pt-6">
                                         <div className="h-[350px] w-full">
@@ -105,20 +115,20 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
                                             <History size={16} className="text-muted-foreground" />
                                             <CardTitle className="text-sm font-bold uppercase">Histórico de Movimento</CardTitle>
                                         </div>
-                                        <CardDescription className="text-[10px]">Clique para ver itens de cada atendimento.</CardDescription>
+                                        <CardDescription className="text-[10px] mt-1">Clique para ver itens de cada atendimento.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-0">
+                                    <CardContent className="p-0 overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[10px] font-bold uppercase">Hora</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Atendimento</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-bold uppercase">Valor</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Hora</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Atendimento</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-bold uppercase px-4">Valor</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {reportData.salesTransactions?.length > 0 ? (
-                                                    reportData.salesTransactions.map((t: Transaction) => {
+                                                {salesTransactions.length > 0 ? (
+                                                    salesTransactions.map((t: Transaction) => {
                                                         const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                                         return (
                                                             <TableRow 
@@ -126,9 +136,9 @@ export const SalesVolumeReportModal: React.FC<SalesVolumeReportModalProps> = ({
                                                                 className="cursor-pointer hover:bg-muted/20"
                                                                 onClick={() => setSelectedTransaction(t)}
                                                             >
-                                                                <TableCell className="text-[11px]">{format(date, 'HH:mm')}</TableCell>
-                                                                <TableCell className="text-[11px] font-bold truncate max-w-[150px]">{t.tabName || t.description || 'Balcão'}</TableCell>
-                                                                <TableCell className="text-right text-xs font-black">R$ {t.total.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-[11px] px-4 whitespace-nowrap">{format(date, 'HH:mm')}</TableCell>
+                                                                <TableCell className="text-[11px] font-bold truncate max-w-[150px] px-4">{t.tabName || t.description || 'Balcão'}</TableCell>
+                                                                <TableCell className="text-right text-xs font-black px-4">R$ {t.total.toFixed(2)}</TableCell>
                                                             </TableRow>
                                                         );
                                                     })

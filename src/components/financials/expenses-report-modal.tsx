@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -33,7 +32,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    // Rules of Hooks: All useMemo calls MUST be declared at the top
+    // Rules of Hooks: Top-level useMemo
     const filteredTransactions = useMemo(() => {
         if (!reportData) return [];
         const txs = reportData.expenseTransactions || [];
@@ -55,25 +54,30 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
-                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                            <TrendingDown className="text-destructive" /> Relatório de Despesas
-                        </DialogTitle>
-                        <DialogDescription>
-                            Análise detalhada de todos os custos e gastos do período.
-                        </DialogDescription>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-destructive/10 rounded-lg text-destructive">
+                                <TrendingDown size={24} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-xl font-bold truncate">Relatório de Despesas</DialogTitle>
+                                <DialogDescription className="text-xs truncate">
+                                    Análise detalhada de todos os custos e gastos.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden relative">
+                    <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-6 space-y-6 pb-12">
+                            <div className="p-4 md:p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
                                     <CardHeader className="py-3 px-4">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Período Analisado</CardTitle>
+                                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                     </CardHeader>
                                     <CardContent className="px-4 pb-4">
-                                        <p className="text-xl font-bold">{formattedPeriod}</p>
+                                        <p className="text-lg font-bold">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
@@ -84,7 +88,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                             <TrendingDown className="h-4 w-4 text-destructive" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black text-destructive">R$ {reportData.totalExpenses.toFixed(2)}</div>
+                                            <div className="text-2xl font-black text-destructive">R$ {reportData.totalExpenses.toFixed(2)}</div>
                                             <p className="text-[10px] text-muted-foreground uppercase mt-1">Impacto direto no lucro líquido.</p>
                                         </CardContent>
                                     </Card>
@@ -129,14 +133,14 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                         </div>
                                         <CardDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-0">
+                                    <CardContent className="p-0 overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[10px] font-bold uppercase">Data</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Descrição</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Categoria</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-bold uppercase">Valor</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Data</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Descrição</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Categoria</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-bold uppercase px-4">Valor</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -149,10 +153,10 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                                                 className="cursor-pointer hover:bg-muted/20"
                                                                 onClick={() => setSelectedTransaction(t)}
                                                             >
-                                                                <TableCell className="text-[11px]">{format(date, 'dd/MM')}</TableCell>
-                                                                <TableCell className="text-[11px] font-bold truncate max-w-[120px]">{t.description}</TableCell>
-                                                                <TableCell className="text-[10px] text-muted-foreground uppercase">{t.expenseCategory || 'Geral'}</TableCell>
-                                                                <TableCell className="text-right text-xs font-black text-destructive">R$ {t.total.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-[11px] px-4 whitespace-nowrap">{format(date, 'dd/MM')}</TableCell>
+                                                                <TableCell className="text-[11px] font-bold truncate max-w-[120px] px-4">{t.description}</TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground uppercase px-4">{t.expenseCategory || 'Geral'}</TableCell>
+                                                                <TableCell className="text-right text-xs font-black text-destructive px-4">R$ {t.total.toFixed(2)}</TableCell>
                                                             </TableRow>
                                                         );
                                                     })

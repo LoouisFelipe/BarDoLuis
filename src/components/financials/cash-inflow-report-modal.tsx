@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -33,7 +32,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
-    // Rules of Hooks: All useMemo calls MUST be at the top level
+    // Rules of Hooks: Top-level useMemo
     const allInflowTransactions = useMemo(() => {
         if (!reportData) return [];
         const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];
@@ -64,25 +63,30 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
                     <DialogHeader className="p-6 border-b bg-card shrink-0">
-                        <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                            <HandCoins className="text-sky-400" /> Relatório de Recebimentos (Caixa)
-                        </DialogTitle>
-                        <DialogDescription>
-                            Entradas reais de dinheiro no período selecionado.
-                        </DialogDescription>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-sky-400/10 rounded-lg text-sky-400">
+                                <HandCoins size={24} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-xl font-bold truncate">Relatório de Recebimentos (Caixa)</DialogTitle>
+                                <DialogDescription className="text-xs truncate">
+                                    Entradas reais de dinheiro no período selecionado.
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
                     
-                    <div className="flex-grow overflow-hidden relative">
+                    <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-6 space-y-6 pb-12">
+                            <div className="p-4 md:p-6 space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
                                     <CardHeader className="py-3 px-4">
-                                        <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Período Analisado</CardTitle>
+                                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                     </CardHeader>
                                     <CardContent className="px-4 pb-4">
-                                        <p className="text-xl font-bold">{formattedPeriod}</p>
+                                        <p className="text-lg font-bold">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
@@ -93,7 +97,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                             <HandCoins className="h-4 w-4 text-sky-400" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-3xl font-black text-sky-400">R$ {reportData.totalCashInflow.toFixed(2)}</div>
+                                            <div className="text-2xl font-black text-sky-400">R$ {reportData.totalCashInflow.toFixed(2)}</div>
                                             <p className="text-[10px] text-muted-foreground uppercase mt-1">Dinheiro em mãos ou conta.</p>
                                         </CardContent>
                                     </Card>
@@ -138,14 +142,14 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                         </div>
                                         <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-0">
+                                    <CardContent className="p-0 overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[10px] font-bold uppercase">Data</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Fonte</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase">Método</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-bold uppercase">Valor</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Data</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Fonte</TableHead>
+                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Método</TableHead>
+                                                    <TableHead className="text-right text-[10px] font-bold uppercase px-4">Valor</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -158,10 +162,10 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                                 className="cursor-pointer hover:bg-muted/20"
                                                                 onClick={() => setSelectedTransaction(t)}
                                                             >
-                                                                <TableCell className="text-[11px]">{format(date, 'dd/MM HH:mm')}</TableCell>
-                                                                <TableCell className="text-[11px] font-bold truncate max-w-[100px]">{t.tabName || t.description || 'Venda'}</TableCell>
-                                                                <TableCell className="text-[10px] text-muted-foreground">{t.paymentMethod}</TableCell>
-                                                                <TableCell className="text-right text-xs font-black text-sky-400">R$ {t.total.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-[11px] px-4 whitespace-nowrap">{format(date, 'dd/MM HH:mm')}</TableCell>
+                                                                <TableCell className="text-[11px] font-bold truncate max-w-[100px] px-4">{t.tabName || t.description || 'Venda'}</TableCell>
+                                                                <TableCell className="text-[10px] text-muted-foreground px-4">{t.paymentMethod}</TableCell>
+                                                                <TableCell className="text-right text-xs font-black text-sky-400 px-4">R$ {t.total.toFixed(2)}</TableCell>
                                                             </TableRow>
                                                         );
                                                     })
