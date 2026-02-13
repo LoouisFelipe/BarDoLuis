@@ -13,7 +13,6 @@ const nextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        'localhost:*',
         '*.cloudworkstations.dev',
         '*.firebaseapp.com',
         '*.web.app',

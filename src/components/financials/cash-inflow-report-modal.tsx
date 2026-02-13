@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription as CardDesc } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     reportData,
     date,
 }) => {
-    // RULES OF HOOKS: All hooks MUST be at the top
+    // RULES OF HOOKS: All hooks MUST be at the top level
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
@@ -140,7 +140,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDesc className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDesc>
+                                        <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>

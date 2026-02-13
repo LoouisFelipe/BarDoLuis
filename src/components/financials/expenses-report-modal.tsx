@@ -1,9 +1,8 @@
-
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -134,7 +133,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <DialogDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</DialogDescription>
+                                        <CardDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>

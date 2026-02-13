@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -18,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const userSchema = z.object({
   name: z.string().min(3, "Mínimo 3 caracteres"),
@@ -38,6 +37,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
   const { toast } = useToast();
   const db = useFirestore();
   const [processing, setProcessing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -60,7 +60,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
       const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
       const newUser = userCredential.user;
 
-      // 2. Criar perfil no Firestore
+      // 2. Criar perfil no Firestore (Banco bardoluis garantido pelo context)
       await setDoc(doc(db, 'users', newUser.uid), {
         uid: newUser.uid,
         name: data.name,
@@ -138,7 +138,29 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Senha Temporária</FormLabel>
-                  <FormControl><Input type="password" placeholder="Mínimo 6 dígitos" {...field} /></FormControl>
+                  <div className="relative">
+                    <FormControl>
+                      <Input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Mínimo 6 dígitos" 
+                        {...field} 
+                        className="pr-10"
+                      />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
