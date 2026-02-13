@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -29,16 +29,18 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
     reportData,
     date,
 }) => {
+    // RULES OF HOOKS: All hooks must be at the top level
+    const allTransactions = useMemo(() => {
+        return reportData?.expenseTransactions || [];
+    }, [reportData]);
+
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    // RULES OF HOOKS: All useMemo MUST be at the top
     const filteredTransactions = useMemo(() => {
-        if (!reportData) return [];
-        const txs = reportData.expenseTransactions || [];
-        if (!selectedCategory) return txs;
-        return txs.filter((t: Transaction) => (t.expenseCategory || 'Geral') === selectedCategory);
-    }, [reportData, selectedCategory]);
+        if (!selectedCategory) return allTransactions;
+        return allTransactions.filter((t: Transaction) => (t.expenseCategory || 'Geral') === selectedCategory);
+    }, [allTransactions, selectedCategory]);
 
     const formattedPeriod = useMemo(() => {
         if (!date?.from) return 'Período Indefinido';
@@ -131,7 +133,7 @@ export const ExpensesReportModal: React.FC<ExpensesReportModalProps> = ({
                                                 </Badge>
                                             )}
                                         </div>
-                                        <DialogDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</DialogDescription>
+                                        <CardDescription className="text-[10px] mt-1">Clique em uma despesa para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>

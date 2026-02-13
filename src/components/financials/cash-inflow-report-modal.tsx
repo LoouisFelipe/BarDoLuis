@@ -29,7 +29,7 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     reportData,
     date,
 }) => {
-    // RULES OF HOOKS: All useMemo MUST be at the top
+    // RULES OF HOOKS: All hooks must be at the top level, before any early returns.
     const allInflowTransactions = useMemo(() => {
         if (!reportData) return [];
         const sales = reportData.salesTransactions?.filter((t: any) => t.paymentMethod !== 'Fiado') || [];

@@ -31,7 +31,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
   const [newCustomerName, setNewCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // UX: Clientes ordenados alfabeticamente
+  // UX: Clientes ordenados alfabeticamente para busca rápida
   const sortedCustomers = useMemo(() => {
     return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [customers]);
@@ -96,7 +96,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden bg-background">
         <DialogHeader className="p-6 pb-2 bg-card border-b">
           <div className="flex items-center gap-2">
              <div className="p-2 bg-primary/10 rounded-lg">
@@ -111,15 +111,15 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
 
         <div className="p-6">
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 h-12 bg-muted/50 p-1">
+            <TabsList className="grid w-full grid-cols-3 mb-6 h-14 bg-muted/50 p-1">
                 <TabsTrigger value="avulsa" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
-                <LayoutGrid size={14} /> Mesa
+                <LayoutGrid size={14} className="hidden sm:block" /> Mesa
                 </TabsTrigger>
                 <TabsTrigger value="cliente" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
-                <Users size={14} /> Fiel
+                <Users size={14} className="hidden sm:block" /> Fiel
                 </TabsTrigger>
                 <TabsTrigger value="novo" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
-                <UserRoundPlus size={14} /> + Cliente
+                <UserRoundPlus size={14} className="hidden sm:block" /> + Cliente
                 </TabsTrigger>
             </TabsList>
 
@@ -131,7 +131,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
                     placeholder="Ex: Mesa 05, Balcão, Luis..."
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="h-12 bg-background border-2 focus:border-primary text-base"
+                    className="h-14 bg-background border-2 focus:border-primary text-lg"
                     autoFocus
                 />
                 <p className="text-[10px] text-muted-foreground italic px-1">
@@ -142,9 +142,9 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
 
             <TabsContent value="cliente" className="space-y-4 py-2 mt-0 focus-visible:outline-none">
                 <div className="space-y-3">
-                <Label htmlFor="customer-select" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Selecionar Cliente Fiel</Label>
+                <Label htmlFor="customer-select" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Selecionar Cliente Fiel (A-Z)</Label>
                 <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                    <SelectTrigger id="customer-select" className="h-12 bg-background border-2 text-base">
+                    <SelectTrigger id="customer-select" className="h-14 bg-background border-2 text-lg">
                     <SelectValue placeholder="Busque um cliente..." />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
@@ -176,7 +176,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
                     placeholder="Nome completo para o cadastro"
                     value={newCustomerName}
                     onChange={(e) => setNewCustomerName(e.target.value)}
-                    className="h-12 bg-background border-2 focus:border-primary text-base"
+                    className="h-14 bg-background border-2 focus:border-primary text-lg"
                 />
                 <div className="bg-accent/10 border border-accent/20 p-3 rounded-lg">
                     <p className="text-[10px] text-accent font-black uppercase tracking-tight leading-relaxed">
@@ -189,10 +189,10 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
         </div>
 
         <DialogFooter className="p-6 pt-0 flex flex-col sm:flex-row gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="w-full sm:w-auto order-2 sm:order-1 h-12 font-bold uppercase text-xs">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="w-full sm:w-auto order-2 sm:order-1 h-14 font-bold uppercase text-xs">
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={processing} className="w-full sm:flex-1 order-1 sm:order-2 h-12 font-black uppercase text-sm shadow-lg">
+          <Button onClick={handleCreate} disabled={processing} className="w-full sm:flex-1 order-1 sm:order-2 h-14 font-black uppercase text-sm shadow-lg">
             {processing ? <Spinner size="h-4 w-4" /> : (tab === 'novo' ? 'Cadastrar e Abrir' : 'Abrir Comanda')}
           </Button>
         </DialogFooter>
