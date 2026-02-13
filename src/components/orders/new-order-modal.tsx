@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Order } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
-import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import { useOpenOrders } from '@/hooks/use-open-orders';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -31,12 +31,10 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
   const [newCustomerName, setNewCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  // UX: Clientes ordenados alfabeticamente (A-Z) para busca rápida
   const sortedCustomers = useMemo(() => {
     return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [customers]);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (open) {
       setTab('avulsa');

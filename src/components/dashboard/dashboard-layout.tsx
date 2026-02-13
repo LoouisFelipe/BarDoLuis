@@ -15,7 +15,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/auth-context';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useData } from '@/contexts/data-context';
-import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import { useOpenOrders } from '@/hooks/use-open-orders';
 
 const TABS_CONFIG = {
   cockpit: {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
@@ -6,7 +5,7 @@ import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } fro
 import { UserProfile, useAuth } from './auth-context';
 import { useToast } from "@/hooks/use-toast";
 import { db } from '@/lib/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/hooks/use-collection';
 import { addMonths, format } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -110,7 +109,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
     return handleAction(async () => {
-      // DATA SANITIZATION: Omit potentially undefined fields
       const payload: any = { 
         name: data.name || '',
         category: data.category || '',
@@ -144,7 +142,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
     const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
     return handleAction(async () => {
-      // DATA SANITIZATION: Ensure balance is never sent as undefined
       const payload: any = { 
         name: data.name || '',
         contact: data.contact || '',

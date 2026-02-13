@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import { useOpenOrders } from '@/hooks/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
 import {
   AlertDialog,
@@ -367,7 +367,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           </DialogHeader>
           
           <div className="flex-grow flex flex-col overflow-hidden">
-            {/* Mobile View with Tabs */}
             <div className="flex flex-col h-full md:hidden">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
                 <TabsList className="grid w-full grid-cols-2 bg-muted/50 rounded-none h-12">
@@ -383,7 +382,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               </Tabs>
             </div>
 
-            {/* Desktop View (Side by Side) */}
             <div className="hidden md:flex h-full overflow-hidden">
               <div className="flex-grow border-r bg-muted/10 overflow-hidden">
                 {productListContent}

@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
 import { Supplier, Purchase } from '@/lib/schemas';
 import { useFirestore, useMemoFirebase } from '@/firebase/provider';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollection } from '@/hooks/use-collection';
 import { where, collection, query } from 'firebase/firestore';
 
 interface PurchaseHistoryModalProps {

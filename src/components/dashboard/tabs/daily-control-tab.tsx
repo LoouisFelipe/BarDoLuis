@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { OrderCard } from '@/components/orders/OrderCard';
 import { OrderCardSkeleton } from '@/components/orders/OrderCardSkeleton';
 import { OrderManagementModal } from '@/components/orders/order-management-modal';
-import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
+import { useOpenOrders } from '@/hooks/use-open-orders';
 import { PlusCircle, Search } from 'lucide-react';
 import { NewOrderModal } from '@/components/orders/new-order-modal';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,6 @@ export const DailyControlTab: React.FC = () => {
     };
 
     const filteredOrders = useMemo(() => {
-        // Golden Rule: Ensure openOrders is an array before filtering to prevent crashes.
         if (loading || !openOrders) return [];
         return openOrders.filter(order =>
             order.displayName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -38,7 +37,6 @@ export const DailyControlTab: React.FC = () => {
     }, [openOrders, searchTerm, loading]);
 
     const renderContent = () => {
-        // CPO Rule: Show skeletons for better perceived performance
         if (loading) {
             return (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -57,7 +55,6 @@ export const DailyControlTab: React.FC = () => {
             );
         }
         
-        // Use optional chaining and nullish coalescing for safe access
         if ((openOrders?.length ?? 0) > 0 && filteredOrders.length === 0 && searchTerm) {
              return (
                  <div className="flex flex-col items-center justify-center flex-grow min-h-[300px] border-2 border-dashed rounded-xl bg-muted/20">
@@ -81,7 +78,6 @@ export const DailyControlTab: React.FC = () => {
             );
         }
 
-        // Default empty state
         return (
             <div className="flex flex-col items-center justify-center flex-grow min-h-[300px] border-2 border-dashed rounded-xl bg-muted/20">
                 <div className="text-center p-6 space-y-4">
@@ -104,7 +100,7 @@ export const DailyControlTab: React.FC = () => {
                             className="pl-10 bg-background"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            disabled={loading} // CPO Rule: Prevent interaction while loading
+                            disabled={loading}
                         />
                     </div>
                     <Button onClick={() => setIsNewModalOpen(true)} className="w-full md:w-auto font-bold gap-2 h-11" disabled={loading}>
