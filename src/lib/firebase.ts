@@ -16,7 +16,6 @@ const auth = getAuth(firebaseApp);
 
 // Inicializa o Firestore apontando ESPECIFICAMENTE para o banco de dados 'bardoluis'
 // Isso é vital para garantir que as regras de segurança e os dados de produção sejam acessados corretamente.
-// O banco '(default)' deve ser ignorado.
 const db = getFirestore(firebaseApp, "bardoluis");
 
 export { firebaseApp, auth, db };

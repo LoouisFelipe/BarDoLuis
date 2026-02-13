@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Order } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { useOpenOrders } from '@/firebase/firestore/use-open-orders';
@@ -30,6 +30,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [newCustomerName, setNewCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
+
+  // UX: Clientes ordenados alfabeticamente
+  const sortedCustomers = useMemo(() => {
+    return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [customers]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -66,7 +71,6 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
           customerId: selectedCustomerId 
         });
       } else {
-        // tab === 'novo'
         if (!newCustomerName.trim()) {
           toast({ title: 'Atenção', description: 'Digite o nome do novo cliente.', variant: 'destructive' });
           setProcessing(false);
@@ -92,89 +96,103 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-             <UserPlus className="h-5 w-5 text-primary" />
-             Nova Comanda
-          </DialogTitle>
-          <DialogDescription>
-            Escolha como identificar este novo atendimento.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2 bg-card border-b">
+          <div className="flex items-center gap-2">
+             <div className="p-2 bg-primary/10 rounded-lg">
+                <UserPlus className="h-5 w-5 text-primary" />
+             </div>
+             <div>
+                <DialogTitle className="text-xl font-bold">Nova Comanda</DialogTitle>
+                <DialogDescription className="text-xs">Identifique o atendimento para iniciar.</DialogDescription>
+             </div>
+          </div>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="avulsa" className="gap-1 text-[11px] sm:text-xs">
-              <LayoutGrid size={14} /> Mesa
-            </TabsTrigger>
-            <TabsTrigger value="cliente" className="gap-1 text-[11px] sm:text-xs">
-              <Users size={14} /> Fiel
-            </TabsTrigger>
-            <TabsTrigger value="novo" className="gap-1 text-[11px] sm:text-xs">
-              <UserRoundPlus size={14} /> + Cliente
-            </TabsTrigger>
-          </TabsList>
+        <div className="p-6">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6 h-12 bg-muted/50 p-1">
+                <TabsTrigger value="avulsa" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
+                <LayoutGrid size={14} /> Mesa
+                </TabsTrigger>
+                <TabsTrigger value="cliente" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
+                <Users size={14} /> Fiel
+                </TabsTrigger>
+                <TabsTrigger value="novo" className="gap-2 font-bold uppercase text-[10px] sm:text-xs h-full">
+                <UserRoundPlus size={14} /> + Cliente
+                </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="avulsa" className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="display-name">Identificação da Comanda</Label>
-              <Input
-                id="display-name"
-                placeholder="Ex: Mesa 05, Balcão, Luis..."
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                autoFocus
-              />
-              <p className="text-[10px] text-muted-foreground italic">
-                * Uso pontual. Não cria cadastro permanente.
-              </p>
-            </div>
-          </TabsContent>
+            <TabsContent value="avulsa" className="space-y-4 py-2 mt-0 focus-visible:outline-none">
+                <div className="space-y-3">
+                <Label htmlFor="display-name" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Identificação da Mesa/Comanda</Label>
+                <Input
+                    id="display-name"
+                    placeholder="Ex: Mesa 05, Balcão, Luis..."
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="h-12 bg-background border-2 focus:border-primary text-base"
+                    autoFocus
+                />
+                <p className="text-[10px] text-muted-foreground italic px-1">
+                    * Uso rápido. Não gera registro no histórico de clientes.
+                </p>
+                </div>
+            </TabsContent>
 
-          <TabsContent value="cliente" className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="customer-select">Selecionar Cliente Cadastrado</Label>
-              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                <SelectTrigger id="customer-select">
-                  <SelectValue placeholder="Busque um cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-muted-foreground">Nenhum cliente cadastrado.</div>
-                  ) : (
-                    customers.map(c => (
-                      <SelectItem key={c.id} value={c.id!}>
-                        {c.name} {c.balance > 0 && `(R$ ${c.balance.toFixed(2)})`}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </TabsContent>
+            <TabsContent value="cliente" className="space-y-4 py-2 mt-0 focus-visible:outline-none">
+                <div className="space-y-3">
+                <Label htmlFor="customer-select" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Selecionar Cliente Fiel</Label>
+                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                    <SelectTrigger id="customer-select" className="h-12 bg-background border-2 text-base">
+                    <SelectValue placeholder="Busque um cliente..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                    {sortedCustomers.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">Nenhum cliente cadastrado.</div>
+                    ) : (
+                        sortedCustomers.map(c => (
+                        <SelectItem key={c.id} value={c.id!} className="py-3">
+                            <div className="flex flex-col">
+                                <span className="font-bold">{c.name}</span>
+                                {c.balance > 0 && <span className="text-[10px] text-yellow-500 font-black">DÍVIDA: R$ {c.balance.toFixed(2)}</span>}
+                            </div>
+                        </SelectItem>
+                        ))
+                    )}
+                    </SelectContent>
+                </Select>
+                <p className="text-[10px] text-accent font-bold uppercase px-1">
+                    💡 Esta venda será vinculada ao histórico deste cliente.
+                </p>
+                </div>
+            </TabsContent>
 
-          <TabsContent value="novo" className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="new-customer-name">Nome do Novo Cliente</Label>
-              <Input
-                id="new-customer-name"
-                placeholder="Nome completo para o cadastro"
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-              />
-              <p className="text-[10px] text-accent font-bold uppercase tracking-tight">
-                💡 Isso criará um novo perfil na sua lista de clientes automaticamente.
-              </p>
-            </div>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="novo" className="space-y-4 py-2 mt-0 focus-visible:outline-none">
+                <div className="space-y-3">
+                <Label htmlFor="new-customer-name" className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Nome do Novo Cliente</Label>
+                <Input
+                    id="new-customer-name"
+                    placeholder="Nome completo para o cadastro"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    className="h-12 bg-background border-2 focus:border-primary text-base"
+                />
+                <div className="bg-accent/10 border border-accent/20 p-3 rounded-lg">
+                    <p className="text-[10px] text-accent font-black uppercase tracking-tight leading-relaxed">
+                        Isso criará um novo registro na sua lista de clientes e abrirá a comanda simultaneamente.
+                    </p>
+                </div>
+                </div>
+            </TabsContent>
+            </Tabs>
+        </div>
 
-        <DialogFooter className="mt-4 gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing}>
+        <DialogFooter className="p-6 pt-0 flex flex-col sm:flex-row gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="w-full sm:w-auto order-2 sm:order-1 h-12 font-bold uppercase text-xs">
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={processing} className="min-w-[140px]">
+          <Button onClick={handleCreate} disabled={processing} className="w-full sm:flex-1 order-1 sm:order-2 h-12 font-black uppercase text-sm shadow-lg">
             {processing ? <Spinner size="h-4 w-4" /> : (tab === 'novo' ? 'Cadastrar e Abrir' : 'Abrir Comanda')}
           </Button>
         </DialogFooter>

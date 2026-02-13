@@ -78,7 +78,7 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   return {
     auth: authObject,
     method: context.operation,
-    // Aponta explicitamente para o banco 'bardoluis' no simulador de erro
+    // Aponta explicitamente para o banco 'bardoluis' no simulador de erro para clareza na auditoria
     path: `/databases/bardoluis/documents/${context.path}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };

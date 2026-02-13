@@ -27,45 +27,50 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-6 border-b bg-card">
-          <DialogTitle>Extrato: {customer.name}</DialogTitle>
+      <DialogContent className="max-w-2xl h-[80vh] flex flex-col p-0 overflow-hidden bg-background">
+        <DialogHeader className="p-6 border-b bg-card shrink-0">
+          <DialogTitle className="text-xl font-bold">Extrato: {customer.name}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full w-full">
             <div className="p-6 space-y-4">
               {customerTransactions.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma transação encontrada.</p>
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50 italic">
+                    <p>Nenhuma transação encontrada para este cliente.</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {customerTransactions.map((transaction) => {
                     const date = transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date();
                     return (
-                      <div key={transaction.id} className="border-b pb-4 last:border-0">
+                      <div key={transaction.id} className="border-b border-border/50 pb-4 last:border-0 bg-card/30 p-3 rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-medium">
+                            <p className="font-bold text-sm">
                               {transaction.type === 'sale' ? 'Venda' : transaction.type === 'payment' ? 'Pagamento/Crédito' : 'Outro'}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase">
                               {format(date, "PPp", { locale: ptBR })}
                             </p>
                           </div>
-                          <div className={`font-bold ${transaction.type === 'sale' ? 'text-red-600' : 'text-green-600'}`}>
+                          <div className={`font-black text-lg ${transaction.type === 'sale' ? 'text-destructive' : 'text-accent'}`}>
                             {transaction.type === 'sale' ? '-' : '+'} 
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(transaction.total)}
                           </div>
                         </div>
 
                         {transaction.type === 'sale' && transaction.items && (
-                          <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside pl-2">
-                            {transaction.items.map((item, idx) => (
-                              <li key={`${transaction.id}-${idx}`}>
-                                {item.quantity}x {item.name}
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="mt-2 pt-2 border-t border-border/20">
+                            <ul className="text-[11px] text-muted-foreground space-y-1">
+                                {transaction.items.map((item, idx) => (
+                                <li key={`${transaction.id}-${idx}`} className="flex justify-between">
+                                    <span>{item.quantity}x {item.name}</span>
+                                    <span className="font-medium">R$ {('unitPrice' in item ? item.unitPrice * item.quantity : 0).toFixed(2)}</span>
+                                </li>
+                                ))}
+                            </ul>
+                          </div>
                         )}
                       </div>
                     );
