@@ -97,18 +97,31 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: 'Sucesso!', description: successMessage });
       return result;
     } catch (e: any) {
-      const permissionError = new FirestorePermissionError({ path, operation, requestResourceData: data });
+      // Create rich context for error overlay
+      const permissionError = new FirestorePermissionError({ 
+        path, 
+        operation, 
+        requestResourceData: data 
+      });
       errorEmitter.emit('permission-error', permissionError);
       throw e;
     }
   }, [toast]);
 
-  const saveProduct = (data: Omit<Product, 'id'>, id?: string) => 
-    handleAction(async () => {
-      const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
-      await setDoc(docRef, { ...data, updatedAt: serverTimestamp(), createdAt: id ? undefined : serverTimestamp() }, { merge: true });
+  const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
+    const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
+    return handleAction(async () => {
+      const payload: any = { 
+        ...data, 
+        updatedAt: serverTimestamp() 
+      };
+      // Prevent 'undefined' fields
+      if (!id) payload.createdAt = serverTimestamp();
+      
+      await setDoc(docRef, payload, { merge: true });
       return docRef.id;
-    }, 'Produto salvo.', id ? 'update' : 'create', 'products', data);
+    }, 'Produto salvo.', id ? 'update' : 'create', docRef.path, data);
+  };
 
   const deleteProduct = (id: string) => 
     handleAction(async () => {
@@ -120,12 +133,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await updateDoc(doc(db, 'products', id), { stock: increment(qty), ...(cost && { costPrice: cost }) });
     }, 'Estoque atualizado.', 'update', `products/${id}`);
 
-  const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => 
-    handleAction(async () => {
-      const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
-      await setDoc(docRef, { ...data, balance: id ? undefined : 0, updatedAt: serverTimestamp() }, { merge: true });
+  const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
+    const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
+    return handleAction(async () => {
+      const payload: any = { 
+        ...data, 
+        updatedAt: serverTimestamp() 
+      };
+      // Prevent 'undefined' fields. Only set balance 0 if it's a new customer.
+      if (!id) payload.balance = 0;
+      
+      await setDoc(docRef, payload, { merge: true });
       return docRef.id;
-    }, 'Cliente salvo.', id ? 'update' : 'create', 'customers', data);
+    }, 'Cliente salvo.', id ? 'update' : 'create', docRef.path, data);
+  };
 
   const deleteCustomer = (id: string) => 
     handleAction(async () => {
@@ -152,12 +173,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         });
     }, 'Pagamento recebido.', 'write', 'transactions');
 
-  const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) =>
-    handleAction(async () => {
-      const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
+  const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) => {
+    const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
+    return handleAction(async () => {
       await setDoc(docRef, data, { merge: true });
       return docRef.id;
-    }, 'Fornecedor salvo.', id ? 'update' : 'create', 'suppliers', data);
+    }, 'Fornecedor salvo.', id ? 'update' : 'create', docRef.path, data);
+  };
 
   const deleteSupplier = (id: string) =>
     handleAction(async () => {

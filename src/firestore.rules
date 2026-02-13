@@ -20,6 +20,7 @@ service cloud.firestore {
     }
 
     // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
+    // Sincronizando permissões para o banco de dados 'bardoluis'
     match /{document=**} {
       allow read, write: if isCEO();
     }
