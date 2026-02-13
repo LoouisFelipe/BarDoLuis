@@ -14,6 +14,7 @@ service cloud.firestore {
     }
     
     // Função para verificar se o usuário logado tem cargo de admin no seu perfil
+    // Nota: O CEO também é considerado admin por padrão
     function isAdmin() {
       return isStaff() && (isCEO() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
@@ -26,7 +27,10 @@ service cloud.firestore {
 
     // Usuários: Controle de perfis
     match /users/{userId} {
+      // Qualquer funcionário pode ler a lista de usuários para identificar colegas/cargos
       allow read: if isStaff();
+      // Apenas o CEO pode criar ou excluir usuários.
+      // Usuários podem editar apenas seu próprio perfil (nome/config).
       allow create, delete: if isCEO();
       allow update: if isCEO() || request.auth.uid == userId;
     }
@@ -50,6 +54,7 @@ service cloud.firestore {
     // Comandas: Controle diário de mesas e balcão
     match /open_orders/{orderId} {
       allow read, create, update: if isStaff();
+      // Exclusão de comanda é uma ação crítica, restrita a Admin ou CEO
       allow delete: if isAdmin();
     }
     
