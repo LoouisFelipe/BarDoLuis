@@ -1,6 +1,11 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
+/**
+ * @fileOverview Gerador de erros contextuais para o banco 'bardoluis'.
+ * Permite depuração precisa de Regras de Segurança no console do Next.js.
+ */
+
 type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
@@ -35,9 +40,7 @@ interface SecurityRuleRequest {
 }
 
 function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
-  if (!currentUser) {
-    return null;
-  }
+  if (!currentUser) return null;
 
   const token: FirebaseAuthToken = {
     name: currentUser.displayName,
@@ -47,9 +50,7 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     sub: currentUser.uid,
     firebase: {
       identities: currentUser.providerData.reduce((acc, p) => {
-        if (p.providerId) {
-          acc[p.providerId] = [p.uid];
-        }
+        if (p.providerId) acc[p.providerId] = [p.uid];
         return acc;
       }, {} as Record<string, string[]>),
       sign_in_provider: currentUser.providerData[0]?.providerId || 'custom',
@@ -57,10 +58,7 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     },
   };
 
-  return {
-    uid: currentUser.uid,
-    token: token,
-  };
+  return { uid: currentUser.uid, token };
 }
 
 function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
@@ -68,30 +66,22 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   try {
     const firebaseAuth = getAuth();
     const currentUser = firebaseAuth.currentUser;
-    if (currentUser) {
-      authObject = buildAuthObject(currentUser);
-    }
-  } catch {
-    // Auth not ready
-  }
+    if (currentUser) authObject = buildAuthObject(currentUser);
+  } catch { /* Auth not ready */ }
 
   const cleanPath = context.path.startsWith('/') ? context.path.substring(1) : context.path;
 
   return {
     auth: authObject,
     method: context.operation,
-    /**
-     * CTO AUDIT: Aponta explicitamente para o banco 'bardoluis' no simulador de erro.
-     * Facilita a identificação de qual regra no console barrou a operação.
-     */
+    // CTO AUDIT: Apontamento direto para o banco de dados 'bardoluis'
     path: `/databases/bardoluis/documents/${cleanPath}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
 }
 
 function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules:
-${JSON.stringify(requestObject, null, 2)}`;
+  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules:\n${JSON.stringify(requestObject, null, 2)}`;
 }
 
 export class FirestorePermissionError extends Error {

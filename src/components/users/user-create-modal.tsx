@@ -51,16 +51,14 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
 
   const onSubmit = async (data: UserFormData) => {
     setProcessing(true);
-    // Usar uma app secundária para não deslogar o admin atual
+    // CTO: Usamos uma app secundária para não deslogar o admin atual durante a criação
     const tempApp = initializeApp(firebaseConfig, "temp-app-" + Date.now());
     const tempAuth = getAuth(tempApp);
 
     try {
-      // 1. Criar no Auth
       const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
       const newUser = userCredential.user;
 
-      // 2. Criar perfil no Firestore (Banco bardoluis garantido pelo context)
       await setDoc(doc(db, 'users', newUser.uid), {
         uid: newUser.uid,
         name: data.name,
@@ -87,7 +85,6 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
         variant: "destructive",
       });
     } finally {
-      // Limpar a app temporária
       await deleteApp(tempApp);
       setProcessing(false);
     }
@@ -144,7 +141,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
                         type={showPassword ? "text" : "password"} 
                         placeholder="Mínimo 6 dígitos" 
                         {...field} 
-                        className="pr-10"
+                        className="pr-10 h-12"
                       />
                     </FormControl>
                     <Button
@@ -155,9 +152,9 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        <EyeOff className="h-5 w-5 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <Eye className="h-5 w-5 text-muted-foreground" />
                       )}
                     </Button>
                   </div>
@@ -174,7 +171,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
                   <FormLabel>Cargo / Permissão</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="admin">Administrador (Total)</SelectItem>
@@ -188,10 +185,10 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({ open, onOpenCh
             />
 
             <DialogFooter className="pt-4">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={processing}>
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="h-12 font-bold uppercase text-xs">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={processing} className="font-bold">
+              <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg">
                 {processing ? <Spinner size="h-4 w-4" /> : "Criar Acesso"}
               </Button>
             </DialogFooter>

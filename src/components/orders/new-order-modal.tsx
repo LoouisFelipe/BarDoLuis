@@ -14,6 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UserPlus, LayoutGrid, Users, UserRoundPlus } from 'lucide-react';
 
+/**
+ * @fileOverview Modal de abertura de comanda.
+ * UX: Implementa ordenação alfabética de clientes e botões grandes para mobile.
+ */
+
 interface NewOrderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +36,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ open, onOpenChange
   const [newCustomerName, setNewCustomerName] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // UX: Garantimos que os clientes apareçam sempre em ordem alfabética (A-Z)
   const sortedCustomers = useMemo(() => {
     return [...customers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [customers]);
