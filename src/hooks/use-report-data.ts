@@ -62,6 +62,7 @@ export const useReportData = ({
       let revenue = 0;
       let cashInflow = 0;
       let expenses = 0;
+      let insumos = 0;
       let salesCount = 0;
       let cogs = 0;
 
@@ -88,6 +89,9 @@ export const useReportData = ({
           cashInflow += (t.total || 0);
         } else if (t.type === 'expense') {
           expenses += (t.total || 0);
+          if (t.expenseCategory === 'Insumos') {
+            insumos += (t.total || 0);
+          }
         }
       });
 
@@ -95,7 +99,7 @@ export const useReportData = ({
       const netProfit = grossProfit - expenses;
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
-      return { revenue, cashInflow, expenses, salesCount, grossProfit, netProfit, avgTicket };
+      return { revenue, cashInflow, expenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
     };
 
     const currentMetrics = calculateMetrics(filteredTransactions);
@@ -111,6 +115,7 @@ export const useReportData = ({
     const salesByPaymentMethodMap = new Map<string, number>();
     const cashInflowByMethodMap = new Map<string, number>();
     const expensesByCategoryMap = new Map<string, number>();
+    const purchasesBySupplierMap = new Map<string, number>();
     const heatmapMap = new Map<string, number>();
     const salesByHourMap = new Map<string, number>();
 
@@ -154,6 +159,11 @@ export const useReportData = ({
       } else if (t.type === 'expense') {
         const cat = t.expenseCategory || 'Geral';
         expensesByCategoryMap.set(cat, (expensesByCategoryMap.get(cat) || 0) + (t.total || 0));
+        
+        if (cat === 'Insumos') {
+            const supplier = t.description?.replace('Compra: ', '') || 'Outros';
+            purchasesBySupplierMap.set(supplier, (purchasesBySupplierMap.get(supplier) || 0) + (t.total || 0));
+        }
       }
     });
 
@@ -185,6 +195,7 @@ export const useReportData = ({
       totalSalesRevenue: currentMetrics.revenue || 0,
       totalCashInflow: currentMetrics.cashInflow || 0,
       totalExpenses: currentMetrics.expenses || 0,
+      totalInsumos: currentMetrics.insumos || 0,
       grossProfit: currentMetrics.grossProfit || 0,
       netProfit: currentMetrics.netProfit || 0,
       salesCount: currentMetrics.salesCount || 0,
@@ -195,6 +206,7 @@ export const useReportData = ({
         revenue: calculateDelta(currentMetrics.revenue, prevMetrics.revenue),
         cashInflow: calculateDelta(currentMetrics.cashInflow, prevMetrics.cashInflow),
         expenses: calculateDelta(currentMetrics.expenses, prevMetrics.expenses),
+        insumos: calculateDelta(currentMetrics.insumos, prevMetrics.insumos),
         grossProfit: calculateDelta(currentMetrics.grossProfit, prevMetrics.grossProfit),
         netProfit: calculateDelta(currentMetrics.netProfit, prevMetrics.netProfit),
         salesCount: calculateDelta(currentMetrics.salesCount, prevMetrics.salesCount),
@@ -206,10 +218,12 @@ export const useReportData = ({
       salesByHourForChart,
       salesTransactions: filteredTransactions.filter(t => t.type === 'sale'),
       expenseTransactions: filteredTransactions.filter(t => t.type === 'expense'),
+      purchaseTransactions: filteredTransactions.filter(t => t.type === 'expense' && t.expenseCategory === 'Insumos'),
       paymentTransactions: filteredTransactions.filter(t => t.type === 'payment'),
       salesByPaymentMethodForChart: Array.from(salesByPaymentMethodMap.entries()).map(([name, value]) => ({ name, value })),
       cashInflowByMethodForChart: Array.from(cashInflowByMethodMap.entries()).map(([name, value]) => ({ name, value })),
       expensesByCategoryForChart: Array.from(expensesByCategoryMap.entries()).map(([name, value]) => ({ name, value })),
+      purchasesBySupplierForChart: Array.from(purchasesBySupplierMap.entries()).map(([name, value]) => ({ name, value })),
       customersWithDebt: (customers || []).filter((c) => (c.balance || 0) > 0).length,
       totalCustomerDebt: (customers || []).reduce((sum, c) => sum + (c.balance || 0), 0),
       outOfStockProducts: (products || []).filter((p) => p.saleType !== 'service' && (p.stock || 0) <= 0).length,

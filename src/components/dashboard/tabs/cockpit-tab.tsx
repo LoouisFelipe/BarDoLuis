@@ -5,8 +5,8 @@ import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
-import { subDays } from 'date-fns'; 
-import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package, Scale } from 'lucide-react'; 
+import { format, subDays } from 'date-fns'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package, Scale, ShoppingCart } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { CashInflowReportModal } from '@/components/financials/cash-inflow-repor
 import { ExpensesReportModal } from '@/components/financials/expenses-report-modal';
 import { ProfitReportModal } from '@/components/financials/profit-report-modal';
 import { SalesVolumeReportModal } from '@/components/financials/sales-volume-report-modal';
+import { PurchasesReportModal } from '@/components/financials/purchases-report-modal';
 import { useReportData } from '@/hooks/use-report-data';
 import { CockpitSkeleton } from '../CockpitSkeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -57,6 +58,7 @@ export const CockpitTab: React.FC = () => {
     const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
     const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
     const [isSalesVolumeModalOpen, setIsSalesVolumeModalOpen] = useState(false);
+    const [isPurchasesModalOpen, setIsPurchasesModalOpen] = useState(false);
 
     const reportData = useReportData({
         transactions,
@@ -104,16 +106,25 @@ export const CockpitTab: React.FC = () => {
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Despesas</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-destructive">R$ {(reportData.totalExpenses || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.expenses} inverse /></div></CardContent>
                         </Card>
 
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-orange-500" onClick={() => setIsPurchasesModalOpen(true)}> 
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Compras</CardTitle>
+                                <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-baseline">
+                                    <div className="text-2xl font-bold text-orange-500">R$ {(reportData.totalInsumos || 0).toFixed(2)}</div>
+                                    <TrendIndicator value={reportData.deltas?.insumos} inverse />
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsProfitModalOpen(true)}> 
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><Scale className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
                         </Card>
 
                         <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsSalesVolumeModalOpen(true)}> 
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Vendas</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
-                        </Card>
-
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsSalesVolumeModalOpen(true)}> 
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Ticket Médio</CardTitle><Package className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.avgTicket || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.avgTicket} /></div></CardContent>
                         </Card>
 
                         <Card className="border-l-4 border-l-yellow-400">
@@ -162,8 +173,11 @@ export const CockpitTab: React.FC = () => {
                         <CardContent><div className="h-[350px] w-full"><SalesHeatmapChart data={reportData.salesHeatmapData || []} /></div></CardContent>
                     </Card>
                      <Card>
-                        <CardHeader><CardTitle>Receita por Forma de Pagamento</CardTitle><CardDescription>Distribuição da receita total por método de pagamento.</CardDescription></CardHeader>
-                        <CardContent><div className="h-[350px] w-full"><SalesByPaymentMethodChart data={reportData.salesByPaymentMethodForChart || []} /></div></CardContent>
+                        <CardHeader>
+                            <CardTitle>Compras por Fornecedor</CardTitle>
+                            <CardDescription>Distribuição do investimento em estoque por parceiro.</CardDescription>
+                        </CardHeader>
+                        <CardContent><div className="h-[350px] w-full"><SalesByPaymentMethodChart data={reportData.purchasesBySupplierForChart || []} /></div></CardContent>
                     </Card>
                 </div>
 
@@ -172,6 +186,7 @@ export const CockpitTab: React.FC = () => {
                 <ExpensesReportModal open={isExpensesModalOpen} onOpenChange={setIsExpensesModalOpen} reportData={reportData} date={dateRange} />
                 <ProfitReportModal open={isProfitModalOpen} onOpenChange={setIsProfitModalOpen} reportData={reportData} date={dateRange} />
                 <SalesVolumeReportModal open={isSalesVolumeModalOpen} onOpenChange={setIsSalesVolumeModalOpen} reportData={reportData} date={dateRange} />
+                <PurchasesReportModal open={isPurchasesModalOpen} onOpenChange={setIsPurchasesModalOpen} reportData={reportData} date={dateRange} />
             </div>
         </TooltipProvider>
     );
