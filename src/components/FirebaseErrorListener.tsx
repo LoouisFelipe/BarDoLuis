@@ -5,16 +5,18 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
- * Componente que escuta erros de permissão globais e os lança para o Next.js Error Boundary.
+ * Componente que escuta erros de permissão globais e os projeta para o 
+ * overlay de erro do Next.js para depuração contextual em tempo de desenvolvimento.
  */
 export function FirebaseErrorListener() {
   const [error, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    const handleError = (error: FirestorePermissionError) => {
-      // Defer state update to avoid rendering conflicts
+    const handleError = (err: FirestorePermissionError) => {
+      // Deferimos a atualização do estado para garantir que não ocorra
+      // durante o ciclo de renderização de outro componente.
       setTimeout(() => {
-        setError(error);
+        setError(err);
       }, 0);
     };
 
@@ -25,7 +27,8 @@ export function FirebaseErrorListener() {
     };
   }, []);
 
-  // Quando o estado do erro é definido, lançamos o erro para ser capturado pelo overlay de dev.
+  // Lançar o erro durante o render é o padrão recomendado para 
+  // acionar o Error Boundary de desenvolvimento com contexto rico.
   if (error) {
     throw error;
   }

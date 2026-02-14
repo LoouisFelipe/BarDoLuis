@@ -9,7 +9,7 @@ import { useCollection } from '@/hooks/use-collection';
 import { addMonths, format } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useMemoFirebase } from '@/firebase/provider';
+import { useMemoFirebase } from '@/hooks/use-memo-firebase';
 
 import { 
   collection, 
@@ -53,19 +53,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
   const { user, isAdmin } = useAuth();
 
-  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [user, isAdmin]);
+  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [db, user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-  const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [user]);
+  const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [db, user]);
   const { data: productsData, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
-  const customersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'customers') : null, [user]);
+  const customersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'customers') : null, [db, user]);
   const { data: customersData, isLoading: customersLoading } = useCollection<Customer>(customersQuery);
 
-  const suppliersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'suppliers') : null, [user]);
+  const suppliersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'suppliers') : null, [db, user]);
   const { data: suppliersData, isLoading: suppliersLoading } = useCollection<Supplier>(suppliersQuery);
 
-  const transactionsQuery = useMemoFirebase(() => (db && user) ? query(collection(db, 'transactions'), orderBy('timestamp', 'desc')) : null, [user]);
+  const transactionsQuery = useMemoFirebase(() => (db && user) ? query(collection(db, 'transactions'), orderBy('timestamp', 'desc')) : null, [db, user]);
   const { data: rawTransactionsData, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
   const transactionsData = useMemo(() => {
@@ -178,7 +178,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.uid || null,
             });
         });
-    }, 'Pagamento recebido.', 'write', 'transactions');
+    }, 'Pagamento recebido.', 'write', `customers/${customer.id}/payments`);
 
   const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
@@ -204,7 +204,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             batch.update(doc(db, 'products', item.productId), { stock: increment(item.quantity), costPrice: item.unitCost });
         });
         await batch.commit();
-    }, 'Compra registrada.', 'write', 'purchases');
+    }, 'Compra registrada.', 'write', `purchases/${supplierId}`);
 
   const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string) =>
     handleAction(async () => {
@@ -220,7 +220,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             t.set(saleRef, { id: saleRef.id, timestamp: serverTimestamp(), type: 'sale', description: `Venda ${order.displayName}`, total: order.total, items: order.items, paymentMethod, customerId, tabName: order.displayName, userId: user?.uid || null });
             return saleRef.id;
         });
-    }, 'Venda finalizada.', 'write', 'transactions');
+    }, 'Venda finalizada.', 'write', 'transactions/sale');
   
   const addExpense = (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) =>
     handleAction(async () => {
@@ -232,7 +232,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             batch.set(expenseRef, { id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null });
         }
         await batch.commit();
-    }, 'Despesa registrada.', 'write', 'transactions');
+    }, 'Despesa registrada.', 'write', 'transactions/expense');
 
   const deleteTransaction = (id: string) =>
     handleAction(async () => {

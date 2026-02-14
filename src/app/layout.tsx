@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'BARDOLUIS POS - Sistema de Gestão',
-  description: 'Controle de bar, estoque e financeiro com agilidade.',
+  description: 'Controle de bar, estoque e financeiro com agilidade na Pompéia.',
 };
 
 export default function RootLayout({
