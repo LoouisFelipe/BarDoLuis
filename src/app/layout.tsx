@@ -22,7 +22,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <FirebaseClientProvider>
           <AuthProvider>
-            {children}
+            <div className="min-h-screen bg-background">
+              {children}
+            </div>
             <Toaster />
           </AuthProvider>
         </FirebaseClientProvider>

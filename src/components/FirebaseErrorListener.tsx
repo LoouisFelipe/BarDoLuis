@@ -27,8 +27,10 @@ export function FirebaseErrorListener() {
     };
   }, []);
 
-  // Lançar o erro durante o render é o padrão recomendado para 
-  // acionar o Error Boundary de desenvolvimento com contexto rico.
+  /**
+   * Lançamos o erro apenas se ele existir no estado.
+   * Isso aciona o Error Boundary do Next.js fornecendo os detalhes do banco 'bardoluis'.
+   */
   if (error) {
     throw error;
   }

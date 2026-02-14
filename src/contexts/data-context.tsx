@@ -25,6 +25,19 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
+/**
+ * Utilitário para remover campos undefined que o Firestore não aceita.
+ */
+const sanitizeData = (data: any) => {
+  const sanitized = { ...data };
+  Object.keys(sanitized).forEach(key => {
+    if (sanitized[key] === undefined) {
+      delete sanitized[key];
+    }
+  });
+  return sanitized;
+};
+
 interface DataContextType {
   users: UserProfile[];
   products: Product[];
@@ -109,7 +122,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
     return handleAction(async () => {
-      const payload: any = { 
+      const payload = sanitizeData({ 
         name: data.name || '',
         category: data.category || '',
         subcategory: data.subcategory ?? null,
@@ -122,7 +135,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         doseOptions: data.doseOptions ?? [],
         baseUnitSize: data.baseUnitSize ?? null,
         updatedAt: serverTimestamp() 
-      };
+      });
       if (!id) payload.createdAt = serverTimestamp();
       await setDoc(docRef, payload, { merge: true });
       return docRef.id;
@@ -142,12 +155,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
     const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
     return handleAction(async () => {
-      const payload: any = { 
+      const payload = sanitizeData({ 
         name: data.name || '',
         contact: data.contact || '',
         creditLimit: data.creditLimit ?? null,
         updatedAt: serverTimestamp() 
-      };
+      });
       if (!id) payload.balance = 0;
       
       await setDoc(docRef, payload, { merge: true });
@@ -183,7 +196,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) => {
     const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
     return handleAction(async () => {
-      await setDoc(docRef, data, { merge: true });
+      const payload = sanitizeData(data);
+      await setDoc(docRef, payload, { merge: true });
       return docRef.id;
     }, 'Fornecedor salvo.', id ? 'update' : 'create', docRef.path, data);
   };

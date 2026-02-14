@@ -10,8 +10,10 @@ export function useMemoFirebase<T extends CollectionReference<DocumentData> | Qu
   factory: () => T,
   deps: DependencyList
 ): T & { __memo?: boolean } {
-  // REGRA DE OURO: Não incluímos a factory nas dependências para evitar loops
-  // se a factory for definida inline no componente chamador.
+  /**
+   * REGRA DE OURO: O factory não deve ser uma dependência para evitar loops
+   * se for definido inline no componente.
+   */
   const memoizedValue = useMemo(factory, deps);
   
   if (memoizedValue && typeof memoizedValue === 'object') {

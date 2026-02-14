@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -15,8 +14,11 @@ const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 // Inicializa os serviços core
 const auth = getAuth(firebaseApp);
 
-// Inicializa o Firestore apontando EXCLUSIVAMENTE para o banco de dados 'bardoluis'
-// Isso é vital para garantir que as regras de segurança e os dados de produção sejam acessados corretamente.
+/**
+ * Inicializa o Firestore apontando EXCLUSIVAMENTE para o banco de dados 'bardoluis'.
+ * Isso é vital para garantir que as regras de segurança e os dados de produção sejam acessados corretamente.
+ * Não usamos o banco '(default)'.
+ */
 const db = getFirestore(firebaseApp, "bardoluis");
 
 export { firebaseApp, auth, db };
