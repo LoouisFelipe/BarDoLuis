@@ -17,7 +17,7 @@ export interface Product {
   unitPrice: number;
   stock: number;
   lowStockThreshold?: number | null;
-  saleType: 'unit' | 'dose' | 'service';
+  saleType: 'unit' | 'dose' | 'service' | 'portion' | 'weight';
   doseOptions?: DoseOption[];
   baseUnitSize?: number | null;
   createdAt?: FieldValue | Date;

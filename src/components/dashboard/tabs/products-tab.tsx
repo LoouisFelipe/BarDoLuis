@@ -112,7 +112,9 @@ export const ProductsTab: React.FC = () => {
         let markupValue = 0;
         let hasCalculation = false;
 
-        if (p.saleType === 'unit' && cost > 0) {
+        const isStandardSale = p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight';
+
+        if (isStandardSale && cost > 0) {
             const price = Number(p.unitPrice) || 0;
             markupValue = ((price - cost) / cost) * 100;
             hasCalculation = true;
@@ -166,6 +168,8 @@ export const ProductsTab: React.FC = () => {
                                     const price = Number(p.unitPrice) || 0;
                                     const markup = calculateMarkup(p);
 
+                                    const stockLabel = p.saleType === 'dose' ? 'ml' : p.saleType === 'weight' ? 'kg' : 'un.';
+
                                     return (
                                         <TableRow key={p.id} className="border-t">
                                             <TableCell className="font-medium pl-6">
@@ -179,7 +183,7 @@ export const ProductsTab: React.FC = () => {
                                                     <span className="text-xs font-bold px-2 py-1 rounded-full bg-destructive text-destructive-foreground">ESGOTADO</span>
                                                 ) : (
                                                     <div className="flex items-center gap-2">
-                                                        <span>{p.saleType === 'dose' ? `${p.stock} ml` : `${p.stock} un.`}</span>
+                                                        <span>{p.stock} {stockLabel}</span>
                                                         {isProductLowOnStock(p) && (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -195,7 +199,7 @@ export const ProductsTab: React.FC = () => {
                                             </TableCell>
                                             <TableCell>{p.saleType !== 'service' ? `R$ ${cost.toFixed(2)}` : 'N/A'}</TableCell>
                                             <TableCell>
-                                                {p.saleType === 'unit' && `R$ ${price.toFixed(2)}`}
+                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
                                                 {p.saleType === 'dose' && (p.doseOptions && p.doseOptions.length > 0 ? `${p.doseOptions.length} Opções` : 'N/A')}
                                                 {p.saleType === 'service' && 'Valor Aberto'}
                                             </TableCell>

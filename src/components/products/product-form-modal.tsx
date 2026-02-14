@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -229,7 +228,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="unit">Por Unidade/Garrafa</SelectItem>
-                                            <SelectItem value="dose">Por Dose</SelectItem>
+                                            <SelectItem value="dose">Por Dose (Bebidas)</SelectItem>
+                                            <SelectItem value="portion">Por Porção (Comidas)</SelectItem>
+                                            <SelectItem value="weight">Por Peso (Kg/g)</SelectItem>
                                             <SelectItem value="service">Serviço / Valor Aberto</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -249,13 +250,23 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                             </FormItem>
                                         )}/>
                                         
-                                        <FormField control={control} name="stock" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Estoque ({saleType === 'unit' ? 'Unidades' : 'ml total'})</FormLabel>
-                                                <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}/>
+                                        <FormField control={control} name="stock" render={({ field }) => {
+                                            const isDecimal = saleType === 'weight';
+                                            return (
+                                                <FormItem>
+                                                    <FormLabel>Estoque ({saleType === 'unit' ? 'Unidades' : saleType === 'dose' ? 'ml total' : saleType === 'weight' ? 'Kg total' : 'Porções'})</FormLabel>
+                                                    <FormControl>
+                                                        <Input 
+                                                            type="number" 
+                                                            step={isDecimal ? "0.001" : "1"} 
+                                                            {...field} 
+                                                            onChange={e => field.onChange(isDecimal ? parseFloat(e.target.value) || 0 : parseInt(e.target.value, 10) || 0)} 
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )
+                                        }}/>
                                     </div>
                                     <FormField
                                         control={control}
@@ -263,14 +274,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                         render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Alerta de Estoque Mínimo (Opcional)</FormLabel>
-                                            <FormControl><Input type="number" placeholder={`Nº de ${saleType === 'unit' ? 'unidades' : 'garrafas'}`} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl>
+                                            <FormControl><Input type="number" placeholder={`Nº de unidades/medida`} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}/>
                                 </>
                             )}
 
-                            {saleType === 'unit' && (
+                            {(saleType === 'unit' || saleType === 'portion' || saleType === 'weight') && (
                                 <FormField control={control} name="unitPrice" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Preço de Venda (R$)</FormLabel>

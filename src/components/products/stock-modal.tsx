@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -68,8 +67,8 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
         }
     };
     
-    const stockUnitLabel = product.saleType === 'dose' ? 'ml' : 'un.';
-    const addAmountLabel = product.saleType === 'dose' ? 'garrafas/unidades' : 'unidades';
+    const stockUnitLabel = product.saleType === 'dose' ? 'ml' : product.saleType === 'weight' ? 'kg' : 'un.';
+    const addAmountLabel = product.saleType === 'dose' ? 'garrafas/unidades' : product.saleType === 'weight' ? 'kg' : 'unidades';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,7 +88,7 @@ export const StockModal: React.FC<StockModalProps> = ({ product, open, onOpenCha
                                     <FormItem>
                                         <FormLabel>Quantidade a adicionar ({addAmountLabel}):</FormLabel>
                                         <FormControl>
-                                            <Input type="number" min="1" required {...field} className="text-base" />
+                                            <Input type="number" step="0.001" min="0.001" required {...field} className="text-base" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
