@@ -59,6 +59,7 @@ interface DataContextType {
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
   updateUserProfile: (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) => Promise<void>;
+  deleteUserProfile: (uid: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -278,9 +279,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(doc(db, 'users', uid), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
     }, 'Perfil do usuário atualizado.', 'update', `users/${uid}`, data);
 
+  const deleteUserProfile = (uid: string) =>
+    handleAction(async () => {
+      await deleteDoc(doc(db, 'users', uid));
+    }, 'Perfil excluído. O acesso deste usuário foi revogado.', 'delete', `users/${uid}`);
+
   const value = {
     users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
-    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile
+    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
