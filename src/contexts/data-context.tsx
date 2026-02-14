@@ -58,6 +58,7 @@ interface DataContextType {
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
+  updateUserProfile: (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -271,9 +272,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await setDoc(doc(db, 'users', uid), { role }, { merge: true });
     }, 'Cargo atualizado.', 'update', `users/${uid}`);
 
+  const updateUserProfile = (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) =>
+    handleAction(async () => {
+      const payload = sanitizeData(data);
+      await setDoc(doc(db, 'users', uid), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+    }, 'Perfil do usuário atualizado.', 'update', `users/${uid}`, data);
+
   const value = {
     users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
-    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole
+    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
