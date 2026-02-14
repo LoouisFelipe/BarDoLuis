@@ -227,9 +227,9 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="unit">Por Unidade/Garrafa</SelectItem>
+                                            <SelectItem value="unit">Por Unidade</SelectItem>
                                             <SelectItem value="dose">Por Dose (Bebidas)</SelectItem>
-                                            <SelectItem value="portion">Por Porção (Comidas)</SelectItem>
+                                            <SelectItem value="portion">Por Porção (Pratos)</SelectItem>
                                             <SelectItem value="weight">Por Peso (Kg/g)</SelectItem>
                                             <SelectItem value="service">Serviço / Valor Aberto</SelectItem>
                                         </SelectContent>
@@ -254,7 +254,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                             const isDecimal = saleType === 'weight';
                                             return (
                                                 <FormItem>
-                                                    <FormLabel>Estoque ({saleType === 'unit' ? 'Unidades' : saleType === 'dose' ? 'ml total' : saleType === 'weight' ? 'Kg total' : 'Porções'})</FormLabel>
+                                                    <FormLabel>Estoque ({saleType === 'unit' || saleType === 'portion' ? 'Unidades' : saleType === 'dose' ? 'ml total' : saleType === 'weight' ? 'Kg total' : 'Qtd.'})</FormLabel>
                                                     <FormControl>
                                                         <Input 
                                                             type="number" 
