@@ -54,7 +54,7 @@ interface DataContextType {
   saveSupplier: (supplierData: Omit<Supplier, 'id'>, supplierId?: string) => Promise<string>;
   deleteSupplier: (supplierId: string) => Promise<void>;
   recordPurchaseAndUpdateStock: (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) => Promise<void>;
-  finalizeOrder: (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string) => Promise<string>;
+  finalizeOrder: (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount?: number) => Promise<string>;
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
@@ -220,8 +220,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         await batch.commit();
     }, 'Compra registrada.', 'write', `purchases/${supplierId}`);
 
-  const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string) =>
+  const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0) =>
     handleAction(async () => {
+        const finalTotal = Math.max(0, order.total - discount);
         return runTransaction(db, async (t) => {
             const saleRef = doc(collection(db, 'transactions'));
             order.items.forEach(item => {
@@ -229,9 +230,21 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 t.update(doc(db, 'products', item.productId), { stock: increment(-dec) });
             });
             if (paymentMethod === 'Fiado' && customerId) {
-                t.update(doc(db, 'customers', customerId), { balance: increment(order.total) });
+                t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal) });
             }
-            t.set(saleRef, { id: saleRef.id, timestamp: serverTimestamp(), type: 'sale', description: `Venda ${order.displayName}`, total: order.total, items: order.items, paymentMethod, customerId, tabName: order.displayName, userId: user?.uid || null });
+            t.set(saleRef, { 
+                id: saleRef.id, 
+                timestamp: serverTimestamp(), 
+                type: 'sale', 
+                description: `Venda ${order.displayName}`, 
+                total: finalTotal, 
+                discount: discount,
+                items: order.items, 
+                paymentMethod, 
+                customerId, 
+                tabName: order.displayName, 
+                userId: user?.uid || null 
+            });
             return saleRef.id;
         });
     }, 'Venda finalizada.', 'write', 'transactions/sale');

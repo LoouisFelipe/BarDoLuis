@@ -6,10 +6,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
-import { User, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { User, CheckCircle2, TicketPercent } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface OrderPaymentModalProps {
   open: boolean;
@@ -33,10 +35,12 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   onCloseAll,
 }) => {
   const { customers, finalizeOrder } = useData();
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
 
   const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(order.customerId);
+  const [discount, setDiscount] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -44,6 +48,8 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
         setSelectedCustomerId(order.customerId);
     }
   }, [order.customerId]);
+
+  const finalTotal = useMemo(() => Math.max(0, order.total - discount), [order.total, discount]);
 
   const handleFinalize = async () => {
     if (paymentMethod === 'Fiado' && !selectedCustomerId) {
@@ -63,7 +69,8 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
       await finalizeOrder(
         { items: order.items, total: order.total, displayName: finalDisplayName },
         selectedCustomerId,
-        paymentMethod
+        paymentMethod,
+        discount
       );
 
       await onDeleteOrder(order.id);
@@ -87,12 +94,38 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
         </DialogHeader>
         
         <div className="py-6 space-y-6">
-          <div className="flex flex-col items-center justify-center bg-muted/30 p-4 rounded-xl border-2 border-dashed border-primary/20">
+          <div className="flex flex-col items-center justify-center bg-muted/30 p-4 rounded-xl border-2 border-dashed border-primary/20 relative">
+             {discount > 0 && (
+               <span className="absolute top-2 right-2 text-[10px] bg-destructive text-white px-2 py-0.5 rounded-full font-bold">
+                 -{discount.toFixed(2)}
+               </span>
+             )}
              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total a Pagar</p>
-             <p className="text-4xl font-black text-primary">R$ {order.total.toFixed(2)}</p>
+             <p className="text-4xl font-black text-primary">R$ {finalTotal.toFixed(2)}</p>
+             {discount > 0 && <p className="text-[10px] text-muted-foreground line-through opacity-50">Original: R$ {order.total.toFixed(2)}</p>}
           </div>
 
           <div className="space-y-4">
+            {isAdmin && (
+              <div className="space-y-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <TicketPercent size={14} className="text-accent" />
+                  <Label htmlFor="discount-input" className="text-xs font-bold uppercase text-accent">Desconto Estratégico (R$)</Label>
+                </div>
+                <Input 
+                  id="discount-input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={order.total}
+                  placeholder="0.00"
+                  value={discount || ''}
+                  onChange={(e) => setDiscount(Math.min(order.total, parseFloat(e.target.value) || 0))}
+                  className="h-10 bg-background border-accent/30 focus:border-accent font-bold text-accent"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="payment-method-select" className="text-xs font-bold uppercase text-muted-foreground">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>

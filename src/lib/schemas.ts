@@ -88,6 +88,7 @@ export interface Transaction {
   id?: string;
   type: 'sale' | 'expense' | 'payment';
   total: number;
+  discount?: number;
   timestamp: FieldValue | Date;
   description?: string;
   paymentMethod?: string; 
