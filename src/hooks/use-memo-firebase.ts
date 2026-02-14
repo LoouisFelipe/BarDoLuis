@@ -14,6 +14,7 @@ export function useMemoFirebase<T extends CollectionReference<DocumentData> | Qu
    * REGRA DE OURO: O factory não deve ser uma dependência para evitar loops
    * se for definido inline no componente.
    */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoizedValue = useMemo(factory, deps);
   
   if (memoizedValue && typeof memoizedValue === 'object') {

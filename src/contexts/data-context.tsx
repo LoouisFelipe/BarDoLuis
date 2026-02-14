@@ -26,13 +26,13 @@ import {
 } from 'firebase/firestore';
 
 /**
- * Utilitário para remover campos undefined que o Firestore não aceita.
+ * Utilitário profundo para remover campos undefined que o Firestore rejeita.
  */
 const sanitizeData = (data: any) => {
   const sanitized = { ...data };
   Object.keys(sanitized).forEach(key => {
     if (sanitized[key] === undefined) {
-      delete sanitized[key];
+      sanitized[key] = null; // Firestore prefere null a undefined
     }
   });
   return sanitized;
@@ -68,19 +68,19 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
   const { user, isAdmin } = useAuth();
 
-  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [db, user, isAdmin]);
+  const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-  const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [db, user]);
+  const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [user]);
   const { data: productsData, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
-  const customersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'customers') : null, [db, user]);
+  const customersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'customers') : null, [user]);
   const { data: customersData, isLoading: customersLoading } = useCollection<Customer>(customersQuery);
 
-  const suppliersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'suppliers') : null, [db, user]);
+  const suppliersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'suppliers') : null, [user]);
   const { data: suppliersData, isLoading: suppliersLoading } = useCollection<Supplier>(suppliersQuery);
 
-  const transactionsQuery = useMemoFirebase(() => (db && user) ? query(collection(db, 'transactions'), orderBy('timestamp', 'desc')) : null, [db, user]);
+  const transactionsQuery = useMemoFirebase(() => (db && user) ? query(collection(db, 'transactions'), orderBy('timestamp', 'desc')) : null, [user]);
   const { data: rawTransactionsData, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
   const transactionsData = useMemo(() => {
@@ -127,8 +127,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       const payload = sanitizeData({ 
         name: data.name || '',
         category: data.category || '',
-        subcategory: data.subcategory ?? null,
-        description: data.description ?? null,
+        subcategory: data.subcategory || null,
+        description: data.description || null,
         costPrice: data.costPrice ?? 0,
         unitPrice: data.unitPrice ?? 0,
         stock: data.stock ?? 0,
@@ -181,7 +181,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             const customerRef = doc(db, 'customers', customer.id!);
             const paymentRef = doc(collection(db, 'transactions'));
             transaction.update(customerRef, { balance: increment(-amount) });
-            transaction.set(paymentRef, {
+            transaction.set(paymentRef, sanitizeData({
                 id: paymentRef.id,
                 timestamp: serverTimestamp(),
                 type: 'payment',
@@ -191,7 +191,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 customerId: customer.id,
                 items: [],
                 userId: user?.uid || null,
-            });
+            }));
         });
     }, 'Pagamento recebido.', 'write', `customers/${customer.id}/payments`);
 
@@ -214,8 +214,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         const batch = writeBatch(db);
         const purchaseRef = doc(collection(db, 'purchases'));
         const expenseRef = doc(collection(db, 'transactions'));
-        batch.set(purchaseRef, { id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() });
-        batch.set(expenseRef, { id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null });
+        batch.set(purchaseRef, sanitizeData({ id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() }));
+        batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null }));
         items.forEach(item => {
             batch.update(doc(db, 'products', item.productId), { stock: increment(item.quantity), costPrice: item.unitCost });
         });
@@ -234,7 +234,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             if (paymentMethod === 'Fiado' && customerId) {
                 t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal) });
             }
-            t.set(saleRef, { 
+            t.set(saleRef, sanitizeData({ 
                 id: saleRef.id, 
                 timestamp: serverTimestamp(), 
                 type: 'sale', 
@@ -246,7 +246,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 customerId, 
                 tabName: order.displayName, 
                 userId: user?.uid || null 
-            });
+            }));
             return saleRef.id;
         });
     }, 'Venda finalizada.', 'write', 'transactions/sale');
@@ -258,7 +258,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         for (let i = 0; i <= replicateMonths; i++) {
             const expenseRef = doc(collection(db, 'transactions'));
             const currentDate = addMonths(baseDate, i);
-            batch.set(expenseRef, { id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null });
+            batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null }));
         }
         await batch.commit();
     }, 'Despesa registrada.', 'write', 'transactions/expense');
