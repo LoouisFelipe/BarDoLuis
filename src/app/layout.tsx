@@ -8,8 +8,9 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'BARDOLUIS POS - Sistema de Gestão',
-  description: 'Controle de bar, estoque e financeiro com agilidade na Pompéia.',
+  title: 'BarDoLuis POS | Sistema de Gestão Estratégica',
+  description: 'Gestão ágil de bar, estoque e financeiro para a Rua Tavares Bastos, Pompéia. Inteligência e controle total.',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0',
 };
 
 export default function RootLayout({
@@ -19,10 +20,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} scrollbar-hide`}>
         <FirebaseClientProvider>
           <AuthProvider>
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-background selection:bg-primary/30">
               {children}
             </div>
             <Toaster />

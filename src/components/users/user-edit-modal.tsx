@@ -6,9 +6,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useData } from '@/contexts/data-context';
 import { UserProfile } from '@/contexts/auth-context';
-import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, updatePassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { firebaseConfig } from '@/firebase/config';
 import { useToast } from '@/hooks/use-toast';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -17,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { UserCog, Eye, EyeOff, Lock } from 'lucide-react';
+import { UserCog, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 const userEditSchema = z.object({
   name: z.string().min(3, "Mínimo 3 caracteres"),
@@ -69,13 +66,12 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
         role: data.role,
       });
 
-      // 2. Se houver nova senha, avisar que senhas devem ser alteradas via console ou email reset
-      // Nota técnica: Alterar senha de outro usuário via Client SDK sem Admin SDK é restrito.
-      // O campo serve como placeholder visual para a intenção de controle do CEO.
+      // 2. Nota técnica: Alterar senha de outro usuário via Client SDK sem Admin SDK é restrito.
+      // O campo serve como placeholder para indicar a intenção comercial.
       if (data.newPassword) {
           toast({
               title: "Atenção sobre a Senha",
-              description: "Para segurança, senhas devem ser redefinidas pelo próprio usuário ou via Console Firebase.",
+              description: "Por segurança, senhas devem ser alteradas pelo próprio usuário no primeiro login ou via Console.",
               variant: "default",
           });
       }
@@ -90,14 +86,14 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-card border-border/40">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCog className="text-primary" />
-            Editar Usuário
+            Gestão de Acesso: {user.name || 'Membro'}
           </DialogTitle>
-          <DialogDescription>
-            Alterar informações de <strong>{user.email}</strong>.
+          <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-tighter">
+            Controle de Identidade no Banco BarDoLuis
           </DialogDescription>
         </DialogHeader>
 
@@ -108,8 +104,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nome Completo</FormLabel>
-                  <FormControl><Input placeholder="Ex: Luis Felipe" {...field} className="h-12 font-bold" /></FormControl>
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nome de Exibição</FormLabel>
+                  <FormControl><Input placeholder="Nome completo" {...field} className="h-12 bg-background border-2 focus:border-primary font-bold" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -120,15 +116,15 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Cargo / Permissão</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nível de Permissão</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="h-12 font-bold"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin" className="font-bold">Administrador (Total)</SelectItem>
-                      <SelectItem value="cashier" className="font-bold">Caixa (Vendas e Financeiro)</SelectItem>
-                      <SelectItem value="waiter" className="font-bold">Garçom (Apenas Comandas)</SelectItem>
+                      <SelectItem value="admin" className="font-bold uppercase text-xs">Administrador (Total)</SelectItem>
+                      <SelectItem value="cashier" className="font-bold uppercase text-xs">Caixa (Operacional)</SelectItem>
+                      <SelectItem value="waiter" className="font-bold uppercase text-xs">Garçom (Atendimento)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -141,8 +137,8 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
               name="newPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <Lock size={10} /> Redefinir Senha (Opcional)
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                    <Lock size={10} /> Definir Nova Senha (Opcional)
                   </FormLabel>
                   <div className="relative">
                     <FormControl>
@@ -150,7 +146,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
                         type={showPassword ? "text" : "password"} 
                         placeholder="Deixe em branco para manter" 
                         {...field} 
-                        className="pr-10 h-12"
+                        className="pr-10 h-12 bg-background border-2 font-bold"
                       />
                     </FormControl>
                     <Button
@@ -172,12 +168,18 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, open, onOpen
               )}
             />
 
-            <DialogFooter className="pt-4 gap-2">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="h-12 font-bold uppercase text-xs">
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                <p className="text-[10px] font-bold text-primary uppercase leading-tight">
+                    💡 DICA DO CTO: Para maior segurança, recomende que o usuário altere sua senha periodicamente através do link de redefinição por e-mail.
+                </p>
+            </div>
+
+            <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="h-12 font-bold uppercase text-xs order-2 sm:order-1">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg flex-1">
-                {processing ? <Spinner size="h-4 w-4" /> : "Salvar Alterações"}
+              <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg flex-1 order-1 sm:order-2">
+                {processing ? <Spinner size="h-4 w-4" /> : "Gravar Alterações"}
               </Button>
             </DialogFooter>
           </form>

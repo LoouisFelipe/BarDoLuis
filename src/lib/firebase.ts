@@ -5,12 +5,16 @@ import { firebaseConfig } from "@/firebase/config";
 
 /**
  * @fileOverview Inicialização centralizada e blindada do Firebase para o BarDoLuis.
- * Força a conexão com a instância de banco de dados 'bardoluis'.
+ * Força a conexão exclusiva com a instância de banco de dados 'bardoluis'.
  */
 
+// CTO: Inicialização robusta garantindo instância única
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// CTO: Forçamos o ID do banco de dados para evitar conexões acidentais com '(default)'
+/**
+ * CRITICAL: Apontamento direto para o banco de dados nomeado 'bardoluis'.
+ * Isso garante que as Regras de Segurança e os dados fiquem isolados do banco (default).
+ */
 const db = getFirestore(app, "bardoluis");
 const auth = getAuth(app);
 

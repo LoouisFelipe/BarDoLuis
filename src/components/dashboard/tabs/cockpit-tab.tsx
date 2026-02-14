@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
-import { format, subDays } from 'date-fns'; 
-import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, Info, ArrowUpRight, ArrowDownRight, Minus, Package, Scale, ShoppingCart } from 'lucide-react'; 
+import { subDays } from 'date-fns'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +76,12 @@ export const CockpitTab: React.FC = () => {
         <TooltipProvider>
             <div className="p-1 md:p-4 space-y-6 pb-20">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-3xl font-bold text-foreground flex items-center"><BarChart2 className="mr-3" /> Cockpit de B.I.</h2>
+                    <div>
+                        <h2 className="text-3xl font-black text-foreground flex items-center tracking-tight">
+                            <BarChart2 className="mr-3 text-primary" /> B.I. COCKPIT
+                        </h2>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mt-1">Fortaleza Privada • Unidade Tavares Bastos</p>
+                    </div>
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                     </div>
@@ -84,52 +89,52 @@ export const CockpitTab: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-accent" onClick={() => setIsSalesRevenueModalOpen(true)}>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all border-l-4 border-l-accent shadow-sm group" onClick={() => setIsSalesRevenueModalOpen(true)}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Receita</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground"/>
+                                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Receita Bruta</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors"/>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex items-baseline"><div className="text-2xl font-bold text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.revenue} /></div>
+                                <div className="flex items-baseline"><div className="text-2xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.revenue} /></div>
                             </CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-sky-400" onClick={() => setIsCashInflowModalOpen(true)}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Caixa</CardTitle><HandCoins className="h-4 w-4 text-muted-foreground"/></CardHeader>
-                            <CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-sky-400">R$ {(reportData.totalCashInflow || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.cashInflow} /></div></CardContent>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all border-l-4 border-l-sky-400 shadow-sm group" onClick={() => setIsCashInflowModalOpen(true)}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Caixa Real</CardTitle><HandCoins className="h-4 w-4 text-muted-foreground group-hover:text-sky-400 transition-colors"/></CardHeader>
+                            <CardContent><div className="flex items-baseline"><div className="text-2xl font-black text-sky-400">R$ {(reportData.totalCashInflow || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.cashInflow} /></div></CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-primary" onClick={() => setIsProfitModalOpen(true)}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle><Target className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-primary">R$ {(reportData.netProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.netProfit} /></div></CardContent>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all border-l-4 border-l-primary shadow-sm group" onClick={() => setIsProfitModalOpen(true)}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Lucro Líquido</CardTitle><Target className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black text-primary">R$ {(reportData.netProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.netProfit} /></div></CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-destructive" onClick={() => setIsExpensesModalOpen(true)}> 
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Despesas</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold text-destructive">R$ {(reportData.totalExpenses || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.expenses} inverse /></div></CardContent>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all border-l-4 border-l-destructive shadow-sm group" onClick={() => setIsExpensesModalOpen(true)}> 
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Despesas</CardTitle><TrendingDown className="h-4 w-4 text-muted-foreground group-hover:text-destructive transition-colors"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black text-destructive">R$ {(reportData.totalExpenses || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.expenses} inverse /></div></CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors border-l-4 border-l-orange-500" onClick={() => setIsPurchasesModalOpen(true)}> 
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all border-l-4 border-l-orange-500 shadow-sm group" onClick={() => setIsPurchasesModalOpen(true)}> 
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Compras</CardTitle>
-                                <ShoppingCart className="h-4 w-4 text-muted-foreground"/>
+                                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Compras (Insumos)</CardTitle>
+                                <ShoppingCart className="h-4 w-4 text-muted-foreground group-hover:text-orange-500 transition-colors"/>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex items-baseline">
-                                    <div className="text-2xl font-bold text-orange-500">R$ {(reportData.totalInsumos || 0).toFixed(2)}</div>
+                                    <div className="text-2xl font-black text-orange-500">R$ {(reportData.totalInsumos || 0).toFixed(2)}</div>
                                     <TrendIndicator value={reportData.deltas?.insumos} inverse />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsProfitModalOpen(true)}> 
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle><Scale className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all shadow-sm" onClick={() => setIsProfitModalOpen(true)}> 
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Lucro Bruto</CardTitle><Scale className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black">R$ {(reportData.grossProfit || 0).toFixed(2)}</div><TrendIndicator value={reportData.deltas?.grossProfit} /></div></CardContent>
                         </Card>
 
-                        <Card className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => setIsSalesVolumeModalOpen(true)}> 
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Vendas</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-bold">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
+                        <Card className="cursor-pointer hover:bg-secondary/50 transition-all shadow-sm group" onClick={() => setIsSalesVolumeModalOpen(true)}> 
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Atendimentos</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-yellow-400">
+                        <Card className="border-l-4 border-l-yellow-400 shadow-sm">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Progresso da Meta</CardTitle>
+                                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Progresso da Meta</CardTitle>
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingGoal(true)}>
                                     <Edit className="h-3 w-3 text-muted-foreground" />
                                 </Button>
@@ -141,14 +146,14 @@ export const CockpitTab: React.FC = () => {
                                         value={manualGoal}
                                         onChange={(e) => setManualGoal(Number(e.target.value))}
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setIsEditingGoal(false); }}
-                                        className="h-8 text-2xl font-bold text-yellow-400 p-1 bg-transparent border-none"
+                                        className="h-8 text-2xl font-black text-yellow-400 p-1 bg-transparent border-none"
                                         autoFocus
                                     />
                                 ) : (
-                                    <div className="text-2xl font-bold text-yellow-400">{(reportData.goalProgress || 0).toFixed(0)}%</div>
+                                    <div className="text-2xl font-black text-yellow-400">{(reportData.goalProgress || 0).toFixed(0)}%</div>
                                 )}
                                 <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-2">
-                                    <div className="bg-yellow-400 h-full" style={{ width: `${Math.min(reportData.goalProgress || 0, 100)}%` }} />
+                                    <div className="bg-yellow-400 h-full transition-all duration-1000" style={{ width: `${Math.min(reportData.goalProgress || 0, 100)}%` }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -160,22 +165,22 @@ export const CockpitTab: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card>
-                        <CardHeader><CardTitle>Top 10 Produtos Mais Vendidos</CardTitle><CardDescription>por quantidade vendida no período.</CardDescription></CardHeader>
+                    <Card className="shadow-lg border-none bg-card/50">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest">Top 10 Mix de Vendas</CardTitle><CardDescription className="text-[10px]">por quantidade vendida no período.</CardDescription></CardHeader>
                         <CardContent><div className="h-[350px] w-full"><TopProductsChart data={reportData.topProducts || []} /></div></CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader><CardTitle>Top 10 Produtos por Lucro Bruto</CardTitle><CardDescription>por lucro bruto gerado no período.</CardDescription></CardHeader>
+                    <Card className="shadow-lg border-none bg-card/50">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest">Top 10 Produtos (Lucratividade)</CardTitle><CardDescription className="text-[10px]">por lucro bruto gerado no período.</CardDescription></CardHeader>
                       <CardContent><div className="h-[350px] w-full"><ProfitByProductChart data={reportData.profitByProduct || []} /></div></CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader><CardTitle>Horários de Pico de Vendas</CardTitle><CardDescription>Mapa de calor de vendas por dia da semana e hora.</CardDescription></CardHeader>
+                    <Card className="shadow-lg border-none bg-card/50">
+                        <CardHeader className="pb-2"><CardTitle className="text-sm font-black uppercase tracking-widest">Mapa de Calor Operacional</CardTitle><CardDescription className="text-[10px]">densidade de vendas por dia e hora.</CardDescription></CardHeader>
                         <CardContent><div className="h-[350px] w-full"><SalesHeatmapChart data={reportData.salesHeatmapData || []} /></div></CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle>Compras por Fornecedor</CardTitle>
-                            <CardDescription>Distribuição do investimento em estoque por parceiro.</CardDescription>
+                     <Card className="shadow-lg border-none bg-card/50">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest">Investimento por Parceiro</CardTitle>
+                            <CardDescription className="text-[10px]">distribuição do orçamento de compras.</CardDescription>
                         </CardHeader>
                         <CardContent><div className="h-[350px] w-full"><SalesByPaymentMethodChart data={reportData.purchasesBySupplierForChart || []} /></div></CardContent>
                     </Card>
