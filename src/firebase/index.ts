@@ -4,6 +4,7 @@ import { firebaseApp, auth, db } from '@/lib/firebase';
 
 /**
  * Inicialização centralizada dos serviços Firebase para o banco 'bardoluis'.
+ * Este objeto é consumido pelo FirebaseClientProvider.
  */
 export function initializeFirebase() {
   return {

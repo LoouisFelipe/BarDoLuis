@@ -2,17 +2,13 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { firebaseConfig } from "@/firebase/config";
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-// Verifica se já existe uma instância rodando para evitar erros de "App already initialized"
+/**
+ * REGRA DE OURO CTO: Inicialização centralizada do Firebase.
+ * Utilizamos a configuração hardcoded para garantir que o sistema funcione
+ * mesmo sem variáveis de ambiente configuradas no Cloud Workstation.
+ */
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 /**
@@ -22,4 +18,5 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app, "bardoluis");
 const auth = getAuth(app);
 
-export { app, db, auth };
+// Exportamos 'firebaseApp' para manter compatibilidade com o barrel file src/firebase/index.ts
+export { app as firebaseApp, db, auth };
