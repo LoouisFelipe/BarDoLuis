@@ -1,4 +1,8 @@
-import { initializeApp, getApp, getApps } from 'firebase/app';
+/**
+ * @fileOverview Configurações brutas do Firebase.
+ * Este arquivo exporta apenas o objeto de configuração para ser usado
+ * pela inicialização centralizada em src/lib/firebase.ts.
+ */
 
 export const firebaseConfig = {
   apiKey: "AIzaSyCoFEvyoAcvel_GDjYZnTzcpF4Ont_0EKE",
@@ -10,7 +14,3 @@ export const firebaseConfig = {
   appId: "1:392644795631:web:b7fc6e28a257b669a64f1a",
   measurementId: "G-Y732X8EEZ9"
 };
-
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-export { app };

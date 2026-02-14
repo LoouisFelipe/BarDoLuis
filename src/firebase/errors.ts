@@ -75,15 +75,14 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
     // Auth not ready
   }
 
-  // Sanitiza o path para garantir que não comece com barra dupla se context.path já tiver uma
   const cleanPath = context.path.startsWith('/') ? context.path.substring(1) : context.path;
 
   return {
     auth: authObject,
     method: context.operation,
     /**
-     * Aponta explicitamente para o banco 'bardoluis' no simulador de erro.
-     * Isso garante que os logs de erro no console reflitam a realidade da nossa infraestrutura.
+     * CTO AUDIT: Aponta explicitamente para o banco 'bardoluis' no simulador de erro.
+     * Facilita a identificação de qual regra no console barrou a operação.
      */
     path: `/databases/bardoluis/documents/${cleanPath}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
