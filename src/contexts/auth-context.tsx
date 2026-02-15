@@ -45,6 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isCaixaOrAdmin = isAdmin || userProfile?.role === 'cashier';
 
   useEffect(() => {
+    // CTO: O Firebase Auth deve ser acessado com cautela no boot
+    if (!auth) return;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoadingAuth(false);
@@ -65,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribeProfile: () => void;
 
-    if (user) {
+    if (user && db) {
       const userProfileRef = doc(db, 'users', user.uid);
       unsubscribeProfile = onSnapshot(
         userProfileRef,
@@ -81,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfileError(null);
         },
         (error) => {
+          console.error("Profile listen error:", error);
           setProfileError(error);
           setIsLoadingProfile(false);
         }

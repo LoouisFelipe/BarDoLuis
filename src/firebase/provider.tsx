@@ -53,10 +53,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   });
 
   useEffect(() => {
-    if (!auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
-      return;
-    }
+    if (!auth) return;
 
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -72,7 +69,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   const contextValue = useMemo((): FirebaseContextState => {
-    // Verificação robusta de serviços
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     return {
       areServicesAvailable: servicesAvailable,
@@ -93,43 +89,39 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   );
 };
 
-export const useFirebase = (): FirebaseServicesAndUser => {
+export const useFirebase = (): FirebaseContextState => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
-  
-  // CTO AUDIT: Se os serviços não estiverem disponíveis, lançamos um erro claro para depuração.
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available. Check your initialization in lib/firebase.ts');
-  }
-
-  return {
-    firebaseApp: context.firebaseApp,
-    firestore: context.firestore,
-    auth: context.auth,
-    user: context.user,
-    isUserLoading: context.isUserLoading,
-    userError: context.userError,
-  };
+  return context;
 };
 
-export const useAuth = (): Auth => useFirebase().auth;
-export const useFirestore = (): Firestore => useFirebase().firestore;
-export const useFirebaseApp = (): FirebaseApp => useFirebase().firebaseApp;
+export const useAuth = (): Auth => {
+  const { auth } = useFirebase();
+  if (!auth) throw new Error('Auth service not initialized');
+  return auth;
+};
 
-type MemoFirebase <T> = T & {__memo?: boolean};
+export const useFirestore = (): Firestore => {
+  const { firestore } = useFirebase();
+  if (!firestore) throw new Error('Firestore service not initialized');
+  return firestore;
+};
 
-/**
- * Hook de memoização para referências e queries do Firebase.
- * Essencial para evitar loops infinitos em listeners de tempo real.
- */
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
+export const useFirebaseApp = (): FirebaseApp => {
+  const { firebaseApp } = useFirebase();
+  if (!firebaseApp) throw new Error('FirebaseApp not initialized');
+  return firebaseApp;
+};
+
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoized = useMemo(factory, deps);
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  return memoized;
+  if (memoized && typeof memoized === 'object') {
+    (memoized as any).__memo = true;
+  }
+  return memoized as T & {__memo?: boolean};
 }
 
 export const useUser = () => {

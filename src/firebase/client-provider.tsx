@@ -13,6 +13,8 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   const [mounted, setMounted] = useState(false);
 
   const firebaseServices = useMemo(() => {
+    // CTO: Apenas inicializa se estiver no navegador
+    if (typeof window === 'undefined') return null;
     return initializeFirebase();
   }, []);
 
@@ -20,8 +22,9 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return <div className="min-h-screen bg-background" />; // Placeholder silencioso durante hidratação
+  // Durante SSR ou antes da montagem, renderizamos um container neutro
+  if (!mounted || !firebaseServices) {
+    return <div className="min-h-screen bg-background" />;
   }
 
   return (
