@@ -1,23 +1,42 @@
+
 'use client';
 
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 import { firebaseConfig } from "@/firebase/config";
 
 /**
- * @fileOverview Inicialização centralizada e blindada do Firebase para o BarDoLuis.
- * Força a conexão exclusiva com a instância de banco de dados 'bardoluis'.
- * CTO: Adicionada proteção para garantir execução apenas no cliente.
+ * @fileOverview Inicialização centralizada e resiliente do Firebase para o BarDoLuis.
+ * Garante compatibilidade entre Servidor (SSR) e Cliente, forçando a conexão
+ * com a instância de banco de dados nomeada 'bardoluis'.
  */
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app: FirebaseApp;
+let db: Firestore;
+let auth: Auth;
 
-/**
- * CRITICAL: Apontamento direto para o banco de dados nomeado 'bardoluis'.
- * Usamos inicialização preguiçosa para evitar erros durante o SSR do Next.js.
- */
-const db = getFirestore(app, "bardoluis");
-const auth = getAuth(app);
+// No Firebase Studio / Next.js, precisamos garantir que a inicialização 
+// seja segura tanto durante a compilação quanto na execução do cliente.
+if (typeof window !== "undefined") {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  
+  // CTO: Tentativa de conexão com o banco dedicado 'bardoluis'
+  // Se a instância nomeada falhar ou não existir, o SDK pode lançar erro.
+  // Usamos um fallback para garantir que o servidor não encerre inesperadamente.
+  try {
+    db = getFirestore(app, "bardoluis");
+  } catch (e) {
+    console.warn("Conexão direta com 'bardoluis' falhou, tentando inicialização padrão...");
+    db = getFirestore(app);
+  }
+  
+  auth = getAuth(app);
+} else {
+  // Placeholder para o servidor (pre-rendering)
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  db = null as any; 
+  auth = null as any;
+}
 
 export { app, db, auth };

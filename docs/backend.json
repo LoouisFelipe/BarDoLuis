@@ -8,10 +8,12 @@
       "properties": {
         "name": { "type": "string" },
         "category": { "type": "string" },
+        "subcategory": { "type": "string" },
         "costPrice": { "type": "number" },
         "unitPrice": { "type": "number" },
         "stock": { "type": "number" },
-        "saleType": { "type": "string", "enum": ["unit", "dose", "service"] }
+        "saleType": { "type": "string", "enum": ["unit", "dose", "service", "portion", "weight"] },
+        "lowStockThreshold": { "type": "number" }
       }
     },
     "Customer": {
@@ -21,7 +23,8 @@
       "properties": {
         "name": { "type": "string" },
         "balance": { "type": "number" },
-        "contact": { "type": "string" }
+        "contact": { "type": "string" },
+        "creditLimit": { "type": "number" }
       }
     },
     "Transaction": {
@@ -31,47 +34,33 @@
       "properties": {
         "type": { "type": "string", "enum": ["sale", "expense", "payment"] },
         "total": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": { "type": "string", "format": "date-time" },
+        "paymentMethod": { "type": "string" },
+        "description": { "type": "string" },
+        "customerId": { "type": "string" }
       }
     },
     "User": {
       "title": "User Profile",
-      "description": "Perfis de usuários do sistema, com roles e informações básicas.",
+      "description": "Perfis de usuários do sistema.",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Nome completo do usuário." },
-        "email": { "type": "string", "format": "email", "description": "Email do usuário, usado para login." },
-        "role": { "type": "string", "enum": ["admin", "waiter", "manager"], "description": "Nível de acesso do usuário." },
-        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp de criação do perfil." },
-        "lastLogin": { "type": "string", "format": "date-time", "description": "Último login do usuário." }
-      },
-      "required": ["name", "email", "role"]
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "cashier", "waiter"] }
+      }
     },
     "OpenOrder": {
       "title": "Open Order",
-      "description": "Comandas em aberto no PDV.",
+      "description": "Comandas em aberto no movimento.",
       "type": "object",
       "properties": {
-        "tableNumber": { "type": "string", "description": "Número ou identificador da mesa/comanda." },
-        "status": { "type": "string", "enum": ["open", "pending_payment", "closed"], "description": "Status atual da comanda." },
-        "items": { "type": "array", "items": { "$ref": "#/entities/OrderItem" }, "description": "Lista de itens na comanda." },
-        "totalAmount": { "type": "number", "description": "Valor total da comanda." },
-        "openedAt": { "type": "string", "format": "date-time", "description": "Timestamp de abertura da comanda." },
-        "waiterId": { "type": "string", "description": "ID do garçom responsável pela comanda." }
-      },
-      "required": ["tableNumber", "status", "items", "totalAmount", "openedAt"]
-    },
-    "OrderItem": {
-      "title": "Order Item",
-      "description": "Item individual dentro de uma comanda ou transação.",
-      "type": "object",
-      "properties": {
-        "productId": { "type": "string", "description": "ID do produto." },
-        "name": { "type": "string", "description": "Nome do produto." },
-        "quantity": { "type": "number", "description": "Quantidade do produto." },
-        "unitPrice": { "type": "number", "description": "Preço unitário do produto no momento da venda." }
-      },
-      "required": ["productId", "name", "quantity", "unitPrice"]
+        "displayName": { "type": "string" },
+        "customerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "total": { "type": "number" },
+        "items": { "type": "array", "items": { "type": "object" } }
+      }
     }
   },
   "auth": {
@@ -80,23 +69,23 @@
   "firestore": {
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
-      "description": "Coleção de produtos."
+      "description": "Estoque de produtos."
     },
     "/customers/{customerId}": {
       "schema": { "$ref": "#/entities/Customer" },
-      "description": "Coleção de clientes."
+      "description": "Base de clientes fiéis."
     },
     "/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
-      "description": "Histórico financeiro."
+      "description": "Histórico financeiro completo."
     },
     "/open_orders/{orderId}": {
       "schema": { "$ref": "#/entities/OpenOrder" },
-      "description": "Comandas em aberto."
+      "description": "Comandas ativas no bar."
     },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
-      "description": "Perfis de usuários do sistema."
+      "description": "Perfis administrativos e equipe."
     }
   }
 }
