@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
-      <body className={`${inter.className} scrollbar-hide`}>
+      <body className={`${inter.className} scrollbar-hide`} suppressHydrationWarning>
         <FirebaseClientProvider>
           <AuthProvider>
             <div className="min-h-screen bg-background selection:bg-primary/30">

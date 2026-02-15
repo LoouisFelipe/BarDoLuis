@@ -8,12 +8,11 @@ import { firebaseConfig } from "@/firebase/config";
  * Força a conexão exclusiva com a instância de banco de dados 'bardoluis'.
  */
 
-// CTO: Inicialização robusta garantindo instância única
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 /**
  * CRITICAL: Apontamento direto para o banco de dados nomeado 'bardoluis'.
- * Isso garante que as Regras de Segurança e os dados fiquem isolados do banco (default).
+ * Isso garante que as Regras de Segurança e os dados fiquem isolados.
  */
 const db = getFirestore(app, "bardoluis");
 const auth = getAuth(app);

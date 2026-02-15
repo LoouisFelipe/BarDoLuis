@@ -54,18 +54,19 @@ INSTRUÇÕES:
 4. Use um tom encorajador mas rigoroso com os custos (Persona CFO).`,
 });
 
-export async function analyzeBusinessPerformance(input: BusinessAnalysisInput): Promise<BusinessAnalysisOutput> {
-  const analysisFlow = ai.defineFlow(
-    {
-      name: 'analyzeBusinessPerformance',
-      inputSchema: BusinessAnalysisInputSchema,
-      outputSchema: BusinessAnalysisOutputSchema,
-    },
-    async (input) => {
-      const { output } = await analysisPrompt(input);
-      return output!;
-    }
-  );
+// CTO: Definição do fluxo no nível global para evitar crash do servidor no boot
+const analysisFlow = ai.defineFlow(
+  {
+    name: 'analyzeBusinessPerformanceFlow',
+    inputSchema: BusinessAnalysisInputSchema,
+    outputSchema: BusinessAnalysisOutputSchema,
+  },
+  async (input) => {
+    const { output } = await analysisPrompt(input);
+    return output!;
+  }
+);
 
+export async function analyzeBusinessPerformance(input: BusinessAnalysisInput): Promise<BusinessAnalysisOutput> {
   return analysisFlow(input);
 }
