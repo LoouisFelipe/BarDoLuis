@@ -2,8 +2,8 @@
 import { getAuth, type User } from 'firebase/auth';
 
 /**
- * @fileOverview Gerador de erros contextuais para o banco 'bardoluis'.
- * Permite depuração precisa de Regras de Segurança no console do Next.js.
+ * @fileOverview Gerador de erros contextuais para o banco oficial 'bardoluis'.
+ * CTO: Mapeamento direto para a instância personalizada, ignorando instâncias padrão.
  */
 
 type SecurityRuleContext = {
@@ -74,14 +74,14 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   return {
     auth: authObject,
     method: context.operation,
-    // CTO AUDIT: Apontamento direto para o banco de dados 'bardoluis'
+    // CTO AUDIT: Apontamento fixo para o banco de dados 'bardoluis'
     path: `/databases/bardoluis/documents/${cleanPath}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
 }
 
 function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules:\n${JSON.stringify(requestObject, null, 2)}`;
+  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules (Database: bardoluis):\n${JSON.stringify(requestObject, null, 2)}`;
 }
 
 export class FirestorePermissionError extends Error {
