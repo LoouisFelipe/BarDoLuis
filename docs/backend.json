@@ -26,6 +26,17 @@
         "creditLimit": { "type": "number" }
       }
     },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Fornecedores de insumos.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" }
+      }
+    },
     "Transaction": {
       "title": "Transaction",
       "description": "Fluxo financeiro (Vendas, Despesas, Pagamentos).",
@@ -52,9 +63,17 @@
       "schema": { "$ref": "#/entities/Customer" },
       "description": "Carteira de clientes."
     },
+    "/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/Supplier" },
+      "description": "Parceiros e fornecedores."
+    },
     "/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
       "description": "Extrato financeiro unificado."
+    },
+    "/purchases/{purchaseId}": {
+      "schema": { "title": "Purchase", "type": "object" },
+      "description": "Registros de compras de estoque."
     },
     "/open_orders/{orderId}": {
       "schema": { "title": "Open Order", "type": "object" },
