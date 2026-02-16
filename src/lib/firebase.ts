@@ -11,7 +11,7 @@ import { firebaseConfig } from '@/firebase/config';
  * Excluímos qualquer referência ao banco '(default)' para evitar inconsistências.
  */
 
-// 1. Inicializa o App (Singleton)
+// 1. Inicializa o App (Singleton) com trava de segurança para SSR
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // 2. Inicializa o Auth

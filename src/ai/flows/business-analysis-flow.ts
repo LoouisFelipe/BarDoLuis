@@ -3,6 +3,7 @@
 /**
  * @fileOverview Fluxo de IA centralizado para análise de performance.
  * CTO: Implementação global para estabilidade do servidor Next.js.
+ * DIRETRIZ GENKIT: definePrompt e defineFlow devem estar no nível superior (módulo).
  */
 
 import { z } from 'genkit';
@@ -54,8 +55,20 @@ const analysisPrompt = ai.definePrompt({
   - Use um tom profissional e focado em lucro.`,
 });
 
-// 3. Função Principal (Wrapper)
+// 3. Definição do Flow (Escopo Global)
+const businessAnalysisFlow = ai.defineFlow(
+  {
+    name: 'businessAnalysisFlow',
+    inputSchema: BusinessAnalysisInputSchema,
+    outputSchema: BusinessAnalysisOutputSchema,
+  },
+  async (input) => {
+    const { output } = await analysisPrompt(input);
+    return output!;
+  }
+);
+
+// 4. Função Principal (Wrapper)
 export async function analyzeBusinessPerformance(input: BusinessAnalysisInput): Promise<BusinessAnalysisOutput> {
-  const result = await analysisPrompt(input);
-  return result.output!;
+  return businessAnalysisFlow(input);
 }

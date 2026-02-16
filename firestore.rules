@@ -21,7 +21,6 @@ service cloud.firestore {
     // --- REGRAS ---
 
     // REGRA DE OURO: O CEO pode ler e escrever em TUDO (Bypass Global)
-    // Isso resolve o erro de permissão na listagem de usuários.
     match /{document=**} {
       allow read, write: if isCEO();
     }
@@ -29,18 +28,39 @@ service cloud.firestore {
     // Coleção de Usuários
     match /users/{userId} {
       // CEO já tem acesso pela regra acima.
-      // O próprio usuário pode ler/escrever seus dados.
-      // Staff pode ler (necessário para o sistema carregar nomes, etc).
       allow read: if isStaff(); 
       allow write: if request.auth.uid == userId;
     }
     
-    // Coleção de Produtos/Vendas/etc (Genérica para Staff)
+    // Coleção de Produtos
     match /products/{productId} {
       allow read: if true; // Público (Cardápio)
-      allow write: if isStaff(); // Funcionários vendem
+      allow write: if isStaff(); // Equipe gerencia estoque
     }
-    
-    // Adicione outras coleções conforme necessário...
+
+    // Coleção de Clientes
+    match /customers/{customerId} {
+      allow read, write: if isStaff();
+    }
+
+    // Coleção de Fornecedores
+    match /suppliers/{supplierId} {
+      allow read, write: if isStaff();
+    }
+
+    // Coleção de Transações (Financeiro)
+    match /transactions/{transactionId} {
+      allow read, write: if isStaff();
+    }
+
+    // Coleção de Compras (Insumos)
+    match /purchases/{purchaseId} {
+      allow read, write: if isStaff();
+    }
+
+    // Coleção de Comandas Abertas (PDV)
+    match /open_orders/{orderId} {
+      allow read, write: if isStaff();
+    }
   }
 }
