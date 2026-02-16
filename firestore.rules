@@ -1,49 +1,46 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // REGRA DE OURO: CEO possui acesso total irrestrito (Bypass de Auditoria)
-    // UID do Proprietário: o0FzqC1oYoYYwjgJXbbgL4QoCe42
+
+    // --- FUNÇÕES DE SEGURANÇA ---
+
+    // 1. É o CEO? (Autoridade Máxima - Bypass)
+    // Verifica se é o seu UID Específico OU o seu E-mail (Dupla checagem)
     function isCEO() {
-      return request.auth != null && request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42";
+      return request.auth != null && (
+        request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42" || 
+        request.auth.token.email == "louisfelipecabral@gmail.com"
+      );
     }
 
+    // 2. É da Equipe? (Qualquer logado)
     function isStaff() {
       return request.auth != null;
     }
-    
-    function isAdmin() {
-      return isStaff() && (isCEO() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-    }
 
-    // CEO Bypass para qualquer operação em qualquer banco do projeto
+    // --- REGRAS ---
+
+    // REGRA DE OURO: O CEO pode ler e escrever em TUDO (Bypass Global)
+    // Isso resolve o erro de permissão na listagem de usuários.
     match /{document=**} {
       allow read, write: if isCEO();
     }
 
-    // Regras específicas para Staff
+    // Coleção de Usuários
     match /users/{userId} {
-      allow read: if isStaff();
-      allow create, delete: if isCEO();
-      allow update: if isCEO() || request.auth.uid == userId;
-    }
-
-    match /products/{productId} {
+      // CEO já tem acesso pela regra acima.
+      // O próprio usuário pode ler/escrever seus dados.
+      // Staff pode ler (necessário para o sistema carregar nomes, etc).
       allow read: if isStaff(); 
-      allow write: if isStaff(); 
+      allow write: if request.auth.uid == userId;
     }
-
-    match /customers/{customerId} {
-      allow read, write: if isStaff();
+    
+    // Coleção de Produtos/Vendas/etc (Genérica para Staff)
+    match /products/{productId} {
+      allow read: if true; // Público (Cardápio)
+      allow write: if isStaff(); // Funcionários vendem
     }
-
-    match /transactions/{transactionId} {
-      allow read, write: if isStaff();
-    }
-
-    match /open_orders/{orderId} {
-      allow read, create, update: if isStaff();
-      allow delete: if isAdmin();
-    }
+    
+    // Adicione outras coleções conforme necessário...
   }
 }

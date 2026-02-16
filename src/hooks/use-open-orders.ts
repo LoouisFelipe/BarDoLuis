@@ -36,10 +36,14 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | null>(null);
 
-  const ordersCol = useMemo(() => collection(db, 'open_orders'), [db]);
+  // CTO: Blindagem contra SSR. Não chamamos 'collection' se o 'db' for null.
+  const ordersCol = useMemo(() => db ? collection(db, 'open_orders') : null, [db]);
 
   useEffect(() => {
-    if (!db) return;
+    if (!db || !ordersCol) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     const q = query(ordersCol, where('status', '==', 'open'));
@@ -74,6 +78,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db, ordersCol]);
 
   const createOrder = useCallback(async (data: { displayName: string; customerId?: string | null }): Promise<Order> => {
+    if (!db) throw new Error("Firestore não inicializado");
     const orderRef = doc(collection(db, 'open_orders'));
     const newOrder: Order = {
         id: orderRef.id,
@@ -94,7 +99,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db]);
 
   const createOrderForNewCustomer = useCallback(async (customerName: string): Promise<Order> => {
-    if (!db) throw new Error("Firestore not initialized");
+    if (!db) throw new Error("Firestore não inicializado");
 
     return runTransaction(db, async (transaction) => {
       const customerRef = doc(collection(db, 'customers'));
@@ -129,6 +134,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
 
 
   const updateOrder = useCallback(async (orderId: string, items: OrderItem[]) => {
+    if (!db) return;
     const orderRef = doc(db, 'open_orders', orderId);
     const total = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const sanitizedItems = JSON.parse(JSON.stringify(items));
@@ -140,6 +146,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db]);
 
   const updateOrderCustomer = useCallback(async (orderId: string, customerId: string, displayName: string) => {
+    if (!db) return;
     const orderRef = doc(db, 'open_orders', orderId);
     return updateDoc(orderRef, {
         customerId,
@@ -148,6 +155,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
+    if (!db) return;
     const orderRef = doc(db, 'open_orders', orderId);
     return deleteDoc(orderRef);
   }, [db]);

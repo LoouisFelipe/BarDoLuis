@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useMemo, useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { app, db, auth } from '@/lib/firebase';
 
@@ -26,11 +25,16 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return <div className="min-h-screen bg-background" />;
   }
 
-  // Se por algum motivo o servidor estiver instável, aguardamos os serviços
-  if (!app || !db || !auth) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>;
+  // Se por algum motivo o servidor estiver instável ou o DB não inicializou, aguardamos
+  if (!app || !auth || !db) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">
+          Sincronizando com Banco BarDoLuis...
+        </p>
+      </div>
+    );
   }
 
   return (

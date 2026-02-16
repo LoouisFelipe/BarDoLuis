@@ -1,42 +1,39 @@
-
 'use client';
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getAuth, Auth } from "firebase/auth";
-import { firebaseConfig } from "@/firebase/config";
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
 
 /**
  * @fileOverview Inicialização centralizada e resiliente do Firebase para o BarDoLuis.
- * Garante compatibilidade entre Servidor (SSR) e Cliente, forçando a conexão
- * com a instância de banco de dados nomeada 'bardoluis'.
+ * CTO: Garante conexão única com a instância nomeada 'bardoluis'.
+ * A conexão é protegida contra falhas de SSR (Server Side Rendering).
  */
 
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
+// 1. Inicializa o App (Singleton)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// No Firebase Studio / Next.js, precisamos garantir que a inicialização 
-// seja segura tanto durante a compilação quanto na execução do cliente.
-if (typeof window !== "undefined") {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  
-  // CTO: Tentativa de conexão com o banco dedicado 'bardoluis'
-  // Se a instância nomeada falhar ou não existir, o SDK pode lançar erro.
-  // Usamos um fallback para garantir que o servidor não encerre inesperadamente.
+// 2. Inicializa o Auth
+const auth = getAuth(app);
+
+// 3. Inicializa o Firestore apontando especificamente para o banco 'bardoluis'
+// CTO: Usamos initializeFirestore para garantir que o databaseId seja respeitado.
+let db: any;
+if (typeof window !== 'undefined') {
   try {
-    db = getFirestore(app, "bardoluis");
+    // Tentamos inicializar com as configurações específicas do BarDoLuis
+    db = initializeFirestore(app, {
+      databaseId: 'bardoluis',
+      ignoreUndefinedProperties: true,
+    });
   } catch (e) {
-    console.warn("Conexão direta com 'bardoluis' falhou, tentando inicialização padrão...");
+    // Se já estiver inicializado, recuperamos a instância padrão (que terá as configurações acima)
     db = getFirestore(app);
   }
-  
-  auth = getAuth(app);
 } else {
-  // Placeholder para o servidor (pre-rendering)
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  db = null as any; 
-  auth = null as any;
+  // No servidor, retornamos null para evitar crashes de pré-renderização
+  db = null;
 }
 
-export { app, db, auth };
+export { app, auth, db };

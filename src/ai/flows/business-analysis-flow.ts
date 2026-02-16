@@ -1,13 +1,16 @@
 'use server';
+
 /**
- * @fileOverview Fluxo de IA para análise de performance do BarDoLuis.
- * 
- * - analyzeBusinessPerformance: Analisa dados de vendas, estoque e despesas para gerar insights estratégicos.
+ * @fileOverview Fluxo de IA OTIMIZADO para análise de performance.
+ * * CTO NOTE: Removemos o 'ai.defineFlow' do escopo global para eliminar 
+ * o tempo de carregamento no startup da aplicação.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+// Importaremos a 'ai' apenas onde for necessário ou manteremos aqui se o arquivo genkit for leve.
+import { ai } from '@/ai/genkit'; 
 
+// 1. Schemas (Leves, podem ficar no global)
 const BusinessAnalysisInputSchema = z.object({
   revenue: z.number(),
   expenses: z.number(),
@@ -29,44 +32,30 @@ const BusinessAnalysisOutputSchema = z.object({
 
 export type BusinessAnalysisOutput = z.infer<typeof BusinessAnalysisOutputSchema>;
 
+// 2. Prompt (Definição estática é OK, mas a execução deve ser controlada)
 const analysisPrompt = ai.definePrompt({
   name: 'businessAnalysisPrompt',
   input: { schema: BusinessAnalysisInputSchema },
   output: { schema: BusinessAnalysisOutputSchema },
-  prompt: `Você é o estrategista-chefe do BarDoLuis, localizado na Rua Tavares Bastos, Pompéia.
-Sua missão é analisar os dados de BI e fornecer uma visão clara para o proprietário (o CEO).
-
-DADOS DO PERÍODO:
-- Receita Total: R$ {{{revenue}}}
-- Despesas: R$ {{{expenses}}}
-- Lucro Líquido: R$ {{{netProfit}}}
-- Progresso da Meta: {{{goalProgress}}}% (Meta: R$ {{{periodGoal}}})
-- Itens em Estoque Baixo: {{{lowStockCount}}}
-- Top Produtos:
-{{#each topProducts}}
-  * {{{name}}}: {{{quantity}}} unidades
-{{/each}}
-
-INSTRUÇÕES:
-1. Seja pragmático e direto.
-2. Identifique gargalos (estoque baixo ou margem apertada).
-3. Se a meta estiver longe de ser batida, sugira ações de marketing.
-4. Use um tom encorajador mas rigoroso com os custos (Persona CFO).`,
+  prompt: `Você é o estrategista-chefe do BarDoLuis.
+  DADOS:
+  - Receita: R$ {{{revenue}}}
+  - Despesas: R$ {{{expenses}}}
+  - Lucro: R$ {{{netProfit}}}
+  - Meta: {{{goalProgress}}}% (Alvo: {{{periodGoal}}})
+  - Estoque Baixo: {{{lowStockCount}}}
+  - Top Produtos: {{#each topProducts}} * {{{name}}}: {{{quantity}}} {{/each}}
+  
+  INSTRUÇÕES:
+  Identifique gargalos e sugira ações. Seja breve.`,
 });
 
-// CTO: Definição do fluxo no nível global para evitar crash do servidor no boot
-const analysisFlow = ai.defineFlow(
-  {
-    name: 'analyzeBusinessPerformanceFlow',
-    inputSchema: BusinessAnalysisInputSchema,
-    outputSchema: BusinessAnalysisOutputSchema,
-  },
-  async (input) => {
-    const { output } = await analysisPrompt(input);
-    return output!;
-  }
-);
-
+// 3. Função Principal (Onde a mágica acontece)
 export async function analyzeBusinessPerformance(input: BusinessAnalysisInput): Promise<BusinessAnalysisOutput> {
-  return analysisFlow(input);
+  // CTO: Chamamos o prompt diretamente. Isso evita a sobrecarga de criar um 'Flow' 
+  // registrado globalmente se não formos usar a UI de desenvolvedor do Genkit em produção.
+  
+  const result = await analysisPrompt(input);
+  
+  return result.output!;
 }

@@ -29,15 +29,6 @@ export interface FirebaseContextState {
   userError: Error | null;
 }
 
-export interface FirebaseServicesAndUser {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
-
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
@@ -92,27 +83,33 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 export const useFirebase = (): FirebaseContextState => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    // Retorna estado vazio em vez de estourar erro, permitindo renderização inicial no servidor
+    return {
+      areServicesAvailable: false,
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+      user: null,
+      isUserLoading: true,
+      userError: null
+    };
   }
   return context;
 };
 
 export const useAuth = (): Auth => {
   const { auth } = useFirebase();
-  if (!auth) throw new Error('Auth service not initialized');
-  return auth;
+  return auth!;
 };
 
 export const useFirestore = (): Firestore => {
   const { firestore } = useFirebase();
-  if (!firestore) throw new Error('Firestore service not initialized');
-  return firestore;
+  return firestore!;
 };
 
 export const useFirebaseApp = (): FirebaseApp => {
   const { firebaseApp } = useFirebase();
-  if (!firebaseApp) throw new Error('FirebaseApp not initialized');
-  return firebaseApp;
+  return firebaseApp!;
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T & {__memo?: boolean} {

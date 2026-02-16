@@ -1,9 +1,8 @@
-
 {
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "Produtos do estoque (cervejas, doses, petiscos).",
+      "description": "Bens de consumo e serviços (cervejas, doses, petiscos).",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -18,7 +17,7 @@
     },
     "Customer": {
       "title": "Customer",
-      "description": "Clientes do bar (Fieis e Fiado).",
+      "description": "Fieis e devedores (Fiado).",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -29,7 +28,7 @@
     },
     "Transaction": {
       "title": "Transaction",
-      "description": "Movimentações financeiras (Vendas, Despesas, Pagamentos).",
+      "description": "Fluxo financeiro (Vendas, Despesas, Pagamentos).",
       "type": "object",
       "properties": {
         "type": { "type": "string", "enum": ["sale", "expense", "payment"] },
@@ -39,28 +38,6 @@
         "description": { "type": "string" },
         "customerId": { "type": "string" }
       }
-    },
-    "User": {
-      "title": "User Profile",
-      "description": "Perfis de usuários do sistema.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["admin", "cashier", "waiter"] }
-      }
-    },
-    "OpenOrder": {
-      "title": "Open Order",
-      "description": "Comandas em aberto no movimento.",
-      "type": "object",
-      "properties": {
-        "displayName": { "type": "string" },
-        "customerId": { "type": "string" },
-        "status": { "type": "string", "enum": ["open", "closed"] },
-        "total": { "type": "number" },
-        "items": { "type": "array", "items": { "type": "object" } }
-      }
     }
   },
   "auth": {
@@ -69,23 +46,23 @@
   "firestore": {
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
-      "description": "Estoque de produtos."
+      "description": "Estoque oficial do BarDoLuis."
     },
     "/customers/{customerId}": {
       "schema": { "$ref": "#/entities/Customer" },
-      "description": "Base de clientes fiéis."
+      "description": "Carteira de clientes."
     },
     "/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
-      "description": "Histórico financeiro completo."
+      "description": "Extrato financeiro unificado."
     },
     "/open_orders/{orderId}": {
-      "schema": { "$ref": "#/entities/OpenOrder" },
-      "description": "Comandas ativas no bar."
+      "schema": { "title": "Open Order", "type": "object" },
+      "description": "Comandas ativas no movimento."
     },
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/User" },
-      "description": "Perfis administrativos e equipe."
+      "schema": { "title": "User Profile", "type": "object" },
+      "description": "Perfis administrativos."
     }
   }
 }

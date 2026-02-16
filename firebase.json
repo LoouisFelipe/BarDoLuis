@@ -11,6 +11,7 @@
     }
   },
   "firestore": {
+    "database": "bardoluis",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   }
