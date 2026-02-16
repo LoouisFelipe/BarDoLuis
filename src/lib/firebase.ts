@@ -8,7 +8,7 @@ import { firebaseConfig } from '@/firebase/config';
 /**
  * @fileOverview Inicialização centralizada e resiliente do Firebase para o BarDoLuis.
  * CTO: Garante conexão direta com a instância nomeada 'bardoluis'.
- * O SDK do Firebase lida internamente com a resiliência entre Servidor e Cliente.
+ * A conexão é exportada como singleton para evitar múltiplas instâncias no cliente.
  */
 
 // 1. Inicializa o App (Singleton)
@@ -18,7 +18,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
 // 3. Inicializa o Firestore apontando explicitamente para a instância 'bardoluis'
-// Isso garante que o app leia os dados corretos conforme configurado no console.
+// Esta é a fonte de verdade absoluta para o PDV e o BI Cockpit.
 const db = getFirestore(app, 'bardoluis');
 
 export { app, auth, db };

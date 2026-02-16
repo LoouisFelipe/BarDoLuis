@@ -6,6 +6,11 @@ import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
+/**
+ * @fileOverview Provedor central de serviços Firebase.
+ * CTO: Fornece acesso compartilhado aos serviços conectados à instância 'bardoluis'.
+ */
+
 interface FirebaseProviderProps {
   children: ReactNode;
   firebaseApp: FirebaseApp;

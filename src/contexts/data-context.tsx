@@ -32,7 +32,7 @@ const sanitizeData = (data: any) => {
   const sanitized = { ...data };
   Object.keys(sanitized).forEach(key => {
     if (sanitized[key] === undefined) {
-      sanitized[key] = null; // Firestore prefere null a undefined
+      sanitized[key] = null;
     }
   });
   return sanitized;
@@ -68,6 +68,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
   const { user, isAdmin } = useAuth();
 
+  // Queries Memoizadas para evitar loops infinitos nos listeners
   const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
@@ -99,190 +100,214 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     [usersLoading, productsLoading, customersLoading, suppliersLoading, transactionsLoading]
   );
   
-  const handleAction = useCallback(async <T,>(
-    action: () => Promise<T>,
-    successMessage: string,
-    operation: 'write' | 'create' | 'update' | 'delete',
-    path: string,
-    data?: any
-  ): Promise<T> => {
+  const saveProduct = async (data: Omit<Product, 'id'>, id?: string) => {
+    const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
+    const payload = sanitizeData({ 
+      ...data,
+      name: data.name || '',
+      updatedAt: serverTimestamp(),
+      ...(!id && { createdAt: serverTimestamp() })
+    });
+
+    // CTO: Escrita não-bloqueante para agilidade de interface
+    setDoc(docRef, payload, { merge: true }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: id ? 'update' : 'create',
+        requestResourceData: payload
+      }));
+    });
+
+    toast({ title: 'Sucesso', description: 'Produto processado no estoque.' });
+    return docRef.id;
+  };
+
+  const deleteProduct = async (id: string) => {
+    const docRef = doc(db, 'products', id);
+    deleteDoc(docRef).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
+    toast({ title: 'Sucesso', description: 'Produto removido.' });
+  };
+
+  const addStock = async (id: string, qty: number, cost?: number) => {
+    const docRef = doc(db, 'products', id);
+    updateDoc(docRef, { 
+      stock: increment(qty), 
+      ...(cost && { costPrice: cost }),
+      updatedAt: serverTimestamp()
+    }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update'
+      }));
+    });
+    toast({ title: 'Sucesso', description: 'Estoque atualizado.' });
+  };
+
+  const saveCustomer = async (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
+    const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
+    const payload = sanitizeData({ 
+      ...data,
+      name: data.name || '',
+      updatedAt: serverTimestamp(),
+      ...(!id && { balance: 0, createdAt: serverTimestamp() })
+    });
+
+    setDoc(docRef, payload, { merge: true }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: id ? 'update' : 'create',
+        requestResourceData: payload
+      }));
+    });
+
+    toast({ title: 'Sucesso', description: 'Perfil de cliente atualizado.' });
+    return docRef.id;
+  };
+
+  const deleteCustomer = async (id: string) => {
+    const docRef = doc(db, 'customers', id);
+    deleteDoc(docRef).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
+    toast({ title: 'Removido', description: 'Cliente excluído do sistema.' });
+  };
+
+  const receiveCustomerPayment = async (customer: Customer, amount: number, paymentMethod: string) => {
+    // Transação é essencial para integridade financeira
     try {
-      const result = await action();
-      toast({ title: 'Sucesso!', description: successMessage });
-      return result;
-    } catch (e: any) {
-      const permissionError = new FirestorePermissionError({ 
-        path, 
-        operation, 
-        requestResourceData: data 
+      await runTransaction(db, async (transaction) => {
+        const customerRef = doc(db, 'customers', customer.id!);
+        const paymentRef = doc(collection(db, 'transactions'));
+        transaction.update(customerRef, { balance: increment(-amount), updatedAt: serverTimestamp() });
+        transaction.set(paymentRef, sanitizeData({
+          id: paymentRef.id,
+          timestamp: serverTimestamp(),
+          type: 'payment',
+          description: `Recebimento: ${customer.name}`,
+          total: amount,
+          paymentMethod,
+          customerId: customer.id,
+          items: [],
+          userId: user?.uid || null,
+        }));
       });
-      errorEmitter.emit('permission-error', permissionError);
+      toast({ title: 'Confirmado', description: 'Pagamento abatido do saldo.' });
+    } catch (e) {
+      console.error("Payment transaction failed", e);
+    }
+  };
+
+  const saveSupplier = async (data: Omit<Supplier, 'id'>, id?: string) => {
+    const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
+    const payload = sanitizeData({ ...data, updatedAt: serverTimestamp() });
+    
+    setDoc(docRef, payload, { merge: true }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: id ? 'update' : 'create'
+      }));
+    });
+    return docRef.id;
+  };
+
+  const deleteSupplier = async (id: string) => {
+    await deleteDoc(doc(db, 'suppliers', id));
+    toast({ title: 'Removido', description: 'Fornecedor excluído.' });
+  };
+
+  const recordPurchaseAndUpdateStock = async (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) => {
+    const batch = writeBatch(db);
+    const purchaseRef = doc(collection(db, 'purchases'));
+    const expenseRef = doc(collection(db, 'transactions'));
+    
+    batch.set(purchaseRef, sanitizeData({ id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() }));
+    batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null }));
+    
+    items.forEach(item => {
+      batch.update(doc(db, 'products', item.productId), { 
+        stock: increment(item.quantity), 
+        costPrice: item.unitCost,
+        updatedAt: serverTimestamp() 
+      });
+    });
+    
+    await batch.commit();
+    toast({ title: 'Sucesso', description: 'Compra registrada e estoque reposto.' });
+  };
+
+  const finalizeOrder = async (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0) => {
+    const finalTotal = Math.max(0, order.total - discount);
+    try {
+      await runTransaction(db, async (t) => {
+        const saleRef = doc(collection(db, 'transactions'));
+        order.items.forEach(item => {
+          const dec = item.size ? item.size * item.quantity : item.quantity;
+          t.update(doc(db, 'products', item.productId), { stock: increment(-dec), updatedAt: serverTimestamp() });
+        });
+        if (paymentMethod === 'Fiado' && customerId) {
+          t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal), updatedAt: serverTimestamp() });
+        }
+        t.set(saleRef, sanitizeData({ 
+          id: saleRef.id, 
+          timestamp: serverTimestamp(), 
+          type: 'sale', 
+          description: `Venda ${order.displayName}`, 
+          total: finalTotal, 
+          discount: discount,
+          items: order.items, 
+          paymentMethod, 
+          customerId, 
+          tabName: order.displayName, 
+          userId: user?.uid || null 
+        }));
+      });
+      toast({ title: 'Finalizado', description: 'Venda enviada para o BI Cockpit.' });
+      return "success";
+    } catch (e) {
+      console.error("Finalize error", e);
       throw e;
     }
-  }, [toast]);
-
-  const saveProduct = (data: Omit<Product, 'id'>, id?: string) => {
-    const docRef = id ? doc(db, 'products', id) : doc(collection(db, 'products'));
-    return handleAction(async () => {
-      const payload = sanitizeData({ 
-        name: data.name || '',
-        category: data.category || '',
-        subcategory: data.subcategory || null,
-        description: data.description || null,
-        costPrice: data.costPrice ?? 0,
-        unitPrice: data.unitPrice ?? 0,
-        stock: data.stock ?? 0,
-        lowStockThreshold: data.lowStockThreshold ?? null,
-        saleType: data.saleType || 'unit',
-        doseOptions: data.doseOptions ?? [],
-        baseUnitSize: data.baseUnitSize ?? null,
-        updatedAt: serverTimestamp() 
-      });
-      if (!id) payload.createdAt = serverTimestamp();
-      await setDoc(docRef, payload, { merge: true });
-      return docRef.id;
-    }, 'Produto salvo.', id ? 'update' : 'create', docRef.path, data);
   };
-
-  const deleteProduct = (id: string) => 
-    handleAction(async () => {
-      await deleteDoc(doc(db, 'products', id));
-    }, 'Produto excluído.', 'delete', `products/${id}`);
-
-  const addStock = (id: string, qty: number, cost?: number) =>
-    handleAction(async () => {
-      await updateDoc(doc(db, 'products', id), { stock: increment(qty), ...(cost && { costPrice: cost }) });
-    }, 'Estoque atualizado.', 'update', `products/${id}`);
-
-  const saveCustomer = (data: Omit<Customer, 'id' | 'balance'>, id?: string) => {
-    const docRef = id ? doc(db, 'customers', id) : doc(collection(db, 'customers'));
-    return handleAction(async () => {
-      const payload = sanitizeData({ 
-        name: data.name || '',
-        contact: data.contact || '',
-        creditLimit: data.creditLimit ?? null,
-        updatedAt: serverTimestamp() 
-      });
-      if (!id) payload.balance = 0;
-      
-      await setDoc(docRef, payload, { merge: true });
-      return docRef.id;
-    }, 'Cliente salvo.', id ? 'update' : 'create', docRef.path, data);
-  };
-
-  const deleteCustomer = (id: string) => 
-    handleAction(async () => {
-      await deleteDoc(doc(db, 'customers', id));
-    }, 'Cliente excluído.', 'delete', `customers/${id}`);
-
-  const receiveCustomerPayment = (customer: Customer, amount: number, paymentMethod: string) =>
-    handleAction(async () => {
-        await runTransaction(db, async (transaction) => {
-            const customerRef = doc(db, 'customers', customer.id!);
-            const paymentRef = doc(collection(db, 'transactions'));
-            transaction.update(customerRef, { balance: increment(-amount) });
-            transaction.set(paymentRef, sanitizeData({
-                id: paymentRef.id,
-                timestamp: serverTimestamp(),
-                type: 'payment',
-                description: `Recebimento de ${customer.name}`,
-                total: amount,
-                paymentMethod,
-                customerId: customer.id,
-                items: [],
-                userId: user?.uid || null,
-            }));
-        });
-    }, 'Pagamento recebido.', 'write', `customers/${customer.id}/payments`);
-
-  const saveSupplier = (data: Omit<Supplier, 'id'>, id?: string) => {
-    const docRef = id ? doc(db, 'suppliers', id) : doc(collection(db, 'suppliers'));
-    return handleAction(async () => {
-      const payload = sanitizeData(data);
-      await setDoc(docRef, payload, { merge: true });
-      return docRef.id;
-    }, 'Fornecedor salvo.', id ? 'update' : 'create', docRef.path, data);
-  };
-
-  const deleteSupplier = (id: string) =>
-    handleAction(async () => {
-      await deleteDoc(doc(db, 'suppliers', id));
-    }, 'Fornecedor excluído.', 'delete', `suppliers/${id}`);
-
-  const recordPurchaseAndUpdateStock = (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) =>
-    handleAction(async () => {
-        const batch = writeBatch(db);
-        const purchaseRef = doc(collection(db, 'purchases'));
-        const expenseRef = doc(collection(db, 'transactions'));
-        batch.set(purchaseRef, sanitizeData({ id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() }));
-        batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null }));
-        items.forEach(item => {
-            batch.update(doc(db, 'products', item.productId), { stock: increment(item.quantity), costPrice: item.unitCost });
-        });
-        await batch.commit();
-    }, 'Compra registrada.', 'write', `purchases/${supplierId}`);
-
-  const finalizeOrder = (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0) =>
-    handleAction(async () => {
-        const finalTotal = Math.max(0, order.total - discount);
-        return runTransaction(db, async (t) => {
-            const saleRef = doc(collection(db, 'transactions'));
-            order.items.forEach(item => {
-                const dec = item.size ? item.size * item.quantity : item.quantity;
-                t.update(doc(db, 'products', item.productId), { stock: increment(-dec) });
-            });
-            if (paymentMethod === 'Fiado' && customerId) {
-                t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal) });
-            }
-            t.set(saleRef, sanitizeData({ 
-                id: saleRef.id, 
-                timestamp: serverTimestamp(), 
-                type: 'sale', 
-                description: `Venda ${order.displayName}`, 
-                total: finalTotal, 
-                discount: discount,
-                items: order.items, 
-                paymentMethod, 
-                customerId, 
-                tabName: order.displayName, 
-                userId: user?.uid || null 
-            }));
-            return saleRef.id;
-        });
-    }, 'Venda finalizada.', 'write', 'transactions/sale');
   
-  const addExpense = (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) =>
-    handleAction(async () => {
-        const batch = writeBatch(db);
-        const baseDate = new Date(dateString + 'T12:00:00');
-        for (let i = 0; i <= replicateMonths; i++) {
-            const expenseRef = doc(collection(db, 'transactions'));
-            const currentDate = addMonths(baseDate, i);
-            batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null }));
-        }
-        await batch.commit();
-    }, 'Despesa registrada.', 'write', 'transactions/expense');
+  const addExpense = async (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) => {
+    const batch = writeBatch(db);
+    const baseDate = new Date(dateString + 'T12:00:00');
+    for (let i = 0; i <= replicateMonths; i++) {
+      const expenseRef = doc(collection(db, 'transactions'));
+      const currentDate = addMonths(baseDate, i);
+      batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null }));
+    }
+    await batch.commit();
+    toast({ title: 'Sucesso', description: 'Despesa registrada.' });
+  };
 
-  const deleteTransaction = (id: string) =>
-    handleAction(async () => {
-      await deleteDoc(doc(db, 'transactions', id));
-    }, 'Transação excluída.', 'delete', `transactions/${id}`);
+  const deleteTransaction = async (id: string) => {
+    await deleteDoc(doc(db, 'transactions', id));
+    toast({ title: 'Sucesso', description: 'Transação anulada.' });
+  };
 
-  const saveUserRole = (uid: string, role: 'admin' | 'cashier' | 'waiter') =>
-    handleAction(async () => {
-      await setDoc(doc(db, 'users', uid), { role }, { merge: true });
-    }, 'Cargo atualizado.', 'update', `users/${uid}`);
+  const saveUserRole = async (uid: string, role: 'admin' | 'cashier' | 'waiter') => {
+    await setDoc(doc(db, 'users', uid), { role, updatedAt: serverTimestamp() }, { merge: true });
+  };
 
-  const updateUserProfile = (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) =>
-    handleAction(async () => {
-      const payload = sanitizeData(data);
-      await setDoc(doc(db, 'users', uid), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
-    }, 'Perfil do usuário atualizado.', 'update', `users/${uid}`, data);
+  const updateUserProfile = async (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) => {
+    const payload = sanitizeData(data);
+    await setDoc(doc(db, 'users', uid), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+    toast({ title: 'Sucesso', description: 'Perfil atualizado.' });
+  };
 
-  const deleteUserProfile = (uid: string) =>
-    handleAction(async () => {
-      await deleteDoc(doc(db, 'users', uid));
-    }, 'Perfil excluído. O acesso deste usuário foi revogado.', 'delete', `users/${uid}`);
+  const deleteUserProfile = async (uid: string) => {
+    await deleteDoc(doc(db, 'users', uid));
+    toast({ title: 'Revogado', description: 'Acesso removido.' });
+  };
 
   const value = {
     users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],

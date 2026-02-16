@@ -19,6 +19,11 @@ import { Order, OrderItem, Customer } from '@/lib/schemas';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
+/**
+ * @fileOverview Gestão de comandas ativas no PDV.
+ * CTO: Blinda o acesso à instância de banco 'bardoluis' e garante performance mobile.
+ */
+
 export interface UseOpenOrdersResult {
   openOrders: Order[];
   loading: boolean;
@@ -36,7 +41,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | null>(null);
 
-  // CTO: Blindagem contra SSR. Não chamamos 'collection' se o 'db' for null.
+  // CTO: Blindagem absoluta de instância durante o boot do Next.js
   const ordersCol = useMemo(() => db ? collection(db, 'open_orders') : null, [db]);
 
   useEffect(() => {
@@ -78,7 +83,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db, ordersCol]);
 
   const createOrder = useCallback(async (data: { displayName: string; customerId?: string | null }): Promise<Order> => {
-    if (!db) throw new Error("Firestore não inicializado");
+    if (!db) throw new Error("Firestore não sincronizado.");
     const orderRef = doc(collection(db, 'open_orders'));
     const newOrder: Order = {
         id: orderRef.id,
@@ -91,6 +96,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
         closedAt: null,
     };
     
+    // CTO: Escrita atômica com timestamp do servidor
     await setDoc(orderRef, {
         ...newOrder,
         createdAt: serverTimestamp(),
@@ -99,7 +105,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
   }, [db]);
 
   const createOrderForNewCustomer = useCallback(async (customerName: string): Promise<Order> => {
-    if (!db) throw new Error("Firestore não inicializado");
+    if (!db) throw new Error("Database offline.");
 
     return runTransaction(db, async (transaction) => {
       const customerRef = doc(collection(db, 'customers'));
@@ -142,6 +148,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
     return updateDoc(orderRef, {
         items: sanitizedItems,
         total: total,
+        updatedAt: serverTimestamp()
     });
   }, [db]);
 
@@ -151,6 +158,7 @@ export const useOpenOrders = (): UseOpenOrdersResult => {
     return updateDoc(orderRef, {
         customerId,
         displayName,
+        updatedAt: serverTimestamp()
     });
   }, [db]);
 
