@@ -138,7 +138,16 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
                       {gameModalities.map(g => <SelectItem key={g.id} value={g.id!} className="text-xs font-bold uppercase">{g.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Input type="number" step="0.01" placeholder="Valor R$" value={gamePayoutAmount || ''} onChange={(e) => setGamePayoutAmount(Math.min(order.total - discount, parseFloat(e.target.value) || 0))} className="h-10 bg-background border-orange-500/30 font-black text-orange-500" disabled={gamePayoutId === 'none'} />
+                  {/* CTO: Removido Math.min para permitir prêmios maiores que a conta (pagamento de prêmio excedente) */}
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="Valor R$" 
+                    value={gamePayoutAmount || ''} 
+                    onChange={(e) => setGamePayoutAmount(parseFloat(e.target.value) || 0)} 
+                    className="h-10 bg-background border-orange-500/30 font-black text-orange-500" 
+                    disabled={gamePayoutId === 'none'} 
+                  />
                 </div>
               </div>
             )}
@@ -146,7 +155,8 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
             {isAdmin && (
               <div className="space-y-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-1"><TicketPercent size={14} className="text-accent" /><Label className="text-[10px] font-black uppercase text-accent tracking-widest">Desconto Estratégico (Bar)</Label></div>
-                <Input type="number" step="0.01" value={discount || ''} onChange={(e) => setDiscount(Math.min(order.total - gamePayoutAmount, parseFloat(e.target.value) || 0))} className="h-10 bg-background border-accent/30 font-black text-accent" />
+                {/* Desconto de bar ainda é limitado ao valor total para evitar caixa negativo no bar */}
+                <Input type="number" step="0.01" value={discount || ''} onChange={(e) => setDiscount(Math.min(order.total, parseFloat(e.target.value) || 0))} className="h-10 bg-background border-accent/30 font-black text-accent" />
               </div>
             )}
 
