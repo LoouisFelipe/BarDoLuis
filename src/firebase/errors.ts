@@ -3,7 +3,7 @@ import { getAuth, type User } from 'firebase/auth';
 
 /**
  * @fileOverview Gerador de erros contextuais para o banco oficial 'bardoluis'.
- * CTO: Mapeamento direto para a instância personalizada, ignorando instâncias padrão.
+ * CTO: Mapeamento absoluto para a instância personalizada, eliminando resquícios do banco padrão.
  */
 
 type SecurityRuleContext = {
@@ -67,21 +67,21 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
     const firebaseAuth = getAuth();
     const currentUser = firebaseAuth.currentUser;
     if (currentUser) authObject = buildAuthObject(currentUser);
-  } catch { /* Auth not ready */ }
+  } catch { /* Auth not ready during boot */ }
 
   const cleanPath = context.path.startsWith('/') ? context.path.substring(1) : context.path;
 
   return {
     auth: authObject,
     method: context.operation,
-    // CTO AUDIT: Apontamento fixo para o banco de dados 'bardoluis'
+    // CTO AUDIT: Apontamento rigoroso para o banco 'bardoluis'
     path: `/databases/bardoluis/documents/${cleanPath}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
 }
 
 function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules (Database: bardoluis):\n${JSON.stringify(requestObject, null, 2)}`;
+  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules (DB: bardoluis):\n${JSON.stringify(requestObject, null, 2)}`;
 }
 
 export class FirestorePermissionError extends Error {

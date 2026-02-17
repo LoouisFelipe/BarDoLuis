@@ -6,9 +6,9 @@ import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
 /**
- * @fileOverview Inicialização centralizada e blindada do Firebase para o BarDoLuis.
- * CTO: Garante conexão direta e exclusiva com a instância nomeada 'bardoluis'.
- * Implementa resiliência de SSR para evitar quedas do servidor Next.js durante o boot.
+ * @fileOverview Inicialização soberana do Firebase para o BarDoLuis.
+ * CTO: Garante conexão exclusiva com a instância 'bardoluis'.
+ * Implementa resiliência total para evitar crashes no servidor (SSR).
  */
 
 // 1. Inicializa o App (Singleton) com trava de segurança para SSR
@@ -19,8 +19,7 @@ const auth = getAuth(app);
 
 /**
  * 3. Inicializa o Firestore apontando para a instância 'bardoluis'.
- * CTO: Usamos uma abordagem resiliente. O Firestore só é ativado quando solicitado
- * em ambiente de cliente, protegendo o ciclo de vida do servidor.
+ * CTO: O ID do banco de dados é injetado explicitamente para evitar fallback para '(default)'.
  */
 const db = getFirestore(app, 'bardoluis');
 

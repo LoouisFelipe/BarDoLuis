@@ -7,8 +7,12 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Spinner } from '@/components/ui/spinner';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
-import { Toaster } from '@/components/ui/toaster';
-import { useToast } from '@/hooks/use-toast'; // CTO: Caminho corrigido para hooks
+import { useToast } from '@/hooks/use-toast';
+
+/**
+ * @fileOverview Página raiz do BarDoLuis.
+ * CTO: Refatorado para remover o Toaster redundante, centralizando-o no Layout raiz.
+ */
 
 export default function RootPage() {
   const { user, userProfile, logout, isAuthReady, isLoadingAuth, authError, isLoadingProfile, profileError } = useAuth();
@@ -70,7 +74,6 @@ export default function RootPage() {
           <DashboardLayout />
         )}
       </div>
-      <Toaster />
     </DataProvider>
   );
 }
