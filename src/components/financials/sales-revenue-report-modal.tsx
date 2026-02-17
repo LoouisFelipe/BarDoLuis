@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -49,16 +50,16 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background border-none md:border-solid">
                     <DialogHeader className="p-4 sm:p-6 border-b bg-card shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-accent/10 rounded-lg text-accent shrink-0">
+                            <div className="p-2 bg-accent/10 rounded-xl text-accent shrink-0 border border-accent/20">
                                 <Receipt size={24} />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <DialogTitle className="text-lg sm:text-xl font-bold truncate">Relatório de Vendas</DialogTitle>
-                                <DialogDescription className="text-[10px] sm:text-xs truncate">
-                                    Análise aprofundada da receita e histórico.
+                                <DialogTitle className="text-lg sm:text-xl font-black uppercase tracking-tight truncate">Relatório de Vendas</DialogTitle>
+                                <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest truncate">
+                                    Inteligência de Receita • BarDoLuis
                                 </DialogDescription>
                             </div>
                         </div>
@@ -66,118 +67,121 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                     
                     <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-12">
-                                <Card className="bg-muted/20 border-dashed">
+                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
+                                <Card className="bg-muted/20 border-dashed border-2">
                                     <CardHeader className="py-2 px-3 sm:py-3 sm:px-4">
-                                        <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
+                                        <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Período de Análise</CardTitle>
                                     </CardHeader>
                                     <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
-                                        <p className="text-base sm:text-lg font-bold">{formattedPeriod}</p>
+                                        <p className="text-base sm:text-lg font-black text-foreground">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                    <Card className="border-l-4 border-l-accent">
+                                    <Card className="border-l-4 border-l-accent shadow-lg bg-card/50">
                                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-                                            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground">Receita Bruta</CardTitle>
+                                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Receita Bruta</CardTitle>
                                             <TrendingUp className="h-4 w-4 text-accent" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-xl sm:text-2xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div>
-                                            <p className="text-[9px] text-muted-foreground font-medium uppercase mt-1">Total das comandas.</p>
+                                            <div className="text-2xl sm:text-3xl font-black text-accent">R$ {(reportData.totalSalesRevenue || 0).toFixed(2)}</div>
+                                            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 tracking-tighter">Faturamento total em comandas.</p>
                                         </CardContent>
                                     </Card>
 
-                                    <Card className="border-l-4 border-l-yellow-400">
+                                    <Card className="border-l-4 border-l-yellow-400 shadow-lg bg-card/50">
                                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
-                                            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground">Meta</CardTitle>
+                                            <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Atingimento da Meta</CardTitle>
                                             <Target className="h-4 w-4 text-yellow-400" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-xl sm:text-2xl font-black text-yellow-400">R$ {(periodGoal || 0).toFixed(2)}</div>
-                                            <p className="text-[9px] text-muted-foreground font-medium uppercase mt-1">Atingido: {goalProgress.toFixed(0)}%.</p>
+                                            <div className="text-2xl sm:text-3xl font-black text-yellow-400">{(goalProgress || 0).toFixed(0)}%</div>
+                                            <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1 tracking-tighter">Alvo do período: R$ {(periodGoal || 0).toFixed(2)}</p>
                                         </CardContent>
                                     </Card>
                                 </div>
 
-                                <Card>
+                                <Card className="shadow-lg border-none">
                                     <CardHeader className="border-b bg-muted/10 py-3 px-3 sm:px-4">
                                         <div className="flex items-center gap-2">
-                                            <History size={16} className="text-muted-foreground" />
-                                            <CardTitle className="text-xs sm:text-sm font-bold uppercase">Listagem Analítica</CardTitle>
+                                            <History size={16} className="text-primary" />
+                                            <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Detalhamento Analítico</CardTitle>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="p-0 overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Data/Hora</TableHead>
-                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Cliente/Mesa</TableHead>
-                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Pgto.</TableHead>
-                                                    <TableHead className="text-right text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Valor</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {salesTransactions.length > 0 ? (
-                                                    salesTransactions.map((t: Transaction) => {
-                                                        const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
-                                                        return (
-                                                            <TableRow 
-                                                                key={t.id} 
-                                                                className="cursor-pointer hover:bg-muted/20"
-                                                                onClick={() => setSelectedTransaction(t)}
-                                                            >
-                                                                <TableCell className="text-[10px] sm:text-[11px] px-2 sm:px-4 whitespace-nowrap">
-                                                                    {format(date, 'dd/MM HH:mm')}
-                                                                </TableCell>
-                                                                <TableCell className="text-[10px] sm:text-[11px] font-bold truncate max-w-[80px] sm:max-w-[150px] px-2 sm:px-4">
-                                                                    {t.tabName || t.description || 'Balcão'}
-                                                                </TableCell>
-                                                                <TableCell className="text-[9px] sm:text-[10px] text-muted-foreground px-2 sm:px-4 whitespace-nowrap">
-                                                                    {t.paymentMethod}
-                                                                </TableCell>
-                                                                <TableCell className="text-right text-[10px] sm:text-xs font-black text-accent px-2 sm:px-4 whitespace-nowrap">
-                                                                    R$ {t.total.toFixed(2)}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic text-xs">
-                                                            Nenhuma venda registrada.
-                                                        </TableCell>
+                                    <CardContent className="p-0">
+                                        {/* CPO: Scroll lateral garantido no mobile para tabelas extensas */}
+                                        <div className="overflow-x-auto scrollbar-hide">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="bg-muted/30 border-b-2">
+                                                        <TableHead className="text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-4 text-muted-foreground">Hora</TableHead>
+                                                        <TableHead className="text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-4 text-muted-foreground">Mesa / Fiel</TableHead>
+                                                        <TableHead className="text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-4 text-muted-foreground">Pagamento</TableHead>
+                                                        <TableHead className="text-right text-[9px] sm:text-[10px] font-black uppercase px-2 sm:px-4 text-muted-foreground">Valor</TableHead>
                                                     </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {salesTransactions.length > 0 ? (
+                                                        salesTransactions.map((t: Transaction) => {
+                                                            const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
+                                                            return (
+                                                                <TableRow 
+                                                                    key={t.id} 
+                                                                    className="cursor-pointer hover:bg-primary/5 border-b border-border/50"
+                                                                    onClick={() => setSelectedTransaction(t)}
+                                                                >
+                                                                    <TableCell className="text-[10px] sm:text-[11px] font-bold px-2 sm:px-4 whitespace-nowrap">
+                                                                        {format(date, 'dd/MM HH:mm')}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-[10px] sm:text-[11px] font-black truncate max-w-[80px] sm:max-w-[150px] px-2 sm:px-4">
+                                                                        {t.tabName || t.description || 'Balcão'}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-[9px] sm:text-[10px] font-black uppercase text-muted-foreground px-2 sm:px-4 whitespace-nowrap">
+                                                                        {t.paymentMethod}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right text-[10px] sm:text-xs font-black text-accent px-2 sm:px-4 whitespace-nowrap">
+                                                                        R$ {t.total.toFixed(2)}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <TableRow>
+                                                            <TableCell colSpan={4} className="text-center py-16 text-muted-foreground font-bold text-xs uppercase opacity-50">
+                                                                Nenhuma venda capturada no período.
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
                                     </CardContent>
                                 </Card>
 
-                                <Card>
+                                <Card className="shadow-lg border-none">
                                     <CardHeader className="border-b bg-muted/10 py-3 px-3 sm:px-4">
-                                        <CardTitle className="text-xs sm:text-sm font-bold uppercase">Top Produtos</CardTitle>
+                                        <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Top Mix de Produtos</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-0">
                                         {topProducts.length > 0 ? (
                                             <Table>
                                                 <TableHeader>
-                                                    <TableRow className="bg-muted/30">
-                                                        <TableHead className="text-[10px] font-bold uppercase px-3 sm:px-4">Item</TableHead>
-                                                        <TableHead className="text-right text-[10px] font-bold uppercase px-3 sm:px-4">Qtd.</TableHead>
+                                                    <TableRow className="bg-muted/30 border-b-2">
+                                                        <TableHead className="text-[10px] font-black uppercase px-3 sm:px-4">Produto</TableHead>
+                                                        <TableHead className="text-right text-[10px] font-black uppercase px-3 sm:px-4">Quantidade</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
                                                     {topProducts.map((p: any) => (
-                                                        <TableRow key={p.name}>
-                                                            <TableCell className="text-[10px] sm:text-xs font-medium px-3 sm:px-4">{p.name}</TableCell>
-                                                            <TableCell className="text-right text-[10px] sm:text-xs font-bold px-3 sm:px-4">{p.quantity} un.</TableCell>
+                                                        <TableRow key={p.name} className="border-b border-border/50">
+                                                            <TableCell className="text-[10px] sm:text-xs font-bold px-3 sm:px-4 uppercase tracking-tighter">{p.name}</TableCell>
+                                                            <TableCell className="text-right text-[10px] sm:text-xs font-black text-primary px-3 sm:px-4 whitespace-nowrap">{p.quantity} un.</TableCell>
                                                         </TableRow>
                                                     ))}
                                                 </TableBody>
                                             </Table>
                                         ) : (
-                                            <p className="text-muted-foreground p-6 text-center text-xs italic">Sem dados de mix.</p>
+                                            <p className="text-muted-foreground p-10 text-center text-xs font-bold uppercase opacity-50">Sem dados de movimentação.</p>
                                         )}
                                     </CardContent>
                                 </Card>

@@ -62,13 +62,31 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Bloqueia o overscroll elástico no mobile para parecer mais app nativo */
+    overscroll-behavior-y: none;
   }
 }
 
+/* Utilitários de Interface Mobile */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Toque Mobile Otimizado (Mantra do COO) */
+@media (max-width: 768px) {
+  button, [role="button"] {
+    min-height: 44px;
+  }
+  input, select, textarea {
+    font-size: 16px !important; /* Evita zoom automático no iOS */
+  }
+}
+
+/* Animações Suaves */
+.transition-all {
+  transition-duration: 200ms;
 }

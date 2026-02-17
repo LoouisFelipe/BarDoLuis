@@ -1,3 +1,4 @@
+
 'use client';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -115,7 +116,8 @@ const DashboardLayoutContent: React.FC = () => {
     return (
         <main className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-6 bg-muted/20 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
-                <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-card p-1">
+                {/* CPO: ScrollArea permite navegação por abas infinita no mobile sem quebrar o layout */}
+                <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-card p-1 shrink-0">
                     <TabsList className="flex w-max space-x-1 bg-transparent h-auto">
                         {availableTabs.map(([key, tab]) => {
                             const badge = stats[key as keyof typeof stats];
@@ -123,12 +125,12 @@ const DashboardLayoutContent: React.FC = () => {
                                 <TabsTrigger 
                                     key={key} 
                                     value={key} 
-                                    className="flex items-center gap-2 py-2 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                                    className="flex items-center gap-2 py-3 px-5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative transition-all rounded-md"
                                 >
-                                    <tab.icon size={16} />
-                                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-tight">{tab.label}</span>
+                                    <tab.icon size={18} />
+                                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight">{tab.label}</span>
                                     {badge && (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border-2 border-card">
+                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white border-2 border-card animate-in fade-in zoom-in">
                                             {badge}
                                         </span>
                                     )}
@@ -136,12 +138,12 @@ const DashboardLayoutContent: React.FC = () => {
                             );
                         })}
                     </TabsList>
-                    <ScrollBar orientation="horizontal" />
+                    <ScrollBar orientation="horizontal" className="h-1.5" />
                 </ScrollArea>
                 
-                <div className="flex-1 mt-4">
+                <div className="flex-1 mt-4 overflow-hidden">
                     {availableTabs.map(([key, tab]) => (
-                        <TabsContent key={key} value={key} className="h-full mt-0 focus-visible:outline-none">
+                        <TabsContent key={key} value={key} className="h-full mt-0 focus-visible:outline-none overflow-y-auto scrollbar-hide pb-20 md:pb-0">
                             {tab.component}
                         </TabsContent>
                     ))}
