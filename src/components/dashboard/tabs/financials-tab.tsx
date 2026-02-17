@@ -243,7 +243,7 @@ export const FinancialsTab: React.FC = () => {
                 >
                     <Users className="text-yellow-400 mr-3 hidden sm:block group-hover:scale-110 transition-transform" size={28}/>
                     <div>
-                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tighter">A Receber</p>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">A Receber</p>
                         <p className="text-xl md:text-2xl font-black text-yellow-400">R$ {totalFiadoGeral.toFixed(2)}</p>
                     </div>
                 </Button>
@@ -437,7 +437,7 @@ export const FinancialsTab: React.FC = () => {
                                             <FormItem>
                                                 <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Quantos meses replicar?</FormLabel>
                                                 <FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl>
-                                                <p className="text-[8px] text-primary font-bold uppercase italic">* Será criado um registro em 'Recurring Expenses' e {field.value} meses no ledger.</p>
+                                                <p className="text-[8px] text-primary font-bold uppercase italic">* Será criado um registro em &apos;Recurring Expenses&apos; e {field.value} meses no ledger.</p>
                                             </FormItem>
                                         )}/>
                                     )}
