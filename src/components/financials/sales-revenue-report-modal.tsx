@@ -57,8 +57,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
         return allSales.filter((t: Transaction) => t.paymentMethod === selectedMethod);
     }, [allSales, selectedMethod]);
 
-    const paymentMethods = useMemo(() => {
-        const methods = new Set(allSales.map((t: Transaction) => t.paymentMethod).filter(Boolean));
+    const paymentMethods = useMemo<string[]>(() => {
+        const methods = new Set(allSales.map((t: Transaction) => t.paymentMethod).filter(Boolean) as string[]);
         return Array.from(methods).sort();
     }, [allSales]);
 
