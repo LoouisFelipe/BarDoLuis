@@ -1,15 +1,24 @@
 
 'use client';
 import React, { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { TrendingUp, Target, Receipt, History } from 'lucide-react';
-import { TransactionDetailModal } from './transaction-detail-modal';
+import { TrendingUp, Target, Receipt, History, PieChart, X, CreditCard } from 'lucide-react';
 import { Transaction } from '@/lib/schemas';
+import { Spinner } from '@/components/ui/spinner';
+import { TransactionDetailModal } from './transaction-detail-modal';
+import { cn } from '@/lib/utils';
+
+const SalesByPaymentMethodChart = dynamic(() => import('../dashboard/charts/sales-by-payment-method-chart').then(mod => mod.SalesByPaymentMethodChart), { 
+    ssr: false, 
+    loading: () => <div className="h-full w-full flex items-center justify-center"><Spinner/></div> 
+});
 
 interface SalesRevenueReportModalProps {
     open: boolean;
@@ -19,6 +28,11 @@ interface SalesRevenueReportModalProps {
     date: DateRange | undefined;
 }
 
+/**
+ * @fileOverview Relatório de Vendas Premium.
+ * CTO: Adicionado filtros dinâmicos por pagamento e gráfico de share.
+ * CEO: Visão analítica profunda da origem do faturamento.
+ */
 export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = ({
     open,
     onOpenChange,
@@ -27,30 +41,35 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     date,
 }) => {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
     const formattedPeriod = useMemo(() => {
         if (!date?.from) return 'Período Indefinido';
         return `${format(date.from, 'dd/MM/yyyy')} ${date.to ? `- ${format(date.to, 'dd/MM/yyyy')}` : ''}`;
     }, [date]);
 
-    const salesTransactions = useMemo(() => {
+    const allSales = useMemo(() => {
         return reportData?.salesTransactions || [];
     }, [reportData]);
 
-    const topProducts = useMemo(() => {
-        return reportData?.topProducts || [];
-    }, [reportData]);
+    const filteredSales = useMemo(() => {
+        if (!selectedMethod) return allSales;
+        return allSales.filter((t: Transaction) => t.paymentMethod === selectedMethod);
+    }, [allSales, selectedMethod]);
 
-    const goalProgress = useMemo(() => {
-        return reportData?.goalProgress || 0;
-    }, [reportData]);
+    const paymentMethods = useMemo(() => {
+        const methods = new Set(allSales.map((t: Transaction) => t.paymentMethod).filter(Boolean));
+        return Array.from(methods).sort();
+    }, [allSales]);
 
     if (!reportData) return null;
+
+    const goalProgress = reportData?.goalProgress || 0;
 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background border-none md:border-solid">
+                <DialogContent className="max-w-5xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background border-none md:border-solid">
                     <DialogHeader className="p-4 sm:p-6 border-b bg-card shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-accent/10 rounded-xl text-accent shrink-0 border border-accent/20">
@@ -67,7 +86,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                     
                     <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-20">
+                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-24">
                                 <Card className="bg-muted/20 border-dashed border-2">
                                     <CardHeader className="py-2 px-3 sm:py-3 sm:px-4">
                                         <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Período de Análise</CardTitle>
@@ -101,15 +120,58 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                     </Card>
                                 </div>
 
+                                {/* Seção de Gráfico de Meios de Pagamento */}
+                                <Card className="shadow-lg border-none">
+                                    <CardHeader className="pb-2">
+                                        <div className="flex items-center gap-2">
+                                            <PieChart size={18} className="text-primary" />
+                                            <CardTitle className="text-sm font-black uppercase tracking-widest">Share por Pagamento</CardTitle>
+                                        </div>
+                                        <CardDescription className="text-[10px]">Distribuição percentual do faturamento.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="h-[300px] w-full">
+                                            <SalesByPaymentMethodChart data={reportData.salesByPaymentMethodForChart || []} />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
                                 <Card className="shadow-lg border-none">
                                     <CardHeader className="border-b bg-muted/10 py-3 px-3 sm:px-4">
-                                        <div className="flex items-center gap-2">
-                                            <History size={16} className="text-primary" />
-                                            <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Detalhamento Analítico</CardTitle>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <History size={16} className="text-primary" />
+                                                <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Detalhamento Analítico</CardTitle>
+                                            </div>
+                                            
+                                            {/* Filtros de Pagamento */}
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {paymentMethods.map(method => (
+                                                    <Badge 
+                                                        key={method}
+                                                        variant={selectedMethod === method ? "default" : "outline"}
+                                                        className={cn(
+                                                            "cursor-pointer text-[9px] font-black uppercase py-1 transition-all",
+                                                            selectedMethod === method ? "bg-primary shadow-[0_0_10px_rgba(59,130,246,0.3)]" : "hover:bg-muted"
+                                                        )}
+                                                        onClick={() => setSelectedMethod(selectedMethod === method ? null : method)}
+                                                    >
+                                                        {method}
+                                                    </Badge>
+                                                ))}
+                                                {selectedMethod && (
+                                                    <Badge 
+                                                        variant="ghost" 
+                                                        className="text-[9px] font-black uppercase py-1 text-destructive hover:bg-destructive/10"
+                                                        onClick={() => setSelectedMethod(null)}
+                                                    >
+                                                        <X size={10} className="mr-1" /> Limpar
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        {/* CPO: Scroll lateral garantido no mobile para tabelas extensas */}
                                         <div className="overflow-x-auto scrollbar-hide">
                                             <Table>
                                                 <TableHeader>
@@ -121,8 +183,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {salesTransactions.length > 0 ? (
-                                                        salesTransactions.map((t: Transaction) => {
+                                                    {filteredSales.length > 0 ? (
+                                                        filteredSales.map((t: Transaction) => {
                                                             const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                                             return (
                                                                 <TableRow 
@@ -136,10 +198,15 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                                     <TableCell className="text-[10px] sm:text-[11px] font-black truncate max-w-[80px] sm:max-w-[150px] px-2 sm:px-4">
                                                                         {t.tabName || t.description || 'Balcão'}
                                                                     </TableCell>
-                                                                    <TableCell className="text-[9px] sm:text-[10px] font-black uppercase text-muted-foreground px-2 sm:px-4 whitespace-nowrap">
-                                                                        {t.paymentMethod}
+                                                                    <TableCell className="px-2 sm:px-4">
+                                                                        <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/20 text-muted-foreground">
+                                                                            {t.paymentMethod}
+                                                                        </Badge>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right text-[10px] sm:text-xs font-black text-accent px-2 sm:px-4 whitespace-nowrap">
+                                                                    <TableCell className={cn(
+                                                                        "text-right text-[10px] sm:text-xs font-black px-2 sm:px-4 whitespace-nowrap",
+                                                                        t.paymentMethod === 'Fiado' ? "text-yellow-400" : "text-accent"
+                                                                    )}>
                                                                         R$ {t.total.toFixed(2)}
                                                                     </TableCell>
                                                                 </TableRow>
@@ -148,7 +215,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                     ) : (
                                                         <TableRow>
                                                             <TableCell colSpan={4} className="text-center py-16 text-muted-foreground font-bold text-xs uppercase opacity-50">
-                                                                Nenhuma venda capturada no período.
+                                                                Nenhuma venda encontrada com este filtro.
                                                             </TableCell>
                                                         </TableRow>
                                                     )}
@@ -163,7 +230,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                         <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Top Mix de Produtos</CardTitle>
                                     </CardHeader>
                                     <CardContent className="p-0">
-                                        {topProducts.length > 0 ? (
+                                        {reportData.topProducts?.length > 0 ? (
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow className="bg-muted/30 border-b-2">
@@ -172,7 +239,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
-                                                    {topProducts.map((p: any) => (
+                                                    {reportData.topProducts.map((p: any) => (
                                                         <TableRow key={p.name} className="border-b border-border/50">
                                                             <TableCell className="text-[10px] sm:text-xs font-bold px-3 sm:px-4 uppercase tracking-tighter">{p.name}</TableCell>
                                                             <TableCell className="text-right text-[10px] sm:text-xs font-black text-primary px-3 sm:px-4 whitespace-nowrap">{p.quantity} un.</TableCell>
