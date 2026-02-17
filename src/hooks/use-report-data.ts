@@ -9,6 +9,7 @@ import { DateRange } from 'react-day-picker';
 /**
  * @fileOverview Hook de inteligência para processamento de KPIs.
  * CTO: Refatorado para implementar a lógica de meta baseada em rateio de despesas mensais.
+ * CFO: Garantindo que TODAS as despesas (fixas e fornecedores) componham a meta.
  */
 
 interface UseReportDataProps {
@@ -35,30 +36,33 @@ export const useReportData = ({
     const to = endOfDay(date.to || date.from);
     const interval = { start: from, end: to };
 
+    // 1. Filtragem das transações do período selecionado
     const filteredTransactions = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return timestamp && isWithinInterval(timestamp, interval);
     });
 
-    // --- Lógica de Meta Estratégica (Rateio de Despesas) ---
+    // 2. Lógica de Meta Estratégica (Rateio de Despesas Mensais)
+    // CEO: A meta é cobrir os custos. Pegamos TUDO que é despesa no mês do início do filtro.
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = getDaysInMonth(from);
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
-    // CEO: Buscamos todas as despesas do mês corrente para definir o custo operacional total
+    // CFO: Auditoria de TODAS as despesas do mês corrente (Fixo + Variável + Insumos)
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
+      // Consideramos apenas saídas (expense) registradas no ledger para o mês em análise
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
     }).reduce((acc, t) => acc + (t.total || 0), 0);
 
-    // Rateio diário das despesas do mês (Break-even diário)
+    // Rateio diário: o custo de existência diário do BarDoLuis
     const dailyExpenseRate = totalMonthlyExpenses / daysInMonth;
     
-    // A meta do período é o custo proporcional aos dias selecionados no Cockpit
+    // Meta dinâmica: custo rateado proporcional ao número de dias do filtro do Cockpit
     const dynamicCostGoal = dailyExpenseRate * daysInPeriod;
 
-    // Dias de comparação (Período anterior)
+    // Comparação com período anterior
     const daysDiff = differenceInDays(to, from) + 1;
     const prevFrom = startOfDay(subDays(from, daysDiff));
     const prevTo = endOfDay(subDays(to, daysDiff));
@@ -221,7 +225,7 @@ export const useReportData = ({
 
     const finalGoal = periodGoal > 0 ? periodGoal : dynamicCostGoal;
     
-    // CEO: Progresso é a Receita Bruta comparada à Meta de Gastos
+    // CEO: Progresso é a Receita Bruta comparada à Meta de Gastos (Rateada)
     const goalProgress = finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : (currentMetrics.revenue > 0 ? 100 : 0);
 
     return {
