@@ -75,7 +75,7 @@ export const FinancialsTab: React.FC = () => {
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
     
-    const [fixedCategories, setFixedCategories] = useState({ 'Aluguel': 'Aluguel', 'Contas Fixas': 'Contas Fixas (Água, Luz, etc)', 'Internet': 'Internet/Software' });
+    const [fixedCategories, setFixedCategories] = useState({ 'Aluguel': 'Aluguel', 'Contas Fixas': 'Contas Fixas', 'Internet': 'Internet/Software' });
     const [variableCategories, setVariableCategories] = useState({ 'Insumos': 'Insumos & Fornecedores', 'Taxas de Cartão': 'Taxas de Cartão', 'Marketing': 'Marketing', 'Outros': 'Outros' });
 
     const form = useForm<ExpenseFormData>({
@@ -150,7 +150,7 @@ export const FinancialsTab: React.FC = () => {
             reset({ description: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], category: '', replicate: false, monthsToReplicate: '11' });
             setIsExpenseModalOpen(false);
         } catch (error) {
-            // Error handled by context
+            // Context handles error
         } finally {
             setProcessing(false);
         }
@@ -162,7 +162,7 @@ export const FinancialsTab: React.FC = () => {
         try {
             await deleteTransaction(transactionToDelete.id);
         } catch (error) {
-            // Error handled by context
+            // Context handles error
         } finally {
             setProcessing(false);
             setTransactionToDelete(null);
@@ -171,7 +171,7 @@ export const FinancialsTab: React.FC = () => {
 
     const getFilterTitle = () => {
         if (!date?.from) return "Carregando...";
-        if (filter === 'recurring') return "Contratos de Custos Fixos (Recurring)";
+        if (filter === 'recurring') return "Contratos de Custos Fixos";
         const fromDate = format(date.from, 'dd/MM/yy');
         const toDate = date.to ? format(date.to, 'dd/MM/yy') : fromDate;
         const period = fromDate === toDate ? fromDate : `de ${fromDate} a ${toDate}`;
@@ -460,7 +460,7 @@ export const FinancialsTab: React.FC = () => {
                         <AlertDialogHeader>
                             <AlertDialogTitle className="font-black uppercase text-destructive tracking-tight">Excluir Transação?</AlertDialogTitle>
                             <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed">
-                                Esta ação anulará o registro de <strong>{transactionToDelete.description}</strong>. {transactionToDelete.recurringExpenseId && "Nota: Esta é uma ocorrência de custo fixo. Deseja excluir apenas esta ou todo o plano? (Por enquanto apenas esta será removida)."}
+                                Esta ação anulará o registro de <strong>{transactionToDelete.description}</strong>.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="gap-2">

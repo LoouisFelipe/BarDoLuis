@@ -6,178 +6,69 @@ service cloud.firestore {
      * BARDOLUIS SECURITY RULES DOCUMENTATION
      *
      * Core Philosophy:
-     * This ruleset implements a Database-Based Access Control (DBAC) model for a single-tenant
-     * organizational system. Access to all business data is gated by the existence of a 
-     * document in the /users collection matching the user's authenticated UID.
-     *
-     * Data Structure:
-     * The system uses flat top-level collections for primary business entities (Suppliers, 
-     * Products, Customers, Purchases, Sales, Transactions) to ensure global visibility 
-     * for authorized staff.
-     *
-     * Key Security Decisions:
-     * 1. Authorization Role: A user's role is derived from their document in the /users/{uid} collection.
-     * 2. Organization-Wide Access: Once a user is verified as an app user, they have full 
-     *    CRUD access to organizational resources.
-     * 3. Self-Registration: Users manage their own profile document upon first login.
-     * 4. Relational Integrity: Verifies that internal 'id' or 'uid' fields match the document path.
+     * Access to business data is gated by the existence of a document in the /users collection 
+     * matching the user's authenticated UID.
      */
 
     // --- Helper Functions ---
 
-    /**
-     * @description Checks if the request is from an authenticated user.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user has a valid authorization record in /users.
-     */
     function isAppUser() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    /**
-     * @description Checks if the UID in the path matches the authenticated user's UID.
-     */
     function isOwner(uid) {
       return request.auth.uid == uid;
     }
 
-    /**
-     * @description Combines authentication and app-user verification for business data access.
-     */
     function canManageBusinessData() {
       return isSignedIn() && isAppUser();
     }
 
-    /**
-     * @description Verifies document existence and app-user status for updates and deletes.
-     */
-    function isAuthorizedExistingDoc() {
-      return canManageBusinessData() && resource != null;
-    }
-
     // --- Collection Rules ---
 
-    /**
-     * @description Manages user authorization records.
-     * @path /users/{uid}
-     */
     match /users/{uid} {
       allow get: if isSignedIn() && isOwner(uid);
       allow list: if canManageBusinessData();
-      allow create: if isSignedIn() && isOwner(uid) && request.resource.data.uid == uid;
+      allow create: if isSignedIn() && isOwner(uid);
       allow update, delete: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to business suppliers.
-     * @path /suppliers/{supplierId}
-     */
     match /suppliers/{supplierId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == supplierId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to product inventory.
-     * @path /products/{productId}
-     */
     match /products/{productId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == productId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to entertainment modalities (Banca).
-     * @path /game_modalities/{modalityId}
-     */
     match /game_modalities/{modalityId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == modalityId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to customer records.
-     * @path /customers/{customerId}
-     */
     match /customers/{customerId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == customerId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to active tables and tabs.
-     * @path /open_orders/{orderId}
-     */
     match /open_orders/{orderId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == orderId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to purchase orders.
-     * @path /purchases/{purchaseId}
-     */
-    match /purchases/{purchaseId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == purchaseId;
-      allow update, delete: if isAuthorizedExistingDoc();
-
-      match /purchaseItems/{itemId} {
-        allow get, list: if canManageBusinessData();
-        allow create: if canManageBusinessData() && request.resource.data.id == itemId;
-        allow update, delete: if isAuthorizedExistingDoc();
-      }
-    }
-
-    /**
-     * @description Access to sale transactions.
-     * @path /sales/{saleId}
-     */
-    match /sales/{saleId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == saleId;
-      allow update, delete: if isAuthorizedExistingDoc();
-
-      match /saleItems/{itemId} {
-        allow get, list: if canManageBusinessData();
-        allow create: if canManageBusinessData() && request.resource.data.id == itemId;
-        allow update, delete: if isAuthorizedExistingDoc();
-      }
-    }
-
-    /**
-     * @description Access to financial records.
-     * @path /transactions/{transactionId}
-     */
     match /transactions/{transactionId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == transactionId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description Access to recurring expense plans.
-     * @path /recurring_expenses/{expenseId}
-     */
     match /recurring_expenses/{expenseId} {
-      allow get, list: if canManageBusinessData();
-      allow create: if canManageBusinessData() && request.resource.data.id == expenseId;
-      allow update, delete: if isAuthorizedExistingDoc();
+      allow read, write: if canManageBusinessData();
     }
 
-    /**
-     * @description CTO Diagnostic collection.
-     */
+    match /purchases/{purchaseId} {
+      allow read, write: if canManageBusinessData();
+    }
+
     match /_diagnostics/{docId} {
       allow write: if isSignedIn();
       allow read: if canManageBusinessData();
