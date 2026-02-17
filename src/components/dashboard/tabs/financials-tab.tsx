@@ -18,12 +18,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { 
@@ -247,7 +249,6 @@ export const FinancialsTab: React.FC = () => {
                 </Button>
             </div>
 
-            {/* CEO: Atalho para gestão de custos fixos recorrentes */}
             <div className="flex bg-card/50 p-1.5 rounded-xl border border-border/40 w-full sm:w-auto overflow-hidden">
                 <Button 
                     variant="ghost" 
