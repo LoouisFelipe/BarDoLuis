@@ -9,7 +9,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 /**
  * @fileOverview Provedor central de serviços Firebase.
  * CTO: Fornece acesso compartilhado aos serviços conectados à instância 'bardoluis'.
- * Refatorado para ser resiliente durante o Server-Side Rendering (SSR).
+ * Refatorado para ser resiliente durante o boot inicial e SSR.
  */
 
 interface FirebaseProviderProps {
@@ -102,7 +102,7 @@ export const useFirebase = (): FirebaseContextState => {
   return context;
 };
 
-// CTO: Hooks de conveniência que retornam nulo em vez de erro se os serviços ainda não estiverem prontos (SSR Safe)
+// CTO: Hooks que retornam nulo silenciosamente se o SSR ainda estiver em curso
 export const useAuth = (): Auth | null => {
   const { auth } = useFirebase();
   return auth;

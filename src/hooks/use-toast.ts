@@ -3,6 +3,11 @@
 import * as React from 'react';
 import { type ToastActionElement, type ToastProps } from '@/components/ui/toast';
 
+/**
+ * @fileOverview Implementação centralizada do hook de Toast para o BarDoLuis.
+ * CTO: Este é o local oficial de estado de notificações, conforme regras de arquitetura.
+ */
+
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 5000;
 

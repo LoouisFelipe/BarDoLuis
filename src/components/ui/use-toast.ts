@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * @fileOverview Exportador de compatibilidade para o hook de Toast.
- * CTO: A implementação oficial reside em src/hooks/ conforme as regras do BarDoLuis.
- * Este arquivo atua apenas como uma ponte para não quebrar componentes Shadcn.
+ * @fileOverview Ponte de compatibilidade (Redirecionador).
+ * CEO: Este arquivo não deve mais conter lógica. Todas as conexões devem
+ * preferir importar diretamente de @/hooks/use-toast.
  */
 export { useToast } from "@/hooks/use-toast";

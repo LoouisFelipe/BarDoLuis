@@ -10,6 +10,11 @@ import {
 } from "@/components/ui/toast"
 import { useToast } from "@/hooks/use-toast"
 
+/**
+ * @fileOverview Componente de renderização de Toasts.
+ * CTO: Conectado diretamente ao hook oficial em src/hooks/.
+ */
+
 export function Toaster() {
   const { toasts } = useToast()
 
