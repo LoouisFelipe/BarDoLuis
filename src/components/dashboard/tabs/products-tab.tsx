@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { Package, PlusCircle, Edit, PackagePlus, Trash2, AlertTriangle } from 'lucide-react';
+import { Package, PlusCircle, Edit, PackagePlus, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
@@ -112,7 +112,7 @@ export const ProductsTab: React.FC = () => {
         let markupValue = 0;
         let hasCalculation = false;
 
-        const isStandardSale = p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight';
+        const isStandardSale = p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight' || p.saleType === 'game';
 
         if (isStandardSale && cost > 0) {
             const price = Number(p.unitPrice) || 0;
@@ -131,6 +131,11 @@ export const ProductsTab: React.FC = () => {
                 
                 markupValue = totalMarkup / activeDoses.length;
                 hasCalculation = true;
+            }
+        } else if (p.saleType === 'game' || p.saleType === 'service') {
+            // Se for game/service sem custo, markup é considerado 100% ou N/A dependendo da política
+            if (cost === 0 && (p.unitPrice || 0) > 0) {
+                return { label: 'MAX', color: 'text-accent' };
             }
         }
 
@@ -173,12 +178,15 @@ export const ProductsTab: React.FC = () => {
                                     return (
                                         <TableRow key={p.id} className="border-t">
                                             <TableCell className="font-medium pl-6">
-                                                <div>{p.name}</div>
+                                                <div className="flex items-center gap-2">
+                                                    {p.saleType === 'game' && <Sparkles size={14} className="text-orange-500" />}
+                                                    {p.name}
+                                                </div>
                                                 <div className="text-xs text-muted-foreground">{p.subcategory}</div>
                                             </TableCell>
                                             <TableCell>
-                                                {p.saleType === 'service' ? (
-                                                    'Não aplicável'
+                                                {p.saleType === 'service' || p.saleType === 'game' ? (
+                                                    <span className="text-[10px] font-bold uppercase opacity-50">Não aplicável</span>
                                                 ) : (p.stock ?? 0) <= 0 ? (
                                                     <span className="text-xs font-bold px-2 py-1 rounded-full bg-destructive text-destructive-foreground">ESGOTADO</span>
                                                 ) : (
@@ -197,9 +205,9 @@ export const ProductsTab: React.FC = () => {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell>{p.saleType !== 'service' ? `R$ ${cost.toFixed(2)}` : 'N/A'}</TableCell>
+                                            <TableCell>{p.saleType !== 'service' && p.saleType !== 'game' ? `R$ ${cost.toFixed(2)}` : 'N/A'}</TableCell>
                                             <TableCell>
-                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
+                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight' || p.saleType === 'game') && `R$ ${price.toFixed(2)}`}
                                                 {p.saleType === 'dose' && (p.doseOptions && p.doseOptions.length > 0 ? `${p.doseOptions.length} Opções` : 'N/A')}
                                                 {p.saleType === 'service' && 'Valor Aberto'}
                                             </TableCell>
@@ -210,7 +218,7 @@ export const ProductsTab: React.FC = () => {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
-                                                {p.saleType !== 'service' && (
+                                                {p.saleType !== 'service' && p.saleType !== 'game' && (
                                                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="text-accent hover:text-accent/80"><PackagePlus size={20} /></Button></TooltipTrigger><TooltipContent><p>Adicionar Estoque</p></TooltipContent></Tooltip>
                                                 )}
                                                 <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="text-primary hover:text-primary/80"><Edit size={20} /></Button></TooltipTrigger><TooltipContent><p>Editar Produto</p></TooltipContent></Tooltip>

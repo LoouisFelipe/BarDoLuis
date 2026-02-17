@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Transaction, OrderItem, PurchaseItem } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
-import { User, Calendar, Clock } from 'lucide-react';
+import { User, Calendar, Clock, Hash } from 'lucide-react';
 
 interface TransactionDetailModalProps {
     transaction: Transaction;
@@ -102,13 +102,17 @@ export const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ 
                                         const quantity = item.quantity;
                                         const price = isOrderItem ? (item as OrderItem).unitPrice : (item as PurchaseItem).unitCost;
                                         const subName = isOrderItem && (item as OrderItem).doseName ? ` (${(item as OrderItem).doseName})` : '';
+                                        const identifier = isOrderItem && (item as OrderItem).identifier ? (item as OrderItem).identifier : null;
                                         const itemId = isOrderItem && (item as OrderItem).productId ? (item as OrderItem).productId : `item-${index}`;
 
                                         return (
                                             <TableRow key={`${itemId}-${index}`} className="hover:bg-transparent">
                                                 <TableCell className="py-3 px-4">
                                                     <div className="font-bold text-sm leading-tight">{name}</div>
-                                                    {subName && <div className="text-[10px] text-muted-foreground uppercase">{subName}</div>}
+                                                    <div className="flex flex-col gap-0.5">
+                                                        {subName && <div className="text-[10px] text-muted-foreground uppercase">{subName}</div>}
+                                                        {identifier && <div className="text-[10px] text-orange-500 font-black uppercase flex items-center gap-1"><Hash size={8}/> Ref: {identifier}</div>}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-center font-medium px-4">{quantity}</TableCell>
                                                 <TableCell className="text-right font-bold text-sm px-4 whitespace-nowrap">R$ {(price * quantity).toFixed(2)}</TableCell>

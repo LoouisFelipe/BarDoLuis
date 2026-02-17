@@ -231,6 +231,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                             <SelectItem value="dose">Por Dose (Bebidas)</SelectItem>
                                             <SelectItem value="portion">Por Porção (Pratos)</SelectItem>
                                             <SelectItem value="weight">Por Peso (Kg/g)</SelectItem>
+                                            <SelectItem value="game">Jogo / Entretenimento</SelectItem>
                                             <SelectItem value="service">Serviço / Valor Aberto</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -239,7 +240,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                 )}
                             />
 
-                            {saleType !== 'service' && (
+                            {saleType !== 'service' && saleType !== 'game' && (
                                 <>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={control} name="costPrice" render={({ field }) => (
@@ -281,10 +282,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({ product: ini
                                 </>
                             )}
 
-                            {(saleType === 'unit' || saleType === 'portion' || saleType === 'weight') && (
+                            {(saleType === 'unit' || saleType === 'portion' || saleType === 'weight' || saleType === 'game') && (
                                 <FormField control={control} name="unitPrice" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Preço de Venda (R$)</FormLabel>
+                                        <FormLabel>Preço de Venda {saleType === 'game' && '(Valor Sugerido)'} (R$)</FormLabel>
                                         <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseFloat(e.target.value || '0'))} /></FormControl>
                                         <FormMessage />
                                     </FormItem>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer } from '@/lib/schemas';
@@ -8,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOpenOrders } from '@/hooks/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
+import { Label } from '../ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +60,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
 
+  // Estado para Jogo / Valor Aberto
+  const [productToCustomize, setProductToCustomize] = useState<Product | null>(null);
+  const [customData, setCustomItemData] = useState({ price: '', identifier: '' });
+
   const linkedCustomer = useMemo(() => 
     customers.find(c => c.id === existingOrder?.customerId),
     [customers, existingOrder?.customerId]
@@ -74,6 +78,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setSearchTerm('');
       setCustomerSearch('');
       setActiveTab('menu');
+      setProductToCustomize(null);
     }
   }, [open, existingOrder]);
   
@@ -90,7 +95,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     return products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = !selectedCategory || p.category === selectedCategory;
-        const hasStock = (p.stock || 0) > 0 || p.saleType === 'service';
+        const hasStock = (p.stock || 0) > 0 || p.saleType === 'service' || p.saleType === 'game';
         return matchesSearch && matchesCategory && hasStock;
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [products, searchTerm, selectedCategory]);
@@ -101,10 +106,14 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     ).sort((a, b) => a.name.localeCompare(b.name));
   }, [customers, customerSearch]);
 
-  const handleUpdateQuantity = (productId: string, doseName: string | undefined | null, change: number) => {
+  const handleUpdateQuantity = (productId: string, doseName: string | undefined | null, change: number, identifier?: string) => {
     setCurrentItems(prevItems => {
       const newItems = [...prevItems];
-      const itemIndex = newItems.findIndex(i => i.productId === productId && (i.doseName === doseName || (!i.doseName && !doseName)));
+      const itemIndex = newItems.findIndex(i => 
+        i.productId === productId && 
+        (i.doseName === doseName || (!i.doseName && !doseName)) &&
+        i.identifier === identifier
+      );
       if (itemIndex === -1) return prevItems;
       const newQuantity = newItems[itemIndex].quantity + change;
       if (newQuantity <= 0) {
@@ -116,19 +125,24 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     });
   };
   
-  const handleAddItem = useCallback((product: Product, dose?: DoseOption) => {
+  const handleAddItem = useCallback((product: Product, dose?: DoseOption, customPrice?: number, identifier?: string) => {
      if (!product.id) return;
      const newItem: OrderItem = {
         productId: product.id,
         name: product.name,
         quantity: 1,
-        unitPrice: dose ? dose.price : (product.unitPrice || 0),
+        unitPrice: customPrice !== undefined ? customPrice : (dose ? dose.price : (product.unitPrice || 0)),
         ...(dose?.name ? { doseName: dose.name } : {}),
         ...(dose?.size ? { size: dose.size } : {}),
+        ...(identifier ? { identifier } : {}),
     };
     setCurrentItems(prevItems => {
-        const existingItemIndex = prevItems.findIndex(i => i.productId === newItem.productId && i.doseName === newItem.doseName);
-        if (existingItemIndex > -1) {
+        const existingItemIndex = prevItems.findIndex(i => 
+            i.productId === newItem.productId && 
+            i.doseName === newItem.doseName &&
+            i.identifier === newItem.identifier
+        );
+        if (existingItemIndex > -1 && !newItem.identifier) {
             const updated = [...prevItems];
             updated[existingItemIndex].quantity += 1;
             return updated;
@@ -138,6 +152,14 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     });
     toast({ description: `${newItem.name} adicionado!`, duration: 800, className: "bg-primary text-primary-foreground border-none font-bold" });
   }, [toast]);
+
+  const handleCustomConfirm = () => {
+    if (!productToCustomize) return;
+    const price = parseFloat(customData.price) || 0;
+    handleAddItem(productToCustomize, undefined, price, customData.identifier);
+    setProductToCustomize(null);
+    setCustomItemData({ price: '', identifier: '' });
+  };
 
   const handleSaveOrder = async () => {
     if (!existingOrder?.id) return;
@@ -232,7 +254,14 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               <Card 
                 key={product.id} 
                 className="hover:border-primary transition-all cursor-pointer active:scale-95 shadow-sm overflow-hidden" 
-                onClick={() => product.saleType !== 'dose' && handleAddItem(product)}
+                onClick={() => {
+                    if (product.saleType === 'game' || product.saleType === 'service') {
+                        setProductToCustomize(product);
+                        setCustomItemData({ price: String(product.unitPrice || ''), identifier: '' });
+                    } else if (product.saleType !== 'dose') {
+                        handleAddItem(product);
+                    }
+                }}
               >
                 <CardContent className="p-3 flex flex-col justify-between h-full gap-2">
                   <div className="flex justify-between items-start gap-2">
@@ -240,7 +269,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         <p className="font-bold text-sm leading-tight truncate">{product.name}</p>
                         <p className="text-[9px] uppercase font-black text-muted-foreground tracking-tighter mt-0.5">{product.category}</p>
                     </div>
-                    {product.saleType !== 'service' && (
+                    {product.saleType !== 'service' && product.saleType !== 'game' && (
                         <span className={cn(
                             "text-[10px] font-black px-1.5 py-0.5 rounded",
                             (product.stock || 0) <= 5 ? "bg-red-500/10 text-red-500" : "bg-muted text-muted-foreground"
@@ -248,10 +277,13 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                           {product.stock} {product.saleType === 'dose' ? 'ml' : 'un.'}
                         </span>
                     )}
+                    {product.saleType === 'game' && (
+                        <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[8px] font-black">ENTRETENIMENTO</Badge>
+                    )}
                   </div>
                   <div className="flex items-center justify-between mt-auto">
                     <span className="font-black text-primary text-base">
-                        {product.saleType === 'unit' || product.saleType === 'portion' ? `R$ ${product.unitPrice?.toFixed(2)}` : 'Várias Doses'}
+                        {product.saleType === 'unit' || product.saleType === 'portion' || product.saleType === 'game' ? `R$ ${product.unitPrice?.toFixed(2)}` : 'Várias Doses'}
                     </span>
                     {product.saleType === 'dose' ? (
                       <Popover>
@@ -302,25 +334,30 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             </div>
           ) : (
             currentItems.map((item, idx) => (
-              <div key={`${item.productId}-${item.doseName || idx}`} className="flex items-center justify-between bg-background border-2 rounded-xl p-3 shadow-sm transition-all hover:border-primary/30">
+              <div key={`${item.productId}-${item.doseName || idx}-${item.identifier || ''}`} className="flex items-center justify-between bg-background border-2 rounded-xl p-3 shadow-sm transition-all hover:border-primary/30">
                 <div className="flex-grow min-w-0 pr-2">
                   <p className="font-black text-xs truncate leading-none mb-1">{item.name}</p>
                   {item.doseName && <p className="text-[9px] text-primary font-black uppercase">{item.doseName}</p>}
+                  {item.identifier && <p className="text-[9px] text-orange-500 font-black uppercase flex items-center gap-1"><Hash size={8}/> Ref: {item.identifier}</p>}
                   <p className="text-[10px] font-bold text-muted-foreground">R$ {item.unitPrice.toFixed(2)} un.</p>
                 </div>
                 <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md hover:bg-background" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -1)}><Minus className="h-4 w-4" /></Button>
-                  <span className="w-6 text-center text-sm font-black">{item.quantity}</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md hover:bg-background" onClick={() => handleUpdateQuantity(item.productId, item.doseName, 1)}><Plus className="h-4 w-4" /></Button>
+                  {!item.identifier && (
+                    <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md hover:bg-background" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -1, item.identifier)}><Minus className="h-4 w-4" /></Button>
+                        <span className="w-6 text-center text-sm font-black">{item.quantity}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md hover:bg-background" onClick={() => handleUpdateQuantity(item.productId, item.doseName, 1, item.identifier)}><Plus className="h-4 w-4" /></Button>
+                    </>
+                  )}
+                  {item.identifier && <span className="w-6 text-center text-sm font-black">1x</span>}
                 </div>
-                <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive ml-1" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -item.quantity)}><Trash2 size={18} /></Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive ml-1" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -item.quantity, item.identifier)}><Trash2 size={18} /></Button>
               </div>
             ))
           )}
         </div>
       </ScrollArea>
       
-      {/* Checkout Fixo no Mobile e Desktop */}
       <div className="p-4 border-t bg-card mt-auto space-y-3 shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.1)]">
         <div className="flex justify-between items-end px-1">
           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Valor Total</span>
@@ -401,7 +438,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           </DialogHeader>
           
           <div className="flex-grow flex flex-col overflow-hidden bg-muted/10">
-            {/* Layout Desktop vs Mobile (CPO: Tabs para Mobile, Side-by-side para Desktop) */}
             <div className="flex flex-col h-full md:hidden">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
                 <TabsList className="grid w-full grid-cols-2 bg-card rounded-none h-14 border-b p-0">
@@ -432,6 +468,47 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         </DialogContent>
       </Dialog>
       
+      {/* Dialog para Jogo ou Serviço (Valor Aberto) */}
+      <Dialog open={!!productToCustomize} onOpenChange={(o) => !o && setProductToCustomize(null)}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <Sparkles className="text-orange-500" /> Detalhes da Aposta/Serviço
+                </DialogTitle>
+                <DialogDescription className="text-xs uppercase font-bold text-muted-foreground">
+                    {productToCustomize?.name}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor do Registro (R$)</Label>
+                    <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={customData.price} 
+                        onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))}
+                        className="h-12 text-xl font-black text-primary bg-background border-2"
+                        placeholder="0.00"
+                        autoFocus
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Referência / Milhar / Cartela</Label>
+                    <Input 
+                        value={customData.identifier} 
+                        onChange={(e) => setCustomItemData(p => ({ ...p, identifier: e.target.value }))}
+                        className="h-12 font-bold bg-background border-2"
+                        placeholder="Ex: Milhar 1234, Bingo Cartela 55..."
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setProductToCustomize(null)}>Cancelar</Button>
+                <Button onClick={handleCustomConfirm} className="bg-primary text-white font-black uppercase">Confirmar e Adicionar</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {isPaymentModalOpen && (
         <OrderPaymentModal 
           open={isPaymentModalOpen}

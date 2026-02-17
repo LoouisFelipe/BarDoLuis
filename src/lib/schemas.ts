@@ -17,7 +17,7 @@ export interface Product {
   unitPrice: number;
   stock: number;
   lowStockThreshold?: number | null;
-  saleType: 'unit' | 'dose' | 'service' | 'portion' | 'weight';
+  saleType: 'unit' | 'dose' | 'service' | 'portion' | 'weight' | 'game';
   doseOptions?: DoseOption[];
   baseUnitSize?: number | null;
   createdAt?: FieldValue | Date;
@@ -54,7 +54,7 @@ export interface OrderItem {
   size?: number; 
   doseName?: string; 
   subcategory?: string;
-  identifier?: string;
+  identifier?: string; // Campo para Milhar, Nº Cartela, ID Máquina
 }
 
 export interface Order {
