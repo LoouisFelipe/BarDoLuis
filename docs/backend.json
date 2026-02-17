@@ -1,87 +1,586 @@
 {
   "entities": {
-    "Product": {
-      "title": "Product",
-      "description": "Bens de consumo e serviços (cervejas, doses, petiscos).",
+    "Supplier": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Supplier",
       "type": "object",
+      "description": "Represents a business supplier from whom products or services are purchased.",
       "properties": {
-        "name": { "type": "string" },
-        "category": { "type": "string" },
-        "subcategory": { "type": "string" },
-        "costPrice": { "type": "number" },
-        "unitPrice": { "type": "number" },
-        "stock": { "type": "number" },
-        "saleType": { "type": "string", "enum": ["unit", "dose", "service", "portion", "weight"] },
-        "lowStockThreshold": { "type": "number" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Supplier entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the supplier company."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "The name of the primary contact person at the supplier."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary phone number for contacting the supplier."
+        },
+        "email": {
+          "type": "string",
+          "description": "The primary email address for the supplier.",
+          "format": "email"
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the supplier."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the supplier record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the supplier record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactPerson",
+        "phoneNumber",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product managed in the inventory, available for purchase or sale.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock Keeping Unit, a unique code for product identification."
+        },
+        "currentStock": {
+          "type": "number",
+          "description": "The current quantity of the product available in stock."
+        },
+        "costPrice": {
+          "type": "number",
+          "description": "The average cost price of the product from suppliers."
+        },
+        "salePrice": {
+          "type": "number",
+          "description": "The standard selling price of the product to customers."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the product record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the product record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "sku",
+        "currentStock",
+        "costPrice",
+        "salePrice",
+        "createdAt",
+        "updatedAt"
+      ]
     },
     "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Customer",
-      "description": "Fieis e devedores (Fiado).",
       "type": "object",
+      "description": "Represents a customer who purchases products or services from the business.",
       "properties": {
-        "name": { "type": "string" },
-        "balance": { "type": "number" },
-        "contact": { "type": "string" },
-        "creditLimit": { "type": "number" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Customer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the customer."
+        },
+        "email": {
+          "type": "string",
+          "description": "The primary email address for the customer.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary phone number for contacting the customer."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the customer."
+        },
+        "outstandingBalance": {
+          "type": "number",
+          "description": "The total outstanding balance for credit sales made to the customer."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the customer record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the customer record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "phoneNumber",
+        "outstandingBalance",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "Supplier": {
-      "title": "Supplier",
-      "description": "Fornecedores de insumos.",
+    "Purchase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Purchase",
       "type": "object",
+      "description": "Records information about a purchase order made from a supplier.",
       "properties": {
-        "name": { "type": "string" },
-        "contactPerson": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Purchase entity."
+        },
+        "supplierId": {
+          "type": "string",
+          "description": "Reference to Supplier. (Relationship: Supplier 1:N Purchase)"
+        },
+        "purchaseDate": {
+          "type": "string",
+          "description": "The date and time when the purchase was made.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total monetary amount of the purchase."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the purchase (e.g., 'pending', 'completed', 'cancelled')."
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The invoice number provided by the supplier for this purchase."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the purchase record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the purchase record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "supplierId",
+        "purchaseDate",
+        "totalAmount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PurchaseItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PurchaseItem",
+      "type": "object",
+      "description": "Represents a single product item included in a purchase order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PurchaseItem entity."
+        },
+        "purchaseId": {
+          "type": "string",
+          "description": "Reference to Purchase. (Relationship: Purchase 1:N PurchaseItem)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N PurchaseItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the product purchased in this item."
+        },
+        "unitCostPrice": {
+          "type": "number",
+          "description": "The cost price of a single unit of the product at the time of this specific purchase."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the purchase item record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the purchase item record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "purchaseId",
+        "productId",
+        "quantity",
+        "unitCostPrice",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Sale": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sale",
+      "type": "object",
+      "description": "Records information about a sale transaction made to a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Sale entity."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to Customer. (Relationship: Customer 1:N Sale)"
+        },
+        "saleDate": {
+          "type": "string",
+          "description": "The date and time when the sale occurred.",
+          "format": "date-time"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total monetary amount of the sale."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the sale (e.g., 'completed', 'pending payment', 'returned', 'credit')."
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "description": "The invoice number generated for this sale."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the sale record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the sale record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "saleDate",
+        "totalAmount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SaleItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SaleItem",
+      "type": "object",
+      "description": "Represents a single product item included in a sale transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SaleItem entity."
+        },
+        "saleId": {
+          "type": "string",
+          "description": "Reference to Sale. (Relationship: Sale 1:N SaleItem)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to Product. (Relationship: Product 1:N SaleItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the product sold in this item."
+        },
+        "unitSalePrice": {
+          "type": "number",
+          "description": "The selling price of a single unit of the product at the time of this specific sale."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the sale item record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the sale item record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "saleId",
+        "productId",
+        "quantity",
+        "unitSalePrice",
+        "createdAt",
+        "updatedAt"
+      ]
     },
     "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
-      "description": "Fluxo financeiro (Vendas, Despesas, Pagamentos).",
       "type": "object",
+      "description": "Represents a financial transaction, categorized as either income or expense, for financial overview.",
       "properties": {
-        "type": { "type": "string", "enum": ["sale", "expense", "payment"] },
-        "total": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "paymentMethod": { "type": "string" },
-        "description": { "type": "string" },
-        "customerId": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date and time when the transaction occurred.",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary amount of the transaction."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction, either 'income' or 'expense'."
+        },
+        "category": {
+          "type": "string",
+          "description": "A category for the transaction (e.g., 'Sales', 'Supplier Payment', 'Rent', 'Salary')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description or notes about the transaction."
+        },
+        "relatedPurchaseId": {
+          "type": "string",
+          "description": "Optional reference to a Purchase, if this transaction is related to a purchase payment. (Relationship: Purchase 1:1 Transaction)"
+        },
+        "relatedSaleId": {
+          "type": "string",
+          "description": "Optional reference to a Sale, if this transaction is related to a sale receipt. (Relationship: Sale 1:1 Transaction)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the transaction record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the transaction record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "amount",
+        "type",
+        "category",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/products/{productId}": {
-      "schema": { "$ref": "#/entities/Product" },
-      "description": "Estoque oficial do BarDoLuis."
-    },
-    "/customers/{customerId}": {
-      "schema": { "$ref": "#/entities/Customer" },
-      "description": "Carteira de clientes."
-    },
-    "/suppliers/{supplierId}": {
-      "schema": { "$ref": "#/entities/Supplier" },
-      "description": "Parceiros e fornecedores."
-    },
-    "/transactions/{transactionId}": {
-      "schema": { "$ref": "#/entities/Transaction" },
-      "description": "Extrato financeiro unificado."
-    },
-    "/purchases/{purchaseId}": {
-      "schema": { "title": "Purchase", "type": "object" },
-      "description": "Registros de compras de estoque."
-    },
-    "/open_orders/{orderId}": {
-      "schema": { "title": "Open Order", "type": "object" },
-      "description": "Comandas ativas no movimento."
-    },
-    "/users/{userId}": {
-      "schema": { "title": "User Profile", "type": "object" },
-      "description": "Perfis administrativos."
-    }
+    "structure": [
+      {
+        "path": "/app_users/{uid}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores documents representing users authorized to access the BARDOLUIS application. The existence of a document for a user's UID in this collection acts as an authorization role (DBAC), granting access to the organizational data. No specific denormalized fields are needed as access is based on document existence.",
+          "params": [
+            {
+              "name": "uid",
+              "description": "The unique ID of the Firebase authenticated user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/suppliers/{supplierId}",
+        "definition": {
+          "entityName": "Supplier",
+          "schema": {
+            "$ref": "#/backend/entities/Supplier"
+          },
+          "description": "Top-level collection for all business suppliers. Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "supplierId",
+              "description": "The unique identifier for a supplier."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Top-level collection for all inventory products. Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier for a product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Top-level collection for all customer information. Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique identifier for a customer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/purchases/{purchaseId}",
+        "definition": {
+          "entityName": "Purchase",
+          "schema": {
+            "$ref": "#/backend/entities/Purchase"
+          },
+          "description": "Top-level collection for all purchase orders made from suppliers. Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "purchaseId",
+              "description": "The unique identifier for a purchase order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/purchases/{purchaseId}/purchaseItems/{purchaseItemId}",
+        "definition": {
+          "entityName": "PurchaseItem",
+          "schema": {
+            "$ref": "#/backend/entities/PurchaseItem"
+          },
+          "description": "Subcollection storing individual items within a specific purchase order. Access is implicitly granted if the user has access to the parent 'Purchase' document, by being an authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "purchaseId",
+              "description": "The unique identifier for the parent purchase order."
+            },
+            {
+              "name": "purchaseItemId",
+              "description": "The unique identifier for an item within the purchase order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sales/{saleId}",
+        "definition": {
+          "entityName": "Sale",
+          "schema": {
+            "$ref": "#/backend/entities/Sale"
+          },
+          "description": "Top-level collection for all sale transactions made to customers. Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "saleId",
+              "description": "The unique identifier for a sale transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sales/{saleId}/saleItems/{saleItemId}",
+        "definition": {
+          "entityName": "SaleItem",
+          "schema": {
+            "$ref": "#/backend/entities/SaleItem"
+          },
+          "description": "Subcollection storing individual items within a specific sale transaction. Access is implicitly granted if the user has access to the parent 'Sale' document, by being an authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "saleId",
+              "description": "The unique identifier for the parent sale transaction."
+            },
+            {
+              "name": "saleItemId",
+              "description": "The unique identifier for an item within the sale transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Top-level collection for all financial transactions (income/expense). Access is granted to any authenticated 'app user'. No denormalized authorization fields are required as access is organization-wide.",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for a financial transaction."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for BARDOLUIS is designed to prioritize security, scalability, and debuggability following the outlined core principles. The application appears to be a single-tenant business management system, meaning all core data (Suppliers, Products, Customers, Purchases, Sales, Transactions) belongs to the organization using the app, not individual end-users in a multi-tenant fashion. This simplifies the authorization model significantly.\n\n**Authorization Independence (CRITICAL):**\nThis design achieves authorization independence by implementing a foundational 'app user' role. All core business data collections (e.g., `/suppliers`, `/products`, `/customers`, `/purchases`, `/sales`, `/transactions`) are secured by checking if the `request.auth.uid` corresponds to an existing document in the `/app_users/{uid}` collection. This pattern, using an existence check (`exists(/databases/$(database)/documents/app_users/$(request.auth.uid))`), replaces complex hierarchical `get()` calls in security rules. For instance, to access a `PurchaseItem`, the rule simply verifies the user's overall 'app user' status, rather than needing to fetch the parent `Purchase` document's owner or member list. This ensures atomic operations (transactions/batches) are not broken by security rule dependencies and makes rules easier to debug.\n\n**QAPs (Rules are not Filters):**\nTo enable secure and efficient `list` operations (Queries as Permissions), the principle of Structural Segregation is applied. All documents within a given collection or subcollection are designed to share the same security requirements. For example, every document in `/suppliers` is accessible by any authenticated 'app user'. This means a `list` query on `/suppliers` (or any other core business collection) will return all relevant documents without requiring the database to filter results based on complex, per-document authorization logic within the rules. The security rules act as a gatekeeper for the entire collection, allowing all or nothing for an authenticated app user, thus making `list` operations performant and predictable. For subcollections like `purchaseItems` and `saleItems`, the same logic applies: once access to the parent `purchase` or `sale` document is granted (by being an authenticated app user), all nested items are also accessible, removing the need for `get()` calls on the parent for each item's authorization.\n\n**Structural Segregation & Access Modeling:**\n\n*   **Top-level Collections for Organizational Data:** `Suppliers`, `Products`, `Customers`, `Sales`, `Purchases`, and `Transactions` are placed in top-level collections (`/suppliers`, `/products`, etc.). This reflects their status as shared organizational resources.\n*   **Hierarchical Paths for Nested Data:** `PurchaseItem` and `SaleItem` are modeled as subcollections of their respective parent entities (`/purchases/{purchaseId}/purchaseItems/{purchaseItemId}` and `/sales/{saleId}/saleItems/{saleItemId}`). This maintains data locality and logical relationships, making ownership implicit through the path.\n*   **DBAC for App Access:** A dedicated `/app_users/{uid}` collection is introduced. The existence of a document for a user's `uid` in this collection implicitly grants them the 'app user' role, allowing access to the business data. This adheres to the DBAC principle by storing roles in the database rather than relying on custom claims."
   }
 }

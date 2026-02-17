@@ -2,65 +2,186 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNÇÕES DE SEGURANÇA ---
+    /**
+     * BARDOLUIS SECURITY RULES DOCUMENTATION
+     *
+     * Core Philosophy:
+     * This ruleset implements a Database-Based Access Control (DBAC) model for a single-tenant
+     * organizational system. Access to all business data is gated by the existence of a 
+     * document in the /app_users collection matching the user's authenticated UID.
+     *
+     * Data Structure:
+     * The system uses flat top-level collections for primary business entities (Suppliers, 
+     * Products, Customers, Purchases, Sales, Transactions) to ensure global visibility 
+     * for authorized staff. Line items for purchases and sales are nested as subcollections.
+     *
+     * Key Security Decisions:
+     * 1. Authorization Role: A user's role as an "Authorized App User" is derived from their
+     *    presence in the /app_users/{uid} collection. 
+     * 2. Organization-Wide Access: Once a user is verified as an app user, they have full 
+     *    CRUD access to organizational resources. This avoids complex per-document ownership
+     *    checks in a shared business environment.
+     * 3. Self-Registration: Users are permitted to create their own app_user document upon 
+     *    first login to establish their profile, but subsequent access to business data 
+     *    depends on that document's persistent existence.
+     * 4. Relational Integrity: On creation of documents, rules verify that internal 'id' 
+     *    fields match the document path to maintain data consistency.
+     */
 
-    // 1. É o CEO? (Autoridade Máxima - Bypass)
-    // Verifica se é o seu UID Específico OU o seu E-mail (Dupla checagem)
-    function isCEO() {
-      return request.auth != null && (
-        request.auth.uid == "o0FzqC1oYoYYwjgJXbbgL4QoCe42" || 
-        request.auth.token.email == "louisfelipecabral@gmail.com"
-      );
-    }
+    // --- Helper Functions ---
 
-    // 2. É da Equipe? (Qualquer logado)
-    function isStaff() {
+    /**
+     * @description Checks if the request is from an authenticated user.
+     */
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // --- REGRAS ---
-
-    // REGRA DE OURO: O CEO pode ler e escrever em TUDO (Bypass Global)
-    match /{document=**} {
-      allow read, write: if isCEO();
+    /**
+     * @description Checks if the authenticated user has a valid authorization record in the database.
+     */
+    function isAppUser() {
+      return exists(/databases/$(database)/documents/app_users/$(request.auth.uid));
     }
 
-    // Coleção de Usuários
-    match /users/{userId} {
-      // CEO já tem acesso pela regra acima.
-      allow read: if isStaff(); 
-      allow write: if request.auth.uid == userId;
-    }
-    
-    // Coleção de Produtos
-    match /products/{productId} {
-      allow read: if true; // Público (Cardápio)
-      allow write: if isStaff(); // Equipe gerencia estoque
+    /**
+     * @description Checks if the UID in the path matches the authenticated user's UID.
+     */
+    function isOwner(uid) {
+      return request.auth.uid == uid;
     }
 
-    // Coleção de Clientes
-    match /customers/{customerId} {
-      allow read, write: if isStaff();
+    /**
+     * @description Combines authentication and app-user verification for write operations.
+     */
+    function canManageBusinessData() {
+      return isSignedIn() && isAppUser();
     }
 
-    // Coleção de Fornecedores
+    /**
+     * @description Verifies document existence and app-user status for updates and deletes.
+     */
+    function isAuthorizedExistingDoc() {
+      return canManageBusinessData() && resource != null;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Manages user authorization records. Users can manage their own profile.
+     * @path /app_users/{uid}
+     * @allow Authenticated user (uid_123) to (create) document at /app_users/uid_123.
+     * @deny Authenticated user (uid_123) to (update) document at /app_users/uid_456.
+     * @principle Ownership: Users manage their own identity/role document.
+     */
+    match /app_users/{uid} {
+      allow get: if isSignedIn() && isOwner(uid);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(uid) && request.resource.data.id == uid;
+      allow update: if isSignedIn() && isOwner(uid) && resource != null;
+      allow delete: if isSignedIn() && isOwner(uid) && resource != null;
+    }
+
+    /**
+     * @description Organization-wide access to business suppliers.
+     * @path /suppliers/{supplierId}
+     * @allow Authenticated App User to (list) all suppliers.
+     * @deny Unauthenticated user to (get) a supplier.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
     match /suppliers/{supplierId} {
-      allow read, write: if isStaff();
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == supplierId;
+      allow update, delete: if isAuthorizedExistingDoc();
     }
 
-    // Coleção de Transações (Financeiro)
-    match /transactions/{transactionId} {
-      allow read, write: if isStaff();
+    /**
+     * @description Organization-wide access to product inventory.
+     * @path /products/{productId}
+     * @allow Authenticated App User to (create) a new product.
+     * @deny Authenticated user NOT in /app_users to (list) products.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
+    match /products/{productId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == productId;
+      allow update, delete: if isAuthorizedExistingDoc();
     }
 
-    // Coleção de Compras (Insumos)
+    /**
+     * @description Organization-wide access to customer records.
+     * @path /customers/{customerId}
+     * @allow Authenticated App User to (update) customer balance.
+     * @deny Deleting a customer if the user is not an authorized App User.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
+    match /customers/{customerId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == customerId;
+      allow update, delete: if isAuthorizedExistingDoc();
+    }
+
+    /**
+     * @description Access to purchase orders.
+     * @path /purchases/{purchaseId}
+     * @allow Authenticated App User to (create) a purchase order.
+     * @deny Public (get) access to financial purchase data.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
     match /purchases/{purchaseId} {
-      allow read, write: if isStaff();
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == purchaseId;
+      allow update, delete: if isAuthorizedExistingDoc();
+
+      /**
+       * @description Line items nested within a purchase order.
+       * @path /purchases/{purchaseId}/purchaseItems/{itemId}
+       * @allow Authenticated App User to (list) items for a specific purchase.
+       * @principle Hierarchical Access: Subcollection access follows parent authorization logic.
+       */
+      match /purchaseItems/{itemId} {
+        allow get, list: if canManageBusinessData();
+        allow create: if canManageBusinessData() && request.resource.data.id == itemId;
+        allow update, delete: if isAuthorizedExistingDoc();
+      }
     }
 
-    // Coleção de Comandas Abertas (PDV)
-    match /open_orders/{orderId} {
-      allow read, write: if isStaff();
+    /**
+     * @description Access to sale transactions.
+     * @path /sales/{saleId}
+     * @allow Authenticated App User to (get) a specific sale record.
+     * @deny Modifying a sale record if the requester is not a verified App User.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
+    match /sales/{saleId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == saleId;
+      allow update, delete: if isAuthorizedExistingDoc();
+
+      /**
+       * @description Individual product items within a sale.
+       * @path /sales/{saleId}/saleItems/{itemId}
+       * @allow Authenticated App User to (create) a sale item.
+       * @principle Hierarchical Access: Subcollection access follows parent authorization logic.
+       */
+      match /saleItems/{itemId} {
+        allow get, list: if canManageBusinessData();
+        allow create: if canManageBusinessData() && request.resource.data.id == itemId;
+        allow update, delete: if isAuthorizedExistingDoc();
+      }
+    }
+
+    /**
+     * @description Access to general financial transactions (income/expenses).
+     * @path /transactions/{transactionId}
+     * @allow Authenticated App User to (list) all transactions for financial overview.
+     * @deny Anonymous (create) attempt for a transaction.
+     * @principle Role-Based Access: Authorized app users access shared organizational data.
+     */
+    match /transactions/{transactionId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == transactionId;
+      allow update, delete: if isAuthorizedExistingDoc();
     }
   }
 }

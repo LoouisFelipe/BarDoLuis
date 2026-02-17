@@ -1,11 +1,6 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
-/**
- * @fileOverview Gerador de erros contextuais para o banco oficial 'bardoluis'.
- * CTO: Mapeamento absoluto para a instância personalizada, eliminando resquícios do banco padrão.
- */
-
 type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
@@ -39,8 +34,15 @@ interface SecurityRuleRequest {
   };
 }
 
+/**
+ * Builds a security-rule-compliant auth object from the Firebase User.
+ * @param currentUser The currently authenticated Firebase user.
+ * @returns An object that mirrors request.auth in security rules, or null.
+ */
 function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
-  if (!currentUser) return null;
+  if (!currentUser) {
+    return null;
+  }
 
   const token: FirebaseAuthToken = {
     name: currentUser.displayName,
@@ -50,7 +52,9 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     sub: currentUser.uid,
     firebase: {
       identities: currentUser.providerData.reduce((acc, p) => {
-        if (p.providerId) acc[p.providerId] = [p.uid];
+        if (p.providerId) {
+          acc[p.providerId] = [p.uid];
+        }
         return acc;
       }, {} as Record<string, string[]>),
       sign_in_provider: currentUser.providerData[0]?.providerId || 'custom',
@@ -58,32 +62,55 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
     },
   };
 
-  return { uid: currentUser.uid, token };
+  return {
+    uid: currentUser.uid,
+    token: token,
+  };
 }
 
+/**
+ * Builds the complete, simulated request object for the error message.
+ * It safely tries to get the current authenticated user.
+ * @param context The context of the failed Firestore operation.
+ * @returns A structured request object.
+ */
 function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   let authObject: FirebaseAuthObject | null = null;
   try {
+    // Safely attempt to get the current user.
     const firebaseAuth = getAuth();
     const currentUser = firebaseAuth.currentUser;
-    if (currentUser) authObject = buildAuthObject(currentUser);
-  } catch { /* Auth not ready during boot */ }
-
-  const cleanPath = context.path.startsWith('/') ? context.path.substring(1) : context.path;
+    if (currentUser) {
+      authObject = buildAuthObject(currentUser);
+    }
+  } catch {
+    // This will catch errors if the Firebase app is not yet initialized.
+    // In this case, we'll proceed without auth information.
+  }
 
   return {
     auth: authObject,
     method: context.operation,
-    // CTO AUDIT: Apontamento rigoroso para o banco 'bardoluis'
-    path: `/databases/bardoluis/documents/${cleanPath}`,
+    path: `/databases/(default)/documents/${context.path}`,
     resource: context.requestResourceData ? { data: context.requestResourceData } : undefined,
   };
 }
 
+/**
+ * Builds the final, formatted error message for the LLM.
+ * @param requestObject The simulated request object.
+ * @returns A string containing the error message and the JSON payload.
+ */
 function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `FirestoreError: Missing or insufficient permissions: The following request was denied by Firestore Security Rules (DB: bardoluis):\n${JSON.stringify(requestObject, null, 2)}`;
+  return `Missing or insufficient permissions: The following request was denied by Firestore Security Rules:
+${JSON.stringify(requestObject, null, 2)}`;
 }
 
+/**
+ * A custom error class designed to be consumed by an LLM for debugging.
+ * It structures the error information to mimic the request object
+ * available in Firestore Security Rules.
+ */
 export class FirestorePermissionError extends Error {
   public readonly request: SecurityRuleRequest;
 
