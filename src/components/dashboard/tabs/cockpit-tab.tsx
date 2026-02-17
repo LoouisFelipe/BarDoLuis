@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns'; 
-import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart } from 'lucide-react'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart, Info } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,10 +134,19 @@ export const CockpitTab: React.FC = () => {
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Atendimentos</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-yellow-400 shadow-sm">
+                        <Card className="border-l-4 border-l-yellow-400 shadow-sm bg-gradient-to-br from-card to-yellow-400/5">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Progresso da Meta</CardTitle>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingGoal(true)}>
+                                <div className="flex items-center gap-1">
+                                    <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Progresso da Meta</CardTitle>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild><Info size={10} className="text-muted-foreground cursor-help" /></TooltipTrigger>
+                                        <TooltipContent className="bg-popover text-popover-foreground border-2 border-yellow-400/20 p-3 max-w-[200px]">
+                                            <p className="text-[10px] font-black uppercase mb-1">Inteligência Financeira</p>
+                                            <p className="text-[10px] leading-relaxed">Meta baseada no rateio das despesas totais do mês. Mostra quanto do faturamento atual já cobriu os custos operacionais do período selecionado.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-yellow-400/10" onClick={() => setIsEditingGoal(true)}>
                                     <Edit className="h-3 w-3 text-muted-foreground" />
                                 </Button>
                             </CardHeader>
@@ -148,14 +157,17 @@ export const CockpitTab: React.FC = () => {
                                         value={manualGoal}
                                         onChange={(e) => setManualGoal(Number(e.target.value))}
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setIsEditingGoal(false); }}
-                                        className="h-8 text-2xl font-black text-yellow-400 p-1 bg-transparent border-none"
+                                        className="h-8 text-2xl font-black text-yellow-400 p-1 bg-transparent border-none focus-visible:ring-0"
                                         autoFocus
                                     />
                                 ) : (
-                                    <div className="text-2xl font-black text-yellow-400">{(reportData.goalProgress || 0).toFixed(0)}%</div>
+                                    <div className="flex flex-col">
+                                        <div className="text-2xl font-black text-yellow-400">{(reportData.goalProgress || 0).toFixed(0)}%</div>
+                                        <p className="text-[8px] font-black text-muted-foreground uppercase mt-0.5">Alvo: R$ {reportData.finalGoal.toFixed(2)}</p>
+                                    </div>
                                 )}
-                                <div className="w-full bg-muted h-1 rounded-full overflow-hidden mt-2">
-                                    <div className="bg-yellow-400 h-full transition-all duration-1000" style={{ width: `${Math.min(reportData.goalProgress || 0, 100)}%` }} />
+                                <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mt-2 border border-border/20">
+                                    <div className="bg-yellow-400 h-full transition-all duration-1000 shadow-[0_0_8px_rgba(250,204,21,0.4)]" style={{ width: `${Math.min(reportData.goalProgress || 0, 100)}%` }} />
                                 </div>
                             </CardContent>
                         </Card>

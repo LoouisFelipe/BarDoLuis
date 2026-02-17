@@ -2,9 +2,14 @@
 'use client';
 
 import { useMemo } from 'react';
-import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth, differenceInHours, addHours } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth, addHours } from 'date-fns';
 import { Transaction, Product, Customer, GameModality } from '@/lib/schemas';
 import { DateRange } from 'react-day-picker';
+
+/**
+ * @fileOverview Hook de inteligência para processamento de KPIs.
+ * CTO: Refatorado para implementar a lógica de meta baseada em rateio de despesas mensais.
+ */
 
 interface UseReportDataProps {
   transactions: Transaction[];
@@ -35,22 +40,25 @@ export const useReportData = ({
       return timestamp && isWithinInterval(timestamp, interval);
     });
 
+    // --- Lógica de Meta Estratégica (Rateio de Despesas) ---
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = getDaysInMonth(from);
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
+    // CEO: Buscamos todas as despesas do mês corrente para definir o custo operacional total
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
     }).reduce((acc, t) => acc + (t.total || 0), 0);
 
-    const defaultMonthlyGoal = 30000; 
-    const effectiveMonthlyExpenses = totalMonthlyExpenses > 0 ? totalMonthlyExpenses : defaultMonthlyGoal;
+    // Rateio diário das despesas do mês (Break-even diário)
+    const dailyExpenseRate = totalMonthlyExpenses / daysInMonth;
+    
+    // A meta do período é o custo proporcional aos dias selecionados no Cockpit
+    const dynamicCostGoal = dailyExpenseRate * daysInPeriod;
 
-    const dailyCost = effectiveMonthlyExpenses / daysInMonth;
-    const dynamicCostGoal = dailyCost * daysInPeriod;
-
+    // Dias de comparação (Período anterior)
     const daysDiff = differenceInDays(to, from) + 1;
     const prevFrom = startOfDay(subDays(from, daysDiff));
     const prevTo = endOfDay(subDays(to, daysDiff));
@@ -121,6 +129,7 @@ export const useReportData = ({
       return ((curr - prev) / prev) * 100;
     };
 
+    // Maps para gráficos
     const topProductsMap = new Map<string, number>();
     const profitByProductMap = new Map<string, number>();
     const salesByPaymentMethodMap = new Map<string, number>();
@@ -137,15 +146,8 @@ export const useReportData = ({
       if (t.type === 'sale') {
         const startTimestamp = (t.orderCreatedAt as any)?.toDate ? (t.orderCreatedAt as any).toDate() : (t.orderCreatedAt || endTimestamp);
         
-        // CTO: Calcula calor operacional baseando-se na duração da comanda
-        // Se abriu 14h e fechou 16h, gera calor para 14, 15 e 16.
-        let currentHour = startOfDay(startTimestamp); 
-        const endHourLimit = endTimestamp;
-        
-        // Simulação de atividade por hora
         let hourRunner = new Date(startTimestamp);
         hourRunner.setMinutes(0, 0, 0);
-        
         const limit = new Date(endTimestamp);
         limit.setMinutes(0, 0, 0);
 
@@ -154,12 +156,9 @@ export const useReportData = ({
             const hour = hourRunner.getHours();
             const heatmapKey = `${day}-${hour}`;
             heatmapMap.set(heatmapKey, (heatmapMap.get(heatmapKey) || 0) + 1);
-            
-            // Incrementa uma hora
             hourRunner = addHours(hourRunner, 1);
         }
 
-        // Histórico de vendas (apenas o momento do fechamento)
         const closeHourKey = `${String(endTimestamp.getHours()).padStart(2, '0')}:00`;
         salesByHourMap.set(closeHourKey, (salesByHourMap.get(closeHourKey) || 0) + 1);
         
@@ -221,6 +220,9 @@ export const useReportData = ({
     });
 
     const finalGoal = periodGoal > 0 ? periodGoal : dynamicCostGoal;
+    
+    // CEO: Progresso é a Receita Bruta comparada à Meta de Gastos
+    const goalProgress = finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : (currentMetrics.revenue > 0 ? 100 : 0);
 
     return {
       totalSalesRevenue: currentMetrics.revenue || 0,
@@ -233,7 +235,7 @@ export const useReportData = ({
       netProfit: currentMetrics.netProfit || 0,
       salesCount: currentMetrics.salesCount || 0,
       avgTicket: currentMetrics.avgTicket || 0,
-      goalProgress: finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : 0,
+      goalProgress,
       finalGoal,
       deltas: {
         revenue: calculateDelta(currentMetrics.revenue, prevMetrics.revenue),
