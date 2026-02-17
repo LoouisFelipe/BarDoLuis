@@ -109,24 +109,40 @@ export function useToast() {
     };
   }, [state]);
 
+  const toast = React.useCallback(({ ...props }: Omit<ToasterToast, 'id'>) => {
+    const id = genId();
+
+    const update = (props: Partial<ToasterToast>) =>
+      dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } });
+    const dismiss = () =>
+      dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
+    const remove = () =>
+      dispatch({ type: actionTypes.REMOVE_TOAST, toastId: id });
+
+    dispatch({ 
+      type: actionTypes.ADD_TOAST, 
+      toast: { ...props, id, open: true, onOpenChange: (open) => { if (!open) dismiss(); } } 
+    });
+
+    return { id, update, dismiss, remove };
+  }, []);
+
   return {
     ...state,
-    toast: React.useCallback(({ ...props }: Omit<ToasterToast, 'id'>) => {
-      const id = genId();
-
-      const update = (props: Partial<ToasterToast>) =>
-        dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...props, id } });
-      const dismiss = () =>
-        dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id });
-      const remove = () =>
-        dispatch({ type: actionTypes.REMOVE_TOAST, toastId: id });
-
-      dispatch({ 
-        type: actionTypes.ADD_TOAST, 
-        toast: { ...props, id, open: true, onOpenChange: (open) => { if (!open) dismiss(); } } 
-      });
-
-      return { id, update, dismiss, remove };
-    }, []),
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: actionTypes.DISMISS_TOAST, toastId }),
   };
 }
+
+export const toast = (props: Omit<ToasterToast, 'id'>) => {
+  const id = genId();
+  dispatch({ 
+    type: actionTypes.ADD_TOAST, 
+    toast: { ...props, id, open: true } 
+  });
+  return {
+    id,
+    dismiss: () => dispatch({ type: actionTypes.DISMISS_TOAST, toastId: id }),
+    update: (updatedProps: Partial<ToasterToast>) => dispatch({ type: actionTypes.UPDATE_TOAST, toast: { ...updatedProps, id } }),
+  };
+};

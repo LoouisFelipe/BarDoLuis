@@ -1,10 +1,6 @@
-'use client';
-
 /**
- * @fileOverview Ponte de compatibilidade (Redirecionador).
- * CTO: Este arquivo não contém mais lógica de negócio. 
- * Todas as conexões internas foram migradas para src/hooks/use-toast.ts.
- * Mantemos este export apenas para compatibilidade com componentes Shadcn automáticos.
+ * @deprecated Este arquivo foi movido para src/hooks/use-toast.ts para centralização de arquitetura.
+ * Por favor, use 'import { useToast } from "@/hooks/use-toast"' em novos componentes.
+ * CEO: O arquivo foi mantido apenas como proxy para evitar quebras de build imediatas.
  */
-
-export { useToast } from "@/hooks/use-toast";
+export { useToast, toast } from "@/hooks/use-toast";
