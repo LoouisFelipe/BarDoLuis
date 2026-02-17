@@ -24,6 +24,10 @@ import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
+/**
+ * @fileOverview Gestão de Produtos do Bar.
+ * CTO: Filtragem aplicada para remover itens de 'game' desta visualização (agora na aba Banca Jogos).
+ */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
     
@@ -33,20 +37,24 @@ export const ProductsTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
 
-    const categories = useMemo(() => {
-        if (!products) return []; 
-        const uniqueCategories = new Set(products.map(p => p.category).filter(Boolean));
-        return Array.from(uniqueCategories).sort();
+    // CEO: Filtramos apenas produtos que NÃO são jogos para esta aba
+    const barProducts = useMemo(() => {
+        if (!products) return [];
+        return products.filter(p => p.saleType !== 'game');
     }, [products]);
 
+    const categories = useMemo(() => {
+        const uniqueCategories = new Set(barProducts.map(p => p.category).filter(Boolean));
+        return Array.from(uniqueCategories).sort();
+    }, [barProducts]);
+
     const filteredProducts = useMemo(() => {
-        if (!products) return []; 
-        return products.filter(p => {
+        return barProducts.filter(p => {
             const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
             const matchesSearch = searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesCategory && matchesSearch;
         }).sort((a, b) => a.name.localeCompare(b.name));
-    }, [products, categoryFilter, searchTerm]);
+    }, [barProducts, categoryFilter, searchTerm]);
 
     const groupedProducts = useMemo(() => {
         return filteredProducts.reduce((acc, product) => {
@@ -112,7 +120,7 @@ export const ProductsTab: React.FC = () => {
         let markupValue = 0;
         let hasCalculation = false;
 
-        const isStandardSale = p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight' || p.saleType === 'game';
+        const isStandardSale = p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight';
 
         if (isStandardSale && cost > 0) {
             const price = Number(p.unitPrice) || 0;
@@ -132,8 +140,7 @@ export const ProductsTab: React.FC = () => {
                 markupValue = totalMarkup / activeDoses.length;
                 hasCalculation = true;
             }
-        } else if (p.saleType === 'game' || p.saleType === 'service') {
-            // Se for game/service sem custo, markup é considerado 100% ou N/A dependendo da política
+        } else if (p.saleType === 'service') {
             if (cost === 0 && (p.unitPrice || 0) > 0) {
                 return { label: 'MAX', color: 'text-accent' };
             }
@@ -179,13 +186,12 @@ export const ProductsTab: React.FC = () => {
                                         <TableRow key={p.id} className="border-t">
                                             <TableCell className="font-medium pl-6">
                                                 <div className="flex items-center gap-2">
-                                                    {p.saleType === 'game' && <Sparkles size={14} className="text-orange-500" />}
                                                     {p.name}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">{p.subcategory}</div>
                                             </TableCell>
                                             <TableCell>
-                                                {p.saleType === 'service' || p.saleType === 'game' ? (
+                                                {p.saleType === 'service' ? (
                                                     <span className="text-[10px] font-bold uppercase opacity-50">Não aplicável</span>
                                                 ) : (p.stock ?? 0) <= 0 ? (
                                                     <span className="text-xs font-bold px-2 py-1 rounded-full bg-destructive text-destructive-foreground">ESGOTADO</span>
@@ -205,9 +211,9 @@ export const ProductsTab: React.FC = () => {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell>{p.saleType !== 'service' && p.saleType !== 'game' ? `R$ ${cost.toFixed(2)}` : 'N/A'}</TableCell>
+                                            <TableCell>{p.saleType !== 'service' ? `R$ ${cost.toFixed(2)}` : 'N/A'}</TableCell>
                                             <TableCell>
-                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight' || p.saleType === 'game') && `R$ ${price.toFixed(2)}`}
+                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
                                                 {p.saleType === 'dose' && (p.doseOptions && p.doseOptions.length > 0 ? `${p.doseOptions.length} Opções` : 'N/A')}
                                                 {p.saleType === 'service' && 'Valor Aberto'}
                                             </TableCell>
@@ -218,7 +224,7 @@ export const ProductsTab: React.FC = () => {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6">
-                                                {p.saleType !== 'service' && p.saleType !== 'game' && (
+                                                {p.saleType !== 'service' && (
                                                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="text-accent hover:text-accent/80"><PackagePlus size={20} /></Button></TooltipTrigger><TooltipContent><p>Adicionar Estoque</p></TooltipContent></Tooltip>
                                                 )}
                                                 <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="text-primary hover:text-primary/80"><Edit size={20} /></Button></TooltipTrigger><TooltipContent><p>Editar Produto</p></TooltipContent></Tooltip>
@@ -238,12 +244,12 @@ export const ProductsTab: React.FC = () => {
     const renderContent = () => {
          if (loading) return <div className="flex justify-center mt-10"><Spinner /></div>;
 
-         if (!products || products.length === 0) {
+         if (!barProducts || barProducts.length === 0) {
              return (
                 <div className="text-center text-muted-foreground p-8 mt-10 bg-card rounded-lg">
                     <Package size={48} className="mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-foreground">Nenhum Produto Cadastrado</h3>
-                    <p className="max-w-sm mx-auto mt-2 mb-6">Comece adicionando produtos para gerenciar seu estoque e vendas.</p>
+                    <h3 className="text-xl font-bold text-foreground">Nenhum Produto de Bar</h3>
+                    <p className="max-w-sm mx-auto mt-2 mb-6">Cadastre bebidas e comidas para gerenciar seu bar.</p>
                     <Button onClick={handleAddNew}>Adicionar Primeiro Produto</Button>
                 </div>
             );
@@ -266,7 +272,7 @@ export const ProductsTab: React.FC = () => {
         <TooltipProvider>
             <div className="p-1 md:p-4 space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-3xl font-bold text-foreground flex items-center"><Package className="mr-3" /> Gerenciar Produtos</h2>
+                    <h2 className="text-3xl font-bold text-foreground flex items-center"><Package className="mr-3" /> Gerenciar Bar</h2>
                      <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                         <Input 
                             placeholder="Buscar produto..."
