@@ -10,7 +10,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dices, Hash, History, TrendingUp, Sparkles, Search, Info, Settings, PlusCircle, Edit, Trash2, Zap } from 'lucide-react';
+import { Dices, Hash, History, TrendingUp, Sparkles, Search, Info, Settings, PlusCircle, Edit, Trash2, Zap, Trophy } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Transaction, GameModality } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
@@ -32,7 +32,7 @@ import {
 
 /**
  * @fileOverview Aba de Banca de Jogos (Totalmente Desacoplada).
- * CTO: Agora utiliza a coleção game_modalities independente dos produtos de bar.
+ * CTO: Exibição de valores negativos para prêmios e auditagem completa.
  */
 export const GamesTab: React.FC = () => {
     const { transactions, gameModalities, loading, saveGameModality, deleteGameModality, finalizeOrder } = useData();
@@ -63,7 +63,6 @@ export const GamesTab: React.FC = () => {
             const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
             const isInTime = isWithinInterval(date, interval);
             const hasGameItem = t.items?.some((item: any) => {
-                // CTO: Identifica itens de jogo cruzando com a nova coleção ou pelo marcador de referência
                 const isGame = gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
                 return isGame;
             });
@@ -77,8 +76,10 @@ export const GamesTab: React.FC = () => {
             t.items?.forEach((item: any) => {
                 const isGame = gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
                 if (isGame) {
-                    totalRevenue += (item.unitPrice * item.quantity);
-                    betCount += item.quantity;
+                    const itemTotal = (item.unitPrice * item.quantity);
+                    totalRevenue += itemTotal;
+                    // Contamos apenas entradas positivas como "Apostas" no volume, prêmios são saídas
+                    if (itemTotal > 0) betCount += item.quantity;
                 }
             });
         });
@@ -138,23 +139,25 @@ export const GamesTab: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-l-4 border-l-orange-500 shadow-xl bg-card/40 overflow-hidden relative group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Receita de Banca</CardTitle>
-                        <TrendingUp className="h-5 w-5 text-orange-500 transition-transform group-hover:scale-110" />
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Receita Líquida de Banca</CardTitle>
+                        <TrendingUp className={cn("h-5 w-5 transition-transform group-hover:scale-110", gameAuditData.totalRevenue < 0 ? "text-destructive" : "text-orange-500")} />
                     </CardHeader>
                     <CardContent className="pt-2">
-                        <div className="text-4xl font-black text-orange-500">R$ {gameAuditData.totalRevenue.toFixed(2)}</div>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-2 tracking-tight opacity-70">Total arrecadado em apostas e máquinas.</p>
+                        <div className={cn("text-4xl font-black", gameAuditData.totalRevenue < 0 ? "text-destructive" : "text-orange-500")}>
+                            R$ {gameAuditData.totalRevenue.toFixed(2)}
+                        </div>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-2 tracking-tight opacity-70">Saldo real após pagamentos de prêmios.</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-l-4 border-l-primary shadow-xl bg-card/40 overflow-hidden relative group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Volume de Entradas</CardTitle>
+                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Volume de Apostas</CardTitle>
                         <Sparkles className="h-5 w-5 text-primary transition-transform group-hover:scale-110" />
                     </CardHeader>
                     <CardContent className="pt-2">
-                        <div className="text-4xl font-black text-primary">{gameAuditData.betCount} {gameAuditData.betCount === 1 ? 'Registro' : 'Registros'}</div>
-                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-2 tracking-tight opacity-70">Quantidade de apostas processadas no período.</p>
+                        <div className="text-4xl font-black text-primary">{gameAuditData.betCount} {gameAuditData.betCount === 1 ? 'Entrada' : 'Entradas'}</div>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-2 tracking-tight opacity-70">Quantidade de bilhetes/apostas processadas.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -166,7 +169,7 @@ export const GamesTab: React.FC = () => {
                 <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nota do CTO</p>
                     <p className="text-[11px] text-muted-foreground/80 font-medium leading-relaxed max-w-3xl">
-                        Estes valores são calculados com base nos itens identificados como jogos. O caixa da banca é desacoplado do estoque de bar para garantir integridade analítica total.
+                        A Receita Líquida abate automaticamente os prêmios pagos. Valores em vermelho no log representam pagamentos efetuados pela banca.
                     </p>
                 </div>
             </div>
@@ -207,7 +210,7 @@ export const GamesTab: React.FC = () => {
                                 <History size={18} className="text-primary" />
                                 <div>
                                     <CardTitle className="text-lg font-black uppercase tracking-tight">Auditagem Detalhada</CardTitle>
-                                    <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Monitoramento de Milhar, Máquina e Fiel</CardDescription>
+                                    <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Monitoramento de Milhar, Máquina e Prêmios</CardDescription>
                                 </div>
                             </div>
                             <div className="relative w-full sm:w-72">
@@ -237,27 +240,41 @@ export const GamesTab: React.FC = () => {
                                             const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                             return t.items?.filter((item: any) => {
                                                 return gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
-                                            }).map((item: any, idx: number) => (
-                                                <TableRow key={`${t.id}-${idx}`} className="hover:bg-orange-500/[0.03] transition-colors border-b border-border/30">
-                                                    <TableCell className="text-[10px] font-bold px-6 whitespace-nowrap opacity-60">
-                                                        {format(date, 'HH:mm')}
-                                                    </TableCell>
-                                                    <TableCell className="text-[10px] font-black px-6 truncate max-w-[140px]">
-                                                        {t.tabName || 'Venda Rápida'}
-                                                    </TableCell>
-                                                    <TableCell className="text-[10px] font-bold px-6 uppercase tracking-tight">
-                                                        {item.name}
-                                                    </TableCell>
-                                                    <TableCell className="px-6">
-                                                        <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[9px] font-black px-2 py-0.5 rounded-md">
-                                                            <Hash size={8} className="mr-1" /> {item.identifier || 'Sem Ref.'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right text-sm font-black text-orange-500 px-6 whitespace-nowrap">
-                                                        R$ {(item.unitPrice * item.quantity).toFixed(2)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ));
+                                            }).map((item: any, idx: number) => {
+                                                const itemTotal = item.unitPrice * item.quantity;
+                                                const isPayout = itemTotal < 0 || item.identifier === 'PAGAMENTO_PREMIO';
+                                                
+                                                return (
+                                                    <TableRow key={`${t.id}-${idx}`} className="hover:bg-orange-500/[0.03] transition-colors border-b border-border/30">
+                                                        <TableCell className="text-[10px] font-bold px-6 whitespace-nowrap opacity-60">
+                                                            {format(date, 'HH:mm')}
+                                                        </TableCell>
+                                                        <TableCell className="text-[10px] font-black px-6 truncate max-w-[140px]">
+                                                            {t.tabName || 'Venda Rápida'}
+                                                        </TableCell>
+                                                        <TableCell className="text-[10px] font-bold px-6 uppercase tracking-tight">
+                                                            {item.name}
+                                                        </TableCell>
+                                                        <TableCell className="px-6">
+                                                            <Badge variant="outline" className={cn(
+                                                                "text-[9px] font-black px-2 py-0.5 rounded-md",
+                                                                isPayout 
+                                                                    ? "bg-destructive/10 text-destructive border-destructive/20" 
+                                                                    : "bg-orange-500/10 text-orange-500 border-orange-500/20"
+                                                            )}>
+                                                                {isPayout ? <Trophy size={8} className="mr-1" /> : <Hash size={8} className="mr-1" />} 
+                                                                {item.identifier || 'Sem Ref.'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className={cn(
+                                                            "text-right text-sm font-black px-6 whitespace-nowrap",
+                                                            isPayout ? "text-destructive" : "text-orange-500"
+                                                        )}>
+                                                            R$ {itemTotal.toFixed(2)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            });
                                         })
                                     ) : (
                                         <TableRow>
@@ -347,7 +364,7 @@ export const GamesTab: React.FC = () => {
                                 Você está prestes a excluir <strong>{gameToDelete.name}</strong> da banca. Esta ação removerá a modalidade da seleção imediata, mas não afetará registros passados.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter className="mt-4 gap-2">
+                        <AlertDialogFooter>
                             <AlertDialogCancel className="font-black uppercase text-[10px] h-12 border-2">Cancelar</AlertDialogCancel>
                             <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 px-8 shadow-lg" onClick={async () => {
                                 if (gameToDelete.id) {
