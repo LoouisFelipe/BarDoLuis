@@ -3,7 +3,7 @@
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
 import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast"; // CTO: Caminho centralizado para Hooks
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/hooks/use-collection';
 import { addMonths, format } from 'date-fns';
@@ -109,7 +109,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       ...(!id && { createdAt: serverTimestamp() })
     });
 
-    // CTO: Escrita não-bloqueante para agilidade de interface
     setDoc(docRef, payload, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
@@ -181,7 +180,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const receiveCustomerPayment = async (customer: Customer, amount: number, paymentMethod: string) => {
-    // Transação é essencial para integridade financeira
     try {
       await runTransaction(db, async (transaction) => {
         const customerRef = doc(db, 'customers', customer.id!);

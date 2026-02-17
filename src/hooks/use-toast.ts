@@ -6,6 +6,7 @@ import { type ToastActionElement, type ToastProps } from '@/components/ui/toast'
 /**
  * @fileOverview Implementação centralizada do hook de Toast para o BarDoLuis.
  * CTO: Este é o local oficial de estado de notificações, conforme regras de arquitetura.
+ * CEO: Unificamos aqui para evitar perda de mensagens e facilitar a manutenção.
  */
 
 const TOAST_LIMIT = 1;

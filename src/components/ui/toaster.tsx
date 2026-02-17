@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 /**
  * @fileOverview Componente de renderização de Toasts.
  * CTO: Conectado diretamente ao hook oficial em src/hooks/.
+ * CEO: Garante que as notificações apareçam de forma limpa e rápida.
  */
 
 export function Toaster() {

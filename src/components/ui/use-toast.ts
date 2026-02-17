@@ -2,7 +2,9 @@
 
 /**
  * @fileOverview Ponte de compatibilidade (Redirecionador).
- * CEO: Este arquivo não deve mais conter lógica. Todas as conexões devem
- * preferir importar diretamente de @/hooks/use-toast.
+ * CTO: Este arquivo não contém mais lógica de negócio. 
+ * Todas as conexões internas foram migradas para src/hooks/use-toast.ts.
+ * Mantemos este export apenas para compatibilidade com componentes Shadcn automáticos.
  */
+
 export { useToast } from "@/hooks/use-toast";
