@@ -8,24 +8,19 @@ service cloud.firestore {
      * Core Philosophy:
      * This ruleset implements a Database-Based Access Control (DBAC) model for a single-tenant
      * organizational system. Access to all business data is gated by the existence of a 
-     * document in the /app_users collection matching the user's authenticated UID.
+     * document in the /users collection matching the user's authenticated UID.
      *
      * Data Structure:
      * The system uses flat top-level collections for primary business entities (Suppliers, 
      * Products, Customers, Purchases, Sales, Transactions) to ensure global visibility 
-     * for authorized staff. Line items for purchases and sales are nested as subcollections.
+     * for authorized staff.
      *
      * Key Security Decisions:
-     * 1. Authorization Role: A user's role as an "Authorized App User" is derived from their
-     *    presence in the /app_users/{uid} collection. 
+     * 1. Authorization Role: A user's role is derived from their document in the /users/{uid} collection.
      * 2. Organization-Wide Access: Once a user is verified as an app user, they have full 
-     *    CRUD access to organizational resources. This avoids complex per-document ownership
-     *    checks in a shared business environment.
-     * 3. Self-Registration: Users are permitted to create their own app_user document upon 
-     *    first login to establish their profile, but subsequent access to business data 
-     *    depends on that document's persistent existence.
-     * 4. Relational Integrity: On creation of documents, rules verify that internal 'id' 
-     *    fields match the document path to maintain data consistency.
+     *    CRUD access to organizational resources.
+     * 3. Self-Registration: Users manage their own profile document upon first login.
+     * 4. Relational Integrity: Verifies that internal 'id' or 'uid' fields match the document path.
      */
 
     // --- Helper Functions ---
@@ -38,10 +33,10 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the authenticated user has a valid authorization record in the database.
+     * @description Checks if the authenticated user has a valid authorization record in /users.
      */
     function isAppUser() {
-      return exists(/databases/$(database)/documents/app_users/$(request.auth.uid));
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     /**
@@ -52,7 +47,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Combines authentication and app-user verification for write operations.
+     * @description Combines authentication and app-user verification for business data access.
      */
     function canManageBusinessData() {
       return isSignedIn() && isAppUser();
@@ -68,26 +63,19 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     /**
-     * @description Manages user authorization records. Users can manage their own profile.
-     * @path /app_users/{uid}
-     * @allow Authenticated user (uid_123) to (create) document at /app_users/uid_123.
-     * @deny Authenticated user (uid_123) to (update) document at /app_users/uid_456.
-     * @principle Ownership: Users manage their own identity/role document.
+     * @description Manages user authorization records.
+     * @path /users/{uid}
      */
-    match /app_users/{uid} {
+    match /users/{uid} {
       allow get: if isSignedIn() && isOwner(uid);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(uid) && request.resource.data.id == uid;
-      allow update: if isSignedIn() && isOwner(uid) && resource != null;
-      allow delete: if isSignedIn() && isOwner(uid) && resource != null;
+      allow list: if canManageBusinessData();
+      allow create: if isSignedIn() && isOwner(uid) && request.resource.data.uid == uid;
+      allow update, delete: if canManageBusinessData();
     }
 
     /**
-     * @description Organization-wide access to business suppliers.
+     * @description Access to business suppliers.
      * @path /suppliers/{supplierId}
-     * @allow Authenticated App User to (list) all suppliers.
-     * @deny Unauthenticated user to (get) a supplier.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /suppliers/{supplierId} {
       allow get, list: if canManageBusinessData();
@@ -96,11 +84,8 @@ service cloud.firestore {
     }
 
     /**
-     * @description Organization-wide access to product inventory.
+     * @description Access to product inventory.
      * @path /products/{productId}
-     * @allow Authenticated App User to (create) a new product.
-     * @deny Authenticated user NOT in /app_users to (list) products.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /products/{productId} {
       allow get, list: if canManageBusinessData();
@@ -109,11 +94,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description Organization-wide access to customer records.
+     * @description Access to entertainment modalities (Banca).
+     * @path /game_modalities/{modalityId}
+     */
+    match /game_modalities/{modalityId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == modalityId;
+      allow update, delete: if isAuthorizedExistingDoc();
+    }
+
+    /**
+     * @description Access to customer records.
      * @path /customers/{customerId}
-     * @allow Authenticated App User to (update) customer balance.
-     * @deny Deleting a customer if the user is not an authorized App User.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /customers/{customerId} {
       allow get, list: if canManageBusinessData();
@@ -122,23 +114,24 @@ service cloud.firestore {
     }
 
     /**
+     * @description Access to active tables and tabs.
+     * @path /open_orders/{orderId}
+     */
+    match /open_orders/{orderId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == orderId;
+      allow update, delete: if isAuthorizedExistingDoc();
+    }
+
+    /**
      * @description Access to purchase orders.
      * @path /purchases/{purchaseId}
-     * @allow Authenticated App User to (create) a purchase order.
-     * @deny Public (get) access to financial purchase data.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /purchases/{purchaseId} {
       allow get, list: if canManageBusinessData();
       allow create: if canManageBusinessData() && request.resource.data.id == purchaseId;
       allow update, delete: if isAuthorizedExistingDoc();
 
-      /**
-       * @description Line items nested within a purchase order.
-       * @path /purchases/{purchaseId}/purchaseItems/{itemId}
-       * @allow Authenticated App User to (list) items for a specific purchase.
-       * @principle Hierarchical Access: Subcollection access follows parent authorization logic.
-       */
       match /purchaseItems/{itemId} {
         allow get, list: if canManageBusinessData();
         allow create: if canManageBusinessData() && request.resource.data.id == itemId;
@@ -149,21 +142,12 @@ service cloud.firestore {
     /**
      * @description Access to sale transactions.
      * @path /sales/{saleId}
-     * @allow Authenticated App User to (get) a specific sale record.
-     * @deny Modifying a sale record if the requester is not a verified App User.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /sales/{saleId} {
       allow get, list: if canManageBusinessData();
       allow create: if canManageBusinessData() && request.resource.data.id == saleId;
       allow update, delete: if isAuthorizedExistingDoc();
 
-      /**
-       * @description Individual product items within a sale.
-       * @path /sales/{saleId}/saleItems/{itemId}
-       * @allow Authenticated App User to (create) a sale item.
-       * @principle Hierarchical Access: Subcollection access follows parent authorization logic.
-       */
       match /saleItems/{itemId} {
         allow get, list: if canManageBusinessData();
         allow create: if canManageBusinessData() && request.resource.data.id == itemId;
@@ -172,16 +156,31 @@ service cloud.firestore {
     }
 
     /**
-     * @description Access to general financial transactions (income/expenses).
+     * @description Access to financial records.
      * @path /transactions/{transactionId}
-     * @allow Authenticated App User to (list) all transactions for financial overview.
-     * @deny Anonymous (create) attempt for a transaction.
-     * @principle Role-Based Access: Authorized app users access shared organizational data.
      */
     match /transactions/{transactionId} {
       allow get, list: if canManageBusinessData();
       allow create: if canManageBusinessData() && request.resource.data.id == transactionId;
       allow update, delete: if isAuthorizedExistingDoc();
+    }
+
+    /**
+     * @description Access to recurring expense plans.
+     * @path /recurring_expenses/{expenseId}
+     */
+    match /recurring_expenses/{expenseId} {
+      allow get, list: if canManageBusinessData();
+      allow create: if canManageBusinessData() && request.resource.data.id == expenseId;
+      allow update, delete: if isAuthorizedExistingDoc();
+    }
+
+    /**
+     * @description CTO Diagnostic collection.
+     */
+    match /_diagnostics/{docId} {
+      allow write: if isSignedIn();
+      allow read: if canManageBusinessData();
     }
   }
 }

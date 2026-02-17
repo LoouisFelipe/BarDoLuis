@@ -1,6 +1,18 @@
-
 {
   "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "type": "object",
+      "description": "System user with roles and permissions.",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "cashier", "waiter"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
     "Supplier": {
       "title": "Supplier",
       "type": "object",
@@ -9,7 +21,7 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "contactPerson": { "type": "string" },
-        "phoneNumber": { "type": "string" },
+        "phone": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "address": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -29,7 +41,8 @@
         "stock": { "type": "number" },
         "costPrice": { "type": "number" },
         "unitPrice": { "type": "number" },
-        "saleType": { "type": "string", "enum": ["unit", "dose", "portion", "weight", "game", "service"] }
+        "saleType": { "type": "string", "enum": ["unit", "dose", "portion", "weight", "service"] },
+        "lowStockThreshold": { "type": "number" }
       },
       "required": ["id", "name", "category", "saleType"]
     },
@@ -85,6 +98,7 @@
         "total": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" },
         "paymentMethod": { "type": "string" },
+        "expenseCategory": { "type": "string" },
         "recurringExpenseId": { "type": "string" }
       },
       "required": ["id", "type", "total", "timestamp"]
@@ -109,6 +123,10 @@
     "providers": ["password"]
   },
   "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "System users and roles."
+    },
     "/suppliers/{supplierId}": {
       "schema": { "$ref": "#/entities/Supplier" },
       "description": "Collection of suppliers."
