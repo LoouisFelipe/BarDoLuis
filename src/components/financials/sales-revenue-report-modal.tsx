@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { TrendingUp, Target, Receipt, History, PieChart, X, CreditCard } from 'lucide-react';
+import { TrendingUp, Target, Receipt, History, PieChart, X } from 'lucide-react';
 import { Transaction } from '@/lib/schemas';
 import { Spinner } from '@/components/ui/spinner';
 import { TransactionDetailModal } from './transaction-detail-modal';
@@ -28,11 +28,6 @@ interface SalesRevenueReportModalProps {
     date: DateRange | undefined;
 }
 
-/**
- * @fileOverview Relatório de Vendas Premium.
- * CTO: Adicionado filtros dinâmicos por pagamento e gráfico de share.
- * CEO: Visão analítica profunda da origem do faturamento.
- */
 export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = ({
     open,
     onOpenChange,
@@ -120,7 +115,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                     </Card>
                                 </div>
 
-                                {/* Seção de Gráfico de Meios de Pagamento */}
                                 <Card className="shadow-lg border-none">
                                     <CardHeader className="pb-2">
                                         <div className="flex items-center gap-2">
@@ -144,9 +138,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                 <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Detalhamento Analítico</CardTitle>
                                             </div>
                                             
-                                            {/* Filtros de Pagamento */}
                                             <div className="flex flex-wrap gap-1.5">
-                                                {paymentMethods.map(method => (
+                                                {(paymentMethods as string[]).map(method => (
                                                     <Badge 
                                                         key={method}
                                                         variant={selectedMethod === method ? "default" : "outline"}
@@ -185,7 +178,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                 <TableBody>
                                                     {filteredSales.length > 0 ? (
                                                         filteredSales.map((t: Transaction) => {
-                                                            const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
+                                                            const dateValue = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                                             return (
                                                                 <TableRow 
                                                                     key={t.id} 
@@ -193,7 +186,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                                     onClick={() => setSelectedTransaction(t)}
                                                                 >
                                                                     <TableCell className="text-[10px] sm:text-[11px] font-bold px-2 sm:px-4 whitespace-nowrap">
-                                                                        {format(date, 'dd/MM HH:mm')}
+                                                                        {format(dateValue, 'dd/MM HH:mm')}
                                                                     </TableCell>
                                                                     <TableCell className="text-[10px] sm:text-[11px] font-black truncate max-w-[80px] sm:max-w-[150px] px-2 sm:px-4">
                                                                         {t.tabName || t.description || 'Balcão'}
@@ -222,34 +215,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                 </TableBody>
                                             </Table>
                                         </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="shadow-lg border-none">
-                                    <CardHeader className="border-b bg-muted/10 py-3 px-3 sm:px-4">
-                                        <CardTitle className="text-xs sm:text-sm font-black uppercase tracking-widest">Top Mix de Produtos</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-0">
-                                        {reportData.topProducts?.length > 0 ? (
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="bg-muted/30 border-b-2">
-                                                        <TableHead className="text-[10px] font-black uppercase px-3 sm:px-4">Produto</TableHead>
-                                                        <TableHead className="text-right text-[10px] font-black uppercase px-3 sm:px-4">Quantidade</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {reportData.topProducts.map((p: any) => (
-                                                        <TableRow key={p.name} className="border-b border-border/50">
-                                                            <TableCell className="text-[10px] sm:text-xs font-bold px-3 sm:px-4 uppercase tracking-tighter">{p.name}</TableCell>
-                                                            <TableCell className="text-right text-[10px] sm:text-xs font-black text-primary px-3 sm:px-4 whitespace-nowrap">{p.quantity} un.</TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        ) : (
-                                            <p className="text-muted-foreground p-10 text-center text-xs font-bold uppercase opacity-50">Sem dados de movimentação.</p>
-                                        )}
                                     </CardContent>
                                 </Card>
                             </div>

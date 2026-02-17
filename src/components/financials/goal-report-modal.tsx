@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { Target, TrendingUp, Landmark, Calculator, ArrowUpRight } from 'lucide-react';
+import { Target, TrendingUp, Landmark, Calculator } from 'lucide-react';
 
 interface GoalReportModalProps {
     open: boolean;
@@ -48,7 +48,7 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                         <div className="flex-1 min-w-0">
                             <DialogTitle className="text-xl font-bold truncate">Inteligência de Meta Diária</DialogTitle>
                             <DialogDescription className="text-xs truncate">
-                                Como o faturamento atual cobre seus custos operacionais.
+                                Cálculo do ponto de equilíbrio baseado no rateio de despesas.
                             </DialogDescription>
                         </div>
                     </div>
@@ -59,7 +59,7 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                         <div className="p-4 md:p-6 space-y-6 pb-12">
                             <Card className="bg-muted/20 border-dashed">
                                 <CardHeader className="py-3 px-4">
-                                    <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Período Selecionado</CardTitle>
+                                    <CardTitle className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Período de Análise</CardTitle>
                                 </CardHeader>
                                 <CardContent className="px-4 pb-4">
                                     <p className="text-lg font-bold">{formattedPeriod} ({daysInPeriod} dias)</p>
@@ -73,22 +73,22 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                                     </CardHeader>
                                     <CardContent>
                                         <div className="text-3xl font-black text-yellow-400">R$ {finalGoal.toFixed(2)}</div>
-                                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Custo total para o período filtrado.</p>
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Custo operacional para este período.</p>
                                     </CardContent>
                                 </Card>
                                 <Card className="border-l-4 border-l-accent bg-accent/5">
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground">Faturamento Real</CardTitle>
+                                        <CardTitle className="text-[10px] font-black uppercase text-muted-foreground">Faturamento Atual</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="text-3xl font-black text-accent">R$ {totalSalesRevenue.toFixed(2)}</div>
-                                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Total acumulado em vendas.</p>
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">Total bruto em vendas e banca.</p>
                                     </CardContent>
                                 </Card>
                             </div>
 
                             <div className="space-y-4">
-                                <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Cálculo do Ponto de Equilíbrio</h4>
+                                <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-1">Detalhamento do Rateio</h4>
                                 
                                 <div className="grid grid-cols-1 gap-3">
                                     <div className="flex items-center justify-between p-4 rounded-xl bg-card border">
@@ -96,7 +96,7 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                                             <div className="p-2 bg-primary/10 rounded-lg text-primary"><Landmark size={18} /></div>
                                             <div>
                                                 <p className="text-xs font-bold text-foreground">Passivo Mensal Total</p>
-                                                <p className="text-[10px] text-muted-foreground uppercase">Fixos + Insumos do mês</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase">Fixos + Insumos registrados no mês</p>
                                             </div>
                                         </div>
                                         <p className="font-black text-lg">R$ {totalMonthlyExpenses.toFixed(2)}</p>
@@ -106,8 +106,8 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-accent/10 rounded-lg text-accent"><Calculator size={18} /></div>
                                             <div>
-                                                <p className="text-xs font-bold text-foreground">Custo de Existência Diário</p>
-                                                <p className="text-[10px] text-muted-foreground uppercase">Rateio (Passivo / Dias do mês)</p>
+                                                <p className="text-xs font-bold text-foreground">Custo Diário Rateado</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase">Passivo dividido pelos dias do mês</p>
                                             </div>
                                         </div>
                                         <p className="font-black text-lg text-accent">R$ {dailyGoal.toFixed(2)}</p>
@@ -118,13 +118,13 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                             <Card className="bg-primary/5 border-primary/20">
                                 <CardHeader className="py-3 px-4">
                                     <CardTitle className="text-[10px] font-black uppercase text-primary flex items-center gap-2">
-                                        <TrendingUp size={12} /> Status da Operação
+                                        <TrendingUp size={12} /> Saúde Operacional
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="flex justify-between items-end">
                                         <span className="text-sm font-black">{goalProgress.toFixed(1)}% Coberto</span>
-                                        <span className="text-[10px] font-bold text-muted-foreground">ALVO: R$ {finalGoal.toFixed(2)}</span>
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Meta: R$ {finalGoal.toFixed(2)}</span>
                                     </div>
                                     <div className="w-full bg-muted h-3 rounded-full overflow-hidden border border-border/40">
                                         <div 
@@ -132,10 +132,10 @@ export const GoalReportModal: React.FC<GoalReportModalProps> = ({
                                             style={{ width: `${Math.min(goalProgress, 100)}%` }} 
                                         />
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground italic text-center">
+                                    <p className="text-[10px] text-muted-foreground italic text-center leading-relaxed">
                                         {goalProgress >= 100 
-                                            ? "🚀 EXCELENTE: O custo operacional já foi totalmente pago. Cada real extra agora é lucro líquido!"
-                                            : `Faltam R$ ${(finalGoal - totalSalesRevenue).toFixed(2)} para atingir o break-even do período.`}
+                                            ? "🚀 EXCELENTE: A operação já se pagou neste período. Todo faturamento extra agora é lucro!"
+                                            : `Ainda faltam R$ ${(finalGoal - totalSalesRevenue).toFixed(2)} para cobrir os custos operacionais do período.`}
                                     </p>
                                 </CardContent>
                             </Card>
