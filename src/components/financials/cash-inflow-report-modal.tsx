@@ -29,7 +29,6 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
     reportData,
     date,
 }) => {
-    // RULES OF HOOKS: All hooks MUST be at the top level
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
@@ -64,15 +63,15 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-4xl h-[95vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
-                    <DialogHeader className="p-6 border-b bg-card shrink-0">
+                    <DialogHeader className="p-4 sm:p-6 border-b bg-card shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-sky-400/10 rounded-lg text-sky-400">
+                            <div className="p-2 bg-sky-400/10 rounded-lg text-sky-400 shrink-0">
                                 <HandCoins size={24} />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <DialogTitle className="text-xl font-bold truncate">Relatório de Recebimentos (Caixa)</DialogTitle>
-                                <DialogDescription className="text-xs truncate">
-                                    Entradas reais de dinheiro no período selecionado.
+                                <DialogTitle className="text-lg sm:text-xl font-bold truncate">Recebimentos (Caixa)</DialogTitle>
+                                <DialogDescription className="text-[10px] sm:text-xs truncate">
+                                    Entradas reais de dinheiro no período.
                                 </DialogDescription>
                             </div>
                         </div>
@@ -80,40 +79,39 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                     
                     <div className="flex-1 overflow-hidden relative">
                         <ScrollArea className="h-full w-full">
-                            <div className="p-4 md:p-6 space-y-6 pb-12">
+                            <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 pb-12">
                                 <Card className="bg-muted/20 border-dashed">
-                                    <CardHeader className="py-3 px-4">
-                                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
+                                    <CardHeader className="py-2 px-3 sm:py-3 sm:px-4">
+                                        <CardTitle className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Período Analisado</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="px-4 pb-4">
-                                        <p className="text-lg font-bold">{formattedPeriod}</p>
+                                    <CardContent className="px-3 pb-3 sm:px-4 sm:pb-4">
+                                        <p className="text-base sm:text-lg font-bold">{formattedPeriod}</p>
                                     </CardContent>
                                 </Card>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     <Card className="border-l-4 border-l-sky-400">
-                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Total Recebido</CardTitle>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+                                            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground">Total Recebido</CardTitle>
                                             <HandCoins className="h-4 w-4 text-sky-400" />
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-2xl font-black text-sky-400">R$ {reportData.totalCashInflow.toFixed(2)}</div>
-                                            <p className="text-[10px] text-muted-foreground uppercase mt-1">Dinheiro em mãos ou conta.</p>
+                                            <div className="text-xl sm:text-2xl font-black text-sky-400">R$ {reportData.totalCashInflow.toFixed(2)}</div>
                                         </CardContent>
                                     </Card>
                                     <Card>
-                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                            <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Meios de Pagamento</CardTitle>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2">
+                                            <CardTitle className="text-[10px] font-bold uppercase text-muted-foreground">Por Método</CardTitle>
                                             <CreditCard className="h-4 w-4 text-muted-foreground" />
                                         </CardHeader>
                                         <CardContent className="p-0">
-                                            <div className="px-4 py-2 space-y-1">
+                                            <div className="px-3 sm:px-4 py-2 space-y-1">
                                                 {reportData.cashInflowByMethodForChart.map((item: any) => (
                                                     <button 
                                                         key={item.name} 
                                                         onClick={() => toggleMethodFilter(item.name)}
                                                         className={cn(
-                                                            "w-full flex justify-between text-[11px] font-medium p-1 rounded transition-colors hover:bg-muted/50",
+                                                            "w-full flex justify-between text-[10px] sm:text-[11px] font-medium p-1 rounded transition-colors hover:bg-muted/50",
                                                             selectedMethod === item.name ? "bg-sky-400/10 border border-sky-400/20" : "border border-transparent"
                                                         )}
                                                     >
@@ -127,29 +125,28 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                 </div>
 
                                 <Card>
-                                    <CardHeader className="border-b bg-muted/10 py-3 px-4">
+                                    <CardHeader className="border-b bg-muted/10 py-3 px-3 sm:px-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <History size={16} className="text-muted-foreground" />
-                                                <CardTitle className="text-sm font-bold uppercase">Entradas Detalhadas</CardTitle>
+                                                <CardTitle className="text-xs sm:text-sm font-bold uppercase">Entradas Detalhadas</CardTitle>
                                             </div>
                                             {selectedMethod && (
-                                                <Badge variant="secondary" className="flex items-center gap-1 text-[9px] bg-sky-400/20 text-sky-400 border-none">
-                                                    Filtrando: {selectedMethod}
+                                                <Badge variant="secondary" className="flex items-center gap-1 text-[8px] sm:text-[9px] bg-sky-400/20 text-sky-400 border-none">
+                                                    {selectedMethod}
                                                     <X size={10} className="cursor-pointer" onClick={() => setSelectedMethod(null)} />
                                                 </Badge>
                                             )}
                                         </div>
-                                        <CardDescription className="text-[10px] mt-1">Toque em um recebimento para ver detalhes.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-0 overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow className="bg-muted/30">
-                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Data</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Fonte</TableHead>
-                                                    <TableHead className="text-[10px] font-bold uppercase px-4">Método</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-bold uppercase px-4">Valor</TableHead>
+                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Data</TableHead>
+                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Fonte</TableHead>
+                                                    <TableHead className="text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Pgto.</TableHead>
+                                                    <TableHead className="text-right text-[9px] sm:text-[10px] font-bold uppercase px-2 sm:px-4">Valor</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -162,15 +159,15 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
                                                                 className="cursor-pointer hover:bg-muted/20"
                                                                 onClick={() => setSelectedTransaction(t)}
                                                             >
-                                                                <TableCell className="text-[11px] px-4 whitespace-nowrap">{format(date, 'dd/MM HH:mm')}</TableCell>
-                                                                <TableCell className="text-[11px] font-bold truncate max-w-[100px] px-4">{t.tabName || t.description || 'Venda'}</TableCell>
-                                                                <TableCell className="text-[10px] text-muted-foreground px-4">{t.paymentMethod}</TableCell>
-                                                                <TableCell className="text-right text-xs font-black text-sky-400 px-4">R$ {t.total.toFixed(2)}</TableCell>
+                                                                <TableCell className="text-[10px] sm:text-[11px] px-2 sm:px-4 whitespace-nowrap">{format(date, 'dd/MM HH:mm')}</TableCell>
+                                                                <TableCell className="text-[10px] sm:text-[11px] font-bold truncate max-w-[80px] sm:max-w-[120px] px-2 sm:px-4">{t.tabName || t.description || 'Venda'}</TableCell>
+                                                                <TableCell className="text-[9px] sm:text-[10px] text-muted-foreground px-2 sm:px-4 whitespace-nowrap">{t.paymentMethod}</TableCell>
+                                                                <TableCell className="text-right text-[10px] sm:text-xs font-black text-sky-400 px-2 sm:px-4 whitespace-nowrap">R$ {t.total.toFixed(2)}</TableCell>
                                                             </TableRow>
                                                         );
                                                     })
                                                 ) : (
-                                                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-xs italic">Nenhum recebimento encontrado com este filtro.</TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground text-xs italic">Sem registros.</TableCell></TableRow>
                                                 )}
                                             </TableBody>
                                         </Table>
@@ -179,10 +176,10 @@ export const CashInflowReportModal: React.FC<CashInflowReportModalProps> = ({
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="text-sm font-bold uppercase">Distribuição por Método</CardTitle>
+                                        <CardTitle className="text-xs sm:text-sm font-bold uppercase">Distribuição</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="h-[300px] w-full">
+                                        <div className="h-[250px] sm:h-[300px] w-full">
                                             <CashInflowChart data={reportData.cashInflowByMethodForChart} />
                                         </div>
                                     </CardContent>
