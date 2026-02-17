@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -60,6 +61,7 @@ export const useReportData = ({
 
     const calculateMetrics = (txs: Transaction[]) => {
       let revenue = 0;
+      let gameRevenue = 0;
       let cashInflow = 0;
       let expenses = 0;
       let insumos = 0;
@@ -75,6 +77,11 @@ export const useReportData = ({
           }
           if (t.items) {
             t.items.forEach((item: any) => {
+              // Auditoria de Receita de Jogos
+              if (item.identifier) {
+                gameRevenue += (item.unitPrice * item.quantity);
+              }
+
               const product = (products || []).find((p) => p.id === item.productId);
               if (product) {
                 const baseUnitSize = product.baseUnitSize || 1;
@@ -95,11 +102,12 @@ export const useReportData = ({
         }
       });
 
+      const barRevenue = revenue - gameRevenue;
       const grossProfit = revenue - cogs;
       const netProfit = grossProfit - expenses;
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
-      return { revenue, cashInflow, expenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
+      return { revenue, gameRevenue, barRevenue, cashInflow, expenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
     };
 
     const currentMetrics = calculateMetrics(filteredTransactions);
@@ -193,6 +201,8 @@ export const useReportData = ({
 
     return {
       totalSalesRevenue: currentMetrics.revenue || 0,
+      totalGameRevenue: currentMetrics.gameRevenue || 0,
+      totalBarRevenue: currentMetrics.barRevenue || 0,
       totalCashInflow: currentMetrics.cashInflow || 0,
       totalExpenses: currentMetrics.expenses || 0,
       totalInsumos: currentMetrics.insumos || 0,

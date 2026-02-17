@@ -10,7 +10,8 @@ import { CustomersTab } from '@/components/dashboard/tabs/customers-tab';
 import { SuppliersTab } from '@/components/dashboard/tabs/suppliers-tab';
 import { UsersTab } from '@/components/dashboard/tabs/users-tab';
 import { SettingsTab } from '@/components/dashboard/tabs/settings-tab';
-import { BarChart2, ShoppingBasket, DollarSign, Package, Users as UsersIcon, Truck, Shield, Settings as SettingsIcon } from 'lucide-react';
+import { GamesTab } from '@/components/dashboard/tabs/games-tab';
+import { BarChart2, ShoppingBasket, DollarSign, Package, Users as UsersIcon, Truck, Shield, Settings as SettingsIcon, Dices } from 'lucide-react';
 import React, { Suspense, useMemo, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/auth-context';
@@ -35,6 +36,12 @@ const TABS_CONFIG = {
     label: 'Financeiro',
     icon: DollarSign,
     component: <FinancialsTab />,
+    permission: 'cashier',
+  },
+  games: {
+    label: 'Banca Jogos',
+    icon: Dices,
+    component: <GamesTab />,
     permission: 'cashier',
   },
   products: {
@@ -116,7 +123,6 @@ const DashboardLayoutContent: React.FC = () => {
     return (
         <main className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-6 bg-muted/20 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
-                {/* CPO: ScrollArea permite navegação por abas infinita no mobile sem quebrar o layout */}
                 <ScrollArea className="w-full whitespace-nowrap rounded-md border bg-card p-1 shrink-0">
                     <TabsList className="flex w-max space-x-1 bg-transparent h-auto">
                         {availableTabs.map(([key, tab]) => {
