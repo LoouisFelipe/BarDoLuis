@@ -101,6 +101,7 @@ export interface Transaction {
   total: number;
   discount?: number;
   timestamp: FieldValue | Date;
+  orderCreatedAt?: FieldValue | Date | null; // Novo campo para rastrear duração operacional
   description?: string;
   paymentMethod?: string; 
   customerId?: string; 

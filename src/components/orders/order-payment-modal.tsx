@@ -24,6 +24,7 @@ interface OrderPaymentModalProps {
     items: OrderItem[];
     total: number;
     customerId: string | null;
+    createdAt?: any;
   };
   onDeleteOrder: (orderId: string) => Promise<void>;
   onCloseAll: () => void;
@@ -78,7 +79,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
       const selectedGame = gameModalities.find(g => g.id === gamePayoutId);
 
       await finalizeOrder(
-        { items: order.items, total: order.total, displayName: finalDisplayName },
+        { items: order.items, total: order.total, displayName: finalDisplayName, createdAt: order.createdAt },
         selectedCustomerId,
         paymentMethod,
         discount,

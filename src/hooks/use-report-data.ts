@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth, differenceInHours, addHours } from 'date-fns';
 import { Transaction, Product, Customer, GameModality } from '@/lib/schemas';
 import { DateRange } from 'react-day-picker';
 
@@ -79,7 +79,6 @@ export const useReportData = ({
           }
           if (t.items) {
             t.items.forEach((item: any) => {
-              // CTO: Identifica receita de banca desacoplada
               const isGame = (gameModalities || []).some(gm => gm.id === item.productId) || !!item.identifier;
               
               if (isGame) {
@@ -132,17 +131,37 @@ export const useReportData = ({
     const salesByHourMap = new Map<string, number>();
 
     filteredTransactions.forEach((t) => {
-      const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
-      if (!timestamp) return;
-      
-      const day = timestamp.getDay();
-      const hour = timestamp.getHours();
-      const hourKey = `${String(hour).padStart(2, '0')}:00`;
-      const heatmapKey = `${day}-${hour}`;
+      const endTimestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
+      if (!endTimestamp) return;
       
       if (t.type === 'sale') {
-        heatmapMap.set(heatmapKey, (heatmapMap.get(heatmapKey) || 0) + 1);
-        salesByHourMap.set(hourKey, (salesByHourMap.get(hourKey) || 0) + 1);
+        const startTimestamp = (t.orderCreatedAt as any)?.toDate ? (t.orderCreatedAt as any).toDate() : (t.orderCreatedAt || endTimestamp);
+        
+        // CTO: Calcula calor operacional baseando-se na duração da comanda
+        // Se abriu 14h e fechou 16h, gera calor para 14, 15 e 16.
+        let currentHour = startOfDay(startTimestamp); 
+        const endHourLimit = endTimestamp;
+        
+        // Simulação de atividade por hora
+        let hourRunner = new Date(startTimestamp);
+        hourRunner.setMinutes(0, 0, 0);
+        
+        const limit = new Date(endTimestamp);
+        limit.setMinutes(0, 0, 0);
+
+        while (hourRunner <= limit) {
+            const day = hourRunner.getDay();
+            const hour = hourRunner.getHours();
+            const heatmapKey = `${day}-${hour}`;
+            heatmapMap.set(heatmapKey, (heatmapMap.get(heatmapKey) || 0) + 1);
+            
+            // Incrementa uma hora
+            hourRunner = addHours(hourRunner, 1);
+        }
+
+        // Histórico de vendas (apenas o momento do fechamento)
+        const closeHourKey = `${String(endTimestamp.getHours()).padStart(2, '0')}:00`;
+        salesByHourMap.set(closeHourKey, (salesByHourMap.get(closeHourKey) || 0) + 1);
         
         const method = t.paymentMethod || 'Outros';
         salesByPaymentMethodMap.set(method, (salesByPaymentMethodMap.get(method) || 0) + (t.total || 0));

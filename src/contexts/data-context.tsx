@@ -56,7 +56,7 @@ interface DataContextType {
   deleteSupplier: (supplierId: string) => Promise<void>;
   recordPurchaseAndUpdateStock: (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) => Promise<void>;
   finalizeOrder: (
-    order: {items: OrderItem[], total: number, displayName: string}, 
+    order: {items: OrderItem[], total: number, displayName: string, createdAt?: any}, 
     customerId: string | null, 
     paymentMethod: string, 
     discount?: number, 
@@ -147,7 +147,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const payload = sanitizeData({ 
       ...data,
       updatedAt: serverTimestamp(),
-      ...(!id && { createdAt: serverTimestamp() })
+      ...(!id && { updatedAt: serverTimestamp(), createdAt: serverTimestamp() })
     });
 
     setDoc(docRef, payload, { merge: true }).catch(err => {
@@ -283,7 +283,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const finalizeOrder = async (
-    order: {items: OrderItem[], total: number, displayName: string}, 
+    order: {items: OrderItem[], total: number, displayName: string, createdAt?: any}, 
     customerId: string | null, 
     paymentMethod: string, 
     discount: number = 0, 
@@ -325,7 +325,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
-          timestamp: saleDate, 
+          timestamp: saleDate,
+          orderCreatedAt: order.createdAt || null, // Armazena início operacional
           type: 'sale', 
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 

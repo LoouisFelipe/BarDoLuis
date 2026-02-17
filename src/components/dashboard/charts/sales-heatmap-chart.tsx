@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
-import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, ScatterChart, Scatter, ZAxis, Cell } from 'recharts';
 
 interface HeatmapDataPoint {
     day: number; // 0 for Sunday, 6 for Saturday
@@ -22,13 +23,18 @@ export const SalesHeatmapChart: React.FC<SalesHeatmapChartProps> = ({ data }) =>
         setHasMounted(true);
     }, []);
 
-
     if (!data || data.length === 0) {
         return <div className="flex items-center justify-center h-full text-muted-foreground">Sem dados de vendas para exibir.</div>;
     }
 
-    const domain = [0, Math.max(...data.map(p => p.value))];
-    const range = [0, 500]; // Controls the size of the squares
+    // CTO: Escala de cores baseada na densidade (de 0 a 100% do máximo)
+    const maxValue = Math.max(...data.map(p => p.value), 1);
+    
+    const getColor = (value: number) => {
+        if (value === 0) return 'hsl(var(--muted) / 0.2)';
+        const opacity = Math.min(0.2 + (value / maxValue) * 0.8, 1);
+        return `hsl(var(--accent) / ${opacity})`;
+    };
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
@@ -37,8 +43,8 @@ export const SalesHeatmapChart: React.FC<SalesHeatmapChartProps> = ({ data }) =>
             const hourName = `${String(dataPoint.hour).padStart(2, '0')}:00`;
             return (
                 <div className="bg-popover p-2 border rounded-md shadow-lg text-popover-foreground">
-                    <p>{`${dayName}, ${hourName}`}</p>
-                    <p className="font-bold">{`Vendas: ${dataPoint.value}`}</p>
+                    <p className="text-[10px] font-black uppercase text-muted-foreground">{dayName}, {hourName}</p>
+                    <p className="font-bold">{`Densidade: ${dataPoint.value}`}</p>
                 </div>
             );
         }
@@ -50,16 +56,15 @@ export const SalesHeatmapChart: React.FC<SalesHeatmapChartProps> = ({ data }) =>
     }
 
     return (
-        <div className="w-full h-full min-w-[250px] min-h-[250px]"> {/* Garante um tamanho mínimo para o contêiner */}
+        <div className="w-full h-full min-w-[250px] min-h-[250px] bg-card/20 rounded-xl p-4">
             <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" />
+                <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 0 }}>
                     <XAxis
                         dataKey="hour"
                         type="category"
                         name="Hora"
                         ticks={hoursOfDay.filter((_, i) => i % 3 === 0)}
-                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                         axisLine={false}
                         tickLine={false}
                     />
@@ -69,14 +74,19 @@ export const SalesHeatmapChart: React.FC<SalesHeatmapChartProps> = ({ data }) =>
                         name="Dia"
                         ticks={daysOfWeek.map((_, i) => i)}
                         tickFormatter={(value) => daysOfWeek[value]}
-                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                         axisLine={false}
                         tickLine={false}
                         reversed={true}
                     />
-                    <ZAxis dataKey="value" domain={domain} range={range} />
+                    {/* ZAxis fixo para garantir que os quadrados tenham tamanho uniforme */}
+                    <ZAxis type="number" range={[400, 400]} />
                     <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
-                    <Scatter name="Vendas" data={data} fill="hsl(var(--accent))" shape="square" />
+                    <Scatter data={data} shape="square">
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={getColor(entry.value)} />
+                        ))}
+                    </Scatter>
                 </ScatterChart>
             </ResponsiveContainer>
         </div>
