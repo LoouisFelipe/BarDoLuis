@@ -1,9 +1,10 @@
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, Customer, RecurringExpense } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { DateRange } from 'react-day-picker';
-import { format, subDays, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, isWithinInterval, startOfDay, endOfDay, addMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 import { Spinner } from '@/components/ui/spinner';

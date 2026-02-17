@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -91,7 +91,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   }, [products]);
 
   const filteredItems = useMemo(() => {
-    // CTO: Combina produtos de bar e modalidades de jogo para o PDV
     const allProducts = products.map(p => ({ ...p, type: 'product' as const }));
     const allGames = gameModalities.map(g => ({ ...g, type: 'game' as const, saleType: 'game' as const, stock: null }));
     
@@ -175,6 +174,20 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         toast({ title: "Erro ao Salvar", variant: "destructive" });
     } finally {
         setProcessing(false);
+    }
+  };
+
+  const handleLinkCustomer = async (customer: Customer) => {
+    if (!existingOrder.id || !customer.id) return;
+    setProcessing(true);
+    try {
+      await updateOrderCustomer(existingOrder.id, customer.id, customer.name);
+      toast({ title: "Cliente Vinculado", description: `Comanda agora pertence a ${customer.name}` });
+      setIsLinkCustomerOpen(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -317,12 +330,22 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   return (
     <>
-      <Dialog open={open && !isPaymentModalOpen} onOpenChange={onOpenChange}>
+      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl h-[100vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
           <DialogHeader className="p-4 border-b bg-card flex flex-row items-center justify-between shrink-0 h-20">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-xl"><Receipt className="h-6 w-6 text-primary" /></div>
-              <div><DialogTitle className="text-lg md:text-xl font-black">{existingOrder?.displayName || 'Comanda'}</DialogTitle><DialogDescription className="text-[9px] uppercase font-black text-muted-foreground">{linkedCustomer ? `Fiel: ${linkedCustomer.name}` : 'Avulso'}</DialogDescription></div>
+              <div className="flex flex-col">
+                <DialogTitle className="text-lg md:text-xl font-black truncate max-w-[200px] md:max-w-md">{existingOrder?.displayName || 'Comanda'}</DialogTitle>
+                <div className="flex items-center gap-2">
+                    <Badge variant={linkedCustomer ? "default" : "outline"} className="text-[8px] font-black uppercase">
+                        {linkedCustomer ? `Fiel: ${linkedCustomer.name}` : 'Avulso'}
+                    </Badge>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[9px] font-black uppercase text-primary flex items-center gap-1" onClick={() => setIsLinkCustomerOpen(true)}>
+                        <UserPlus size={10} /> {linkedCustomer ? 'Trocar' : 'Vincular Fiel'}
+                    </Button>
+                </div>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Total</p>
@@ -342,6 +365,49 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         </DialogContent>
       </Dialog>
       
+      {/* Modal de Vínculo de Cliente */}
+      <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Users className="text-primary" /> Vincular Cliente Fiel</DialogTitle>
+                <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">Vincule esta comanda ao histórico de um fiel.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Buscar por nome..." 
+                        value={customerSearch}
+                        onChange={e => setCustomerSearch(e.target.value)}
+                        className="pl-10 h-12 bg-background border-2"
+                        autoFocus
+                    />
+                </div>
+                <ScrollArea className="h-[300px] border rounded-lg bg-muted/5">
+                    <div className="p-2 space-y-1">
+                        {filteredCustomersForLink.map(c => (
+                            <Button 
+                                key={c.id} 
+                                variant="ghost" 
+                                className="w-full justify-between h-12 font-bold hover:bg-primary/10 hover:text-primary"
+                                onClick={() => handleLinkCustomer(c)}
+                            >
+                                <span className="truncate">{c.name}</span>
+                                {c.balance > 0 && <Badge variant="outline" className="text-[8px] text-yellow-500 border-yellow-500/20">R$ {c.balance.toFixed(2)}</Badge>}
+                            </Button>
+                        ))}
+                        {filteredCustomersForLink.length === 0 && (
+                            <div className="text-center py-10 text-muted-foreground text-xs italic">Nenhum cliente encontrado.</div>
+                        )}
+                    </div>
+                </ScrollArea>
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsLinkCustomerOpen(false)}>Cancelar</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!itemToCustomize} onOpenChange={(o) => !o && setItemToCustomize(null)}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader><DialogTitle className="flex items-center gap-2"><Dices className="text-orange-500" /> {itemToCustomize?.name}</DialogTitle></DialogHeader>
