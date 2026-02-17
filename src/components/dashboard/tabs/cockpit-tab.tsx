@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -42,7 +43,7 @@ const TrendIndicator = ({ value, inverse = false }: { value: number | undefined,
 };
 
 export const CockpitTab: React.FC = () => {
-    const { transactions, products, customers, loading } = useData();
+    const { transactions, products, gameModalities, customers, loading } = useData();
     
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
         from: subDays(new Date(), 6),
@@ -63,6 +64,7 @@ export const CockpitTab: React.FC = () => {
     const reportData = useReportData({
         transactions,
         products,
+        gameModalities,
         customers,
         date: dateRange,
         periodGoal: manualGoal,

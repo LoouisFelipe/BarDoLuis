@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Supplier": {
@@ -31,6 +32,21 @@
         "saleType": { "type": "string", "enum": ["unit", "dose", "portion", "weight", "service"] }
       },
       "required": ["id", "name", "category", "saleType"]
+    },
+    "GameModality": {
+      "title": "Game Modality",
+      "type": "object",
+      "description": "Entertainment modalities (Bixo, Bingo, Machines).",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "subcategory": { "type": "string" },
+        "unitPrice": { "type": "number", "description": "Suggested entry value" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name"]
     },
     "Customer": {
       "title": "Customer",
@@ -83,7 +99,11 @@
     },
     "/products/{productId}": {
       "schema": { "$ref": "#/entities/Product" },
-      "description": "Inventory items."
+      "description": "Inventory items (Bar only)."
+    },
+    "/game_modalities/{modalityId}": {
+      "schema": { "$ref": "#/entities/GameModality" },
+      "description": "Entertainment modalities (Independent from bar products)."
     },
     "/customers/{customerId}": {
       "schema": { "$ref": "#/entities/Customer" },

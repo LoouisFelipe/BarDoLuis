@@ -1,13 +1,15 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { isWithinInterval, startOfDay, endOfDay, subDays, differenceInDays, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
-import { Transaction, Product, Customer } from '@/lib/schemas';
+import { Transaction, Product, Customer, GameModality } from '@/lib/schemas';
 import { DateRange } from 'react-day-picker';
 
 interface UseReportDataProps {
   transactions: Transaction[];
   products: Product[];
+  gameModalities: GameModality[];
   customers: Customer[];
   date: DateRange | undefined;
   periodGoal: number;
@@ -16,6 +18,7 @@ interface UseReportDataProps {
 export const useReportData = ({
   transactions,
   products,
+  gameModalities,
   customers,
   date,
   periodGoal,
@@ -76,14 +79,14 @@ export const useReportData = ({
           }
           if (t.items) {
             t.items.forEach((item: any) => {
-              const product = (products || []).find((p) => p.id === item.productId);
+              // CTO: Identifica receita de banca desacoplada
+              const isGame = (gameModalities || []).some(gm => gm.id === item.productId) || !!item.identifier;
               
-              // CTO: Motor de Auditoria de Receita de Jogos Blindado
-              // Identifica pelo marcador 'identifier' ou pelo tipo do produto no cadastro
-              if (item.identifier || product?.saleType === 'game') {
+              if (isGame) {
                 gameRevenue += (item.unitPrice * item.quantity);
               }
 
+              const product = (products || []).find((p) => p.id === item.productId);
               if (product) {
                 const baseUnitSize = product.baseUnitSize || 1;
                 const costPerMl = (product.costPrice || 0) / baseUnitSize;
@@ -240,5 +243,5 @@ export const useReportData = ({
       outOfStockProducts: (products || []).filter((p) => p.saleType !== 'service' && (p.stock || 0) <= 0).length,
       totalProducts: (products || []).length,
     };
-  }, [transactions, products, customers, date, periodGoal]);
+  }, [transactions, products, gameModalities, customers, date, periodGoal]);
 };

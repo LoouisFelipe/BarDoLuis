@@ -1,7 +1,8 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Product, OrderItem } from '@/lib/schemas';
+import { GameModality, OrderItem } from '@/lib/schemas';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,29 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Spinner } from '@/components/ui/spinner';
 import { Zap, Hash, Dices, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ProductFormModal } from '@/components/products/product-form-modal';
 
 /**
- * @fileOverview Modal de Entrada Rápida de Banca.
- * CTO: Permite registrar entradas e criar novas modalidades de jogo no mesmo fluxo.
+ * @fileOverview Modal de Entrada Rápida de Banca (Desacoplado).
+ * CTO: Registra entradas vinculadas exclusivamente à nova coleção game_modalities.
  */
 
 interface QuickGameEntryModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    gameModalities: Product[];
-    allProducts: Product[];
+    gameModalities: GameModality[];
     onSave: (order: { items: OrderItem[], total: number, displayName: string }, customerId: string | null, paymentMethod: string) => Promise<string>;
-    onSaveProduct: (data: Omit<Product, 'id'>, id?: string) => Promise<string>;
+    onSaveGame: (data: Omit<GameModality, 'id'>, id?: string) => Promise<string>;
 }
 
 export const QuickGameEntryModal: React.FC<QuickGameEntryModalProps> = ({ 
     open, 
     onOpenChange, 
     gameModalities, 
-    allProducts,
     onSave, 
-    onSaveProduct 
+    onSaveGame 
 }) => {
     const { toast } = useToast();
     const [selectedGameId, setSelectedGameId] = useState('');
@@ -40,8 +38,8 @@ export const QuickGameEntryModal: React.FC<QuickGameEntryModalProps> = ({
     const [identifier, setIdentifier] = useState('');
     const [processing, setProcessing] = useState(false);
     
-    // Estado para criação de nova modalidade dentro deste fluxo
     const [isNewModalityOpen, setIsNewModalityOpen] = useState(false);
+    const [newModalityName, setNewModalityName] = useState('');
 
     useEffect(() => {
         if (open) {
@@ -87,11 +85,23 @@ export const QuickGameEntryModal: React.FC<QuickGameEntryModalProps> = ({
         }
     };
 
-    const handleNewModalitySaved = async (data: Omit<Product, 'id'>, id?: string) => {
-        const newId = await onSaveProduct(data, id);
-        setSelectedGameId(newId);
-        setIsNewModalityOpen(false);
-        return newId;
+    const handleCreateModality = async () => {
+        if (!newModalityName.trim()) return;
+        setProcessing(true);
+        try {
+            const newId = await onSaveGame({
+                name: newModalityName.trim(),
+                category: 'Entretenimento',
+                unitPrice: 0
+            });
+            setSelectedGameId(newId);
+            setIsNewModalityOpen(false);
+            setNewModalityName('');
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -102,87 +112,57 @@ export const QuickGameEntryModal: React.FC<QuickGameEntryModalProps> = ({
                         <DialogTitle className="flex items-center gap-2 text-orange-500 font-black uppercase tracking-tight">
                             <Zap size={20} fill="currentColor" /> Entrada Rápida de Banca
                         </DialogTitle>
-                        <DialogDescription className="text-xs font-bold uppercase text-muted-foreground tracking-tighter">
-                            Registro instantâneo para o caixa independente.
-                        </DialogDescription>
+                        <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">Registro independente do balcão.</DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Modalidade de Jogo</Label>
-                                <Button 
-                                    variant="link" 
-                                    size="sm" 
-                                    className="h-auto p-0 text-[10px] font-black uppercase text-primary hover:text-primary/80"
-                                    onClick={() => setIsNewModalityOpen(true)}
-                                >
-                                    <PlusCircle size={10} className="mr-1" /> Nova Modalidade
-                                </Button>
+                                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Modalidade</Label>
+                                <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-black uppercase text-primary" onClick={() => setIsNewModalityOpen(true)}>+ Nova</Button>
                             </div>
                             <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                                <SelectTrigger className="h-12 bg-background border-2 font-bold">
-                                    <SelectValue placeholder="Selecione o jogo..." />
-                                </SelectTrigger>
+                                <SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue placeholder="Selecione o jogo..." /></SelectTrigger>
                                 <SelectContent>
                                     {gameModalities.map(g => (
                                         <SelectItem key={g.id} value={g.id!} className="font-bold uppercase text-xs">
-                                            <div className="flex items-center gap-2">
-                                                <Dices size={12} className="text-orange-500" />
-                                                {g.name}
-                                            </div>
+                                            <div className="flex items-center gap-2"><Dices size={12} className="text-orange-500" />{g.name}</div>
                                         </SelectItem>
                                     ))}
-                                    {gameModalities.length === 0 && (
-                                        <p className="p-4 text-center text-xs text-muted-foreground">Nenhuma modalidade cadastrada.</p>
-                                    )}
                                 </SelectContent>
                             </Select>
                         </div>
 
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor Arrecadado (R$)</Label>
-                            <Input 
-                                type="number" 
-                                step="0.01" 
-                                value={amount} 
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="h-12 text-xl font-black text-orange-500 bg-background border-2 focus:border-orange-500"
-                                placeholder="0.00"
-                            />
+                            <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-12 text-xl font-black text-orange-500" placeholder="0.00" />
                         </div>
 
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
-                                <Hash size={10} /> Referência (Opcional)
-                            </Label>
-                            <Input 
-                                value={identifier} 
-                                onChange={(e) => setIdentifier(e.target.value)}
-                                className="h-12 font-bold bg-background border-2"
-                                placeholder="Ex: Milhar 1234, Maquina 05..."
-                            />
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Referência (Milhar/Máquina)</Label>
+                            <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="h-12 font-bold" placeholder="Ex: Milhar 1234..." />
                         </div>
                     </div>
 
                     <DialogFooter className="gap-2">
-                        <Button variant="ghost" onClick={() => onOpenChange(false)} className="font-bold uppercase text-xs h-12">Cancelar</Button>
-                        <Button onClick={handleQuickSave} disabled={processing} className="bg-orange-500 hover:bg-orange-600 text-white font-black uppercase text-sm h-12 flex-1 shadow-lg">
-                            {processing ? <Spinner size="h-4 w-4" /> : "Confirmar Entrada"}
-                        </Button>
+                        <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                        <Button onClick={handleQuickSave} disabled={processing} className="bg-orange-500 text-white font-black h-12 flex-1 shadow-lg uppercase">Confirmar Entrada</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {isNewModalityOpen && (
-                <ProductFormModal 
-                    product={{ saleType: 'game', category: 'Entretenimento' }}
-                    allProducts={allProducts}
-                    open={isNewModalityOpen}
-                    onOpenChange={setIsNewModalityOpen}
-                    onSave={handleNewModalitySaved}
-                />
-            )}
+            <Dialog open={isNewModalityOpen} onOpenChange={setIsNewModalityOpen}>
+                <DialogContent className="sm:max-w-xs">
+                    <DialogHeader><DialogTitle className="text-sm font-black uppercase">Nova Modalidade</DialogTitle></DialogHeader>
+                    <div className="py-4 space-y-3">
+                        <Input value={newModalityName} onChange={e => setNewModalityName(e.target.value)} placeholder="Nome do Jogo" autoFocus />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsNewModalityOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleCreateModality} disabled={processing} className="bg-primary text-white font-black">Salvar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 };

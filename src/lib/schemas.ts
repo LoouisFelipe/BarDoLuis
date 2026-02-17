@@ -1,3 +1,4 @@
+
 import { FieldValue } from 'firebase/firestore';
 
 export interface DoseOption {
@@ -20,6 +21,16 @@ export interface Product {
   saleType: 'unit' | 'dose' | 'service' | 'portion' | 'weight' | 'game';
   doseOptions?: DoseOption[];
   baseUnitSize?: number | null;
+  createdAt?: FieldValue | Date;
+  updatedAt?: FieldValue | Date;
+}
+
+export interface GameModality {
+  id?: string;
+  name: string;
+  category: string;
+  subcategory?: string;
+  unitPrice: number; // Suggested value
   createdAt?: FieldValue | Date;
   updatedAt?: FieldValue | Date;
 }

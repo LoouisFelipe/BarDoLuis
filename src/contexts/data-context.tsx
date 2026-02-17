@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
-import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } from '@/lib/schemas';
+import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem, GameModality } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
 import { useToast } from "@/hooks/use-toast"; 
 import { db } from '@/lib/firebase';
@@ -39,12 +39,15 @@ const sanitizeData = (data: any) => {
 interface DataContextType {
   users: UserProfile[];
   products: Product[];
+  gameModalities: GameModality[];
   suppliers: Supplier[];
   customers: Customer[];
   transactions: Transaction[];
   loading: boolean;
   saveProduct: (productData: Omit<Product, 'id'>, productId?: string) => Promise<string>;
   deleteProduct: (productId: string) => Promise<void>;
+  saveGameModality: (data: Omit<GameModality, 'id'>, id?: string) => Promise<string>;
+  deleteGameModality: (id: string) => Promise<void>;
   addStock: (productId: string, quantity: number, costPrice?: number) => Promise<void>;
   saveCustomer: (customerData: Omit<Customer, 'id' | 'balance'>, customerId?: string) => Promise<string>;
   deleteCustomer: (customerId: string) => Promise<void>;
@@ -79,6 +82,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const productsQuery = useMemoFirebase(() => (db && user) ? collection(db, 'products') : null, [user]);
   const { data: productsData, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
+  const gameModalitiesQuery = useMemoFirebase(() => (db && user) ? collection(db, 'game_modalities') : null, [user]);
+  const { data: gameModalitiesData, isLoading: gameModalitiesLoading } = useCollection<GameModality>(gameModalitiesQuery);
+
   const customersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'customers') : null, [user]);
   const { data: customersData, isLoading: customersLoading } = useCollection<Customer>(customersQuery);
 
@@ -100,8 +106,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [rawTransactionsData]);
 
   const loading = useMemo(() => 
-    usersLoading || productsLoading || customersLoading || suppliersLoading || transactionsLoading,
-    [usersLoading, productsLoading, customersLoading, suppliersLoading, transactionsLoading]
+    usersLoading || productsLoading || gameModalitiesLoading || customersLoading || suppliersLoading || transactionsLoading,
+    [usersLoading, productsLoading, gameModalitiesLoading, customersLoading, suppliersLoading, transactionsLoading]
   );
   
   const saveProduct = async (data: Omit<Product, 'id'>, id?: string) => {
@@ -134,6 +140,37 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       }));
     });
     toast({ title: 'Sucesso', description: 'Produto removido.' });
+  };
+
+  const saveGameModality = async (data: Omit<GameModality, 'id'>, id?: string) => {
+    const docRef = id ? doc(db, 'game_modalities', id) : doc(collection(db, 'game_modalities'));
+    const payload = sanitizeData({ 
+      ...data,
+      updatedAt: serverTimestamp(),
+      ...(!id && { createdAt: serverTimestamp() })
+    });
+
+    setDoc(docRef, payload, { merge: true }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: id ? 'update' : 'create',
+        requestResourceData: payload
+      }));
+    });
+
+    toast({ title: 'Banca Atualizada', description: 'Modalidade de jogo salva.' });
+    return docRef.id;
+  };
+
+  const deleteGameModality = async (id: string) => {
+    const docRef = doc(db, 'game_modalities', id);
+    deleteDoc(docRef).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
+    toast({ title: 'Removido', description: 'Modalidade excluída da banca.' });
   };
 
   const addStock = async (id: string, qty: number, cost?: number) => {
@@ -261,10 +298,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // Atualiza estoque apenas para itens originais
+        // Atualiza estoque apenas para itens de bar (produtos)
         order.items.forEach(item => {
-          const dec = item.size ? item.size * item.quantity : item.quantity;
-          t.update(doc(db, 'products', item.productId), { stock: increment(-dec), updatedAt: serverTimestamp() });
+          // Só subtrai estoque se o item não for de uma modalidade de jogo
+          const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
+          if (!isGame) {
+            const dec = item.size ? item.size * item.quantity : item.quantity;
+            t.update(doc(db, 'products', item.productId), { stock: increment(-dec), updatedAt: serverTimestamp() });
+          }
         });
 
         if (paymentMethod === 'Fiado' && customerId) {
@@ -272,7 +313,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const finalItems = [...order.items];
-        // Se houver prêmio de jogo, adicionamos um item negativo para auditoria da Banca
         if (gamePayout && gamePayout.amount > 0) {
           finalItems.push({
             productId: gamePayout.productId,
@@ -338,8 +378,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value = {
-    users: usersData || [], products: productsData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
-    loading, saveProduct, deleteProduct, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
+    users: usersData || [], products: productsData || [], gameModalities: gameModalitiesData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
+    loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

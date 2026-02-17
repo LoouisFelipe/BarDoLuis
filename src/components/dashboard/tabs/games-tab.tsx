@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -11,12 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dices, Hash, History, TrendingUp, Sparkles, Search, Info, Settings, PlusCircle, Edit, Trash2, Zap } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
-import { Transaction, Product } from '@/lib/schemas';
+import { Transaction, GameModality } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ProductFormModal } from '@/components/products/product-form-modal';
 import { QuickGameEntryModal } from '@/components/orders/quick-game-entry-modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,11 +31,11 @@ import {
 } from '@/components/ui/alert-dialog';
 
 /**
- * @fileOverview Aba de Banca de Jogos (Independente).
- * CTO: Correção de acessibilidade das sub-abas e alinhamento visual premium.
+ * @fileOverview Aba de Banca de Jogos (Totalmente Desacoplada).
+ * CTO: Agora utiliza a coleção game_modalities independente dos produtos de bar.
  */
 export const GamesTab: React.FC = () => {
-    const { transactions, products, loading, saveProduct, deleteProduct, finalizeOrder } = useData();
+    const { transactions, gameModalities, loading, saveGameModality, deleteGameModality, finalizeOrder } = useData();
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
         from: subDays(new Date(), 6),
         to: new Date(),
@@ -44,15 +46,10 @@ export const GamesTab: React.FC = () => {
     // Estados para Gestão de Modalidades
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-    const [selectedGame, setSelectedGame] = useState<Product | null>(null);
-    const [gameToDelete, setGameToDelete] = useState<Product | null>(null);
+    const [selectedGame, setSelectedGame] = useState<GameModality | null>(null);
+    const [gameToDelete, setGameToDelete] = useState<GameModality | null>(null);
 
-    // 1. Filtragem de Modalidades (Produtos de tipo 'game')
-    const gameModalities = useMemo(() => {
-        return (products || []).filter(p => p.saleType === 'game').sort((a, b) => a.name.localeCompare(b.name));
-    }, [products]);
-
-    // 2. Auditoria: Filtragem Temporal e de Categoria
+    // 1. Auditoria: Filtragem Temporal e de Categoria
     const gameAuditData = useMemo(() => {
         if (!dateRange?.from) return { transactions: [], totalRevenue: 0, betCount: 0 };
 
@@ -66,8 +63,9 @@ export const GamesTab: React.FC = () => {
             const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
             const isInTime = isWithinInterval(date, interval);
             const hasGameItem = t.items?.some((item: any) => {
-                const product = products.find(p => p.id === item.productId);
-                return !!item.identifier || product?.saleType === 'game';
+                // CTO: Identifica itens de jogo cruzando com a nova coleção ou pelo marcador de referência
+                const isGame = gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
+                return isGame;
             });
             return isInTime && hasGameItem;
         });
@@ -77,8 +75,8 @@ export const GamesTab: React.FC = () => {
 
         gameSales.forEach(t => {
             t.items?.forEach((item: any) => {
-                const product = products.find(p => p.id === item.productId);
-                if (item.identifier || product?.saleType === 'game') {
+                const isGame = gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
+                if (isGame) {
                     totalRevenue += (item.unitPrice * item.quantity);
                     betCount += item.quantity;
                 }
@@ -94,7 +92,7 @@ export const GamesTab: React.FC = () => {
             totalRevenue,
             betCount
         };
-    }, [transactions, dateRange, products]);
+    }, [transactions, dateRange, gameModalities]);
 
     const filteredAudit = useMemo(() => {
         if (!searchTerm) return gameAuditData.transactions;
@@ -108,7 +106,7 @@ export const GamesTab: React.FC = () => {
         });
     }, [gameAuditData.transactions, searchTerm]);
 
-    const handleEditGame = (game: Product) => {
+    const handleEditGame = (game: GameModality) => {
         setSelectedGame(game);
         setIsFormModalOpen(true);
     };
@@ -122,7 +120,6 @@ export const GamesTab: React.FC = () => {
 
     return (
         <div className="p-1 md:p-4 space-y-6 pb-24">
-            {/* CABEÇALHO DO DASHBOARD (Ref: Imagem) */}
             <div className="bg-card p-6 rounded-2xl border border-border/40 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-orange-500/10 rounded-xl border border-orange-500/20">
@@ -139,7 +136,6 @@ export const GamesTab: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* CARD RECEITA (Laranja - Ref: Imagem) */}
                 <Card className="border-l-4 border-l-orange-500 shadow-xl bg-card/40 overflow-hidden relative group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Receita de Banca</CardTitle>
@@ -151,7 +147,6 @@ export const GamesTab: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                {/* CARD VOLUME (Azul - Ref: Imagem) */}
                 <Card className="border-l-4 border-l-primary shadow-xl bg-card/40 overflow-hidden relative group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Volume de Entradas</CardTitle>
@@ -164,7 +159,6 @@ export const GamesTab: React.FC = () => {
                 </Card>
             </div>
 
-            {/* NOTA DO CTO (Ref: Imagem) */}
             <div className="p-5 bg-muted/10 border border-dashed border-border/60 rounded-2xl flex gap-4 items-start">
                 <div className="p-2 bg-muted/20 rounded-full shrink-0">
                     <Info size={18} className="text-muted-foreground" />
@@ -172,12 +166,11 @@ export const GamesTab: React.FC = () => {
                 <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nota do CTO</p>
                     <p className="text-[11px] text-muted-foreground/80 font-medium leading-relaxed max-w-3xl">
-                        Estes valores são calculados com base nos itens identificados como jogos nas comandas fechadas. Este caixa deve ser conciliado separadamente do PDV de balcão para garantir a integridade da banca independente.
+                        Estes valores são calculados com base nos itens identificados como jogos. O caixa da banca é desacoplado do estoque de bar para garantir integridade analítica total.
                     </p>
                 </div>
             </div>
 
-            {/* NAVEGAÇÃO E ENTRADA RÁPIDA (Ref: Imagem) */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex bg-card/50 p-1.5 rounded-xl border border-border/40 w-full sm:w-auto overflow-hidden">
                     <Button 
@@ -206,7 +199,6 @@ export const GamesTab: React.FC = () => {
                 </Button>
             </div>
 
-            {/* CONTEÚDO DINÂMICO (LOG DE APOSTAS) */}
             {activeTab === 'audit' && (
                 <div className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <Card className="shadow-2xl border-none bg-card overflow-hidden">
@@ -244,8 +236,7 @@ export const GamesTab: React.FC = () => {
                                         filteredAudit.map((t: Transaction) => {
                                             const date = t.timestamp instanceof Date ? t.timestamp : (t.timestamp as any)?.toDate?.() || new Date();
                                             return t.items?.filter((item: any) => {
-                                                const product = products.find(p => p.id === item.productId);
-                                                return !!item.identifier || product?.saleType === 'game';
+                                                return gameModalities.some(gm => gm.id === item.productId) || !!item.identifier;
                                             }).map((item: any, idx: number) => (
                                                 <TableRow key={`${t.id}-${idx}`} className="hover:bg-orange-500/[0.03] transition-colors border-b border-border/30">
                                                     <TableCell className="text-[10px] font-bold px-6 whitespace-nowrap opacity-60">
@@ -282,13 +273,12 @@ export const GamesTab: React.FC = () => {
                 </div>
             )}
 
-            {/* CONTEÚDO DINÂMICO (MODALIDADES) */}
             {activeTab === 'config' && (
                 <div className="mt-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card p-6 rounded-2xl border border-dashed border-border/60 gap-4">
                         <div>
                             <h3 className="text-xl font-black uppercase tracking-tight">Gerenciar Modalidades</h3>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Configure os tipos de jogos disponíveis para o PDV.</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Configure os tipos de jogos disponíveis para a banca.</p>
                         </div>
                         <Button onClick={handleAddNewGame} className="w-full sm:w-auto bg-primary hover:bg-primary/80 text-white font-black uppercase text-[10px] h-11 px-6 gap-2 shadow-lg">
                             <PlusCircle size={16} /> Nova Modalidade
@@ -313,7 +303,7 @@ export const GamesTab: React.FC = () => {
                                 </CardHeader>
                                 <CardContent className="p-5 pt-4 mt-4 border-t border-border/30 bg-muted/5">
                                     <div className="flex justify-between items-baseline">
-                                        <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Preço Sugerido</span>
+                                        <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor Sugerido</span>
                                         <span className="text-xl font-black text-orange-500">R$ {game.unitPrice?.toFixed(2)}</span>
                                     </div>
                                 </CardContent>
@@ -330,12 +320,11 @@ export const GamesTab: React.FC = () => {
             )}
 
             {isFormModalOpen && (
-                <ProductFormModal 
-                    product={selectedGame ? { ...selectedGame, saleType: 'game' } : { saleType: 'game', category: 'Entretenimento' }}
-                    allProducts={products}
+                <GameFormModal 
+                    game={selectedGame}
                     open={isFormModalOpen}
                     onOpenChange={setIsFormModalOpen}
-                    onSave={saveProduct}
+                    onSave={saveGameModality}
                 />
             )}
 
@@ -344,9 +333,8 @@ export const GamesTab: React.FC = () => {
                     open={isQuickEntryOpen}
                     onOpenChange={setIsQuickEntryOpen}
                     gameModalities={gameModalities}
-                    allProducts={products}
                     onSave={finalizeOrder}
-                    onSaveProduct={saveProduct}
+                    onSaveGame={saveGameModality}
                 />
             )}
 
@@ -356,14 +344,14 @@ export const GamesTab: React.FC = () => {
                         <AlertDialogHeader>
                             <AlertDialogTitle className="font-black uppercase tracking-tight text-destructive">Excluir Modalidade?</AlertDialogTitle>
                             <AlertDialogDescription className="font-bold text-xs uppercase tracking-tight text-muted-foreground leading-relaxed">
-                                Você está prestes a excluir <strong>{gameToDelete.name}</strong>. Esta ação removerá a modalidade do PDV imediato, mas não afetará os registros históricos de vendas passadas.
+                                Você está prestes a excluir <strong>{gameToDelete.name}</strong> da banca. Esta ação removerá a modalidade da seleção imediata, mas não afetará registros passados.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter className="mt-4 gap-2">
                             <AlertDialogCancel className="font-black uppercase text-[10px] h-12 border-2">Cancelar</AlertDialogCancel>
                             <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 px-8 shadow-lg" onClick={async () => {
                                 if (gameToDelete.id) {
-                                    await deleteProduct(gameToDelete.id);
+                                    await deleteGameModality(gameToDelete.id);
                                     setGameToDelete(null);
                                 }
                             }}>Sim, excluir</AlertDialogAction>
@@ -372,5 +360,57 @@ export const GamesTab: React.FC = () => {
                 </AlertDialog>
             )}
         </div>
+    );
+};
+
+// CTO: Formulário especializado para modalidades de jogo (Isolado de Produtos)
+const GameFormModal = ({ game, open, onOpenChange, onSave }: any) => {
+    const [formData, setFormData] = useState({
+        name: game?.name || '',
+        category: 'Entretenimento',
+        subcategory: game?.subcategory || '',
+        unitPrice: game?.unitPrice || 0
+    });
+
+    React.useEffect(() => {
+        if (open && game) {
+            setFormData({
+                name: game.name,
+                category: 'Entretenimento',
+                subcategory: game.subcategory || '',
+                unitPrice: game.unitPrice || 0
+            });
+        } else if (open) {
+            setFormData({ name: '', category: 'Entretenimento', subcategory: '', unitPrice: 0 });
+        }
+    }, [open, game]);
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="font-black uppercase tracking-tight">{game ? 'Editar Modalidade' : 'Nova Modalidade'}</DialogTitle>
+                    <DialogDescription className="text-xs uppercase font-bold text-muted-foreground">Configuração exclusiva da Banca Jogos.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nome da Modalidade</Label>
+                        <Input value={formData.name} onChange={e => setFormData(p => ({...p, name: e.target.value}))} placeholder="Ex: Jogo do Bicho, Máquina 01..." />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor Sugerido (R$)</Label>
+                        <Input type="number" step="0.01" value={formData.unitPrice} onChange={e => setFormData(p => ({...p, unitPrice: parseFloat(e.target.value) || 0}))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Subcategoria (Opcional)</Label>
+                        <Input value={formData.subcategory} onChange={e => setFormData(p => ({...p, subcategory: e.target.value}))} placeholder="Ex: Apostas, Bingo, Eletrônico" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                    <Button onClick={() => onSave(formData, game?.id).then(() => onOpenChange(false))} className="bg-primary text-white font-black uppercase">Gravar Modalidade</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };
