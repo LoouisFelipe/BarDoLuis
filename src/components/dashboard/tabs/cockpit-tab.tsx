@@ -1,13 +1,13 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
-import { subDays } from 'date-fns'; 
-import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart, Info } from 'lucide-react'; 
+import { subDays, isToday, startOfDay, endOfDay } from 'date-fns'; 
+import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart, Info, Clock } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import { useReportData } from '@/hooks/use-report-data';
 import { CockpitSkeleton } from '../CockpitSkeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { AIBusinessAnalyst } from '../ai-business-analyst';
+import { cn } from '@/lib/utils';
 
 const ChartSkeleton = () => <div className="h-[350px] w-full flex items-center justify-center bg-muted/50 rounded-lg"><Spinner/></div>;
 const TopProductsChart = dynamic(() => import('../charts/top-products-chart').then(mod => mod.TopProductsChart), { ssr: false, loading: ChartSkeleton });
@@ -72,6 +73,19 @@ export const CockpitTab: React.FC = () => {
         periodGoal: manualGoal,
     });
 
+    const handleSetToday = () => {
+        const today = new Date();
+        setDateRange({ from: today, to: today });
+    };
+
+    const isTodayActive = useMemo(() => {
+        if (!dateRange?.from) return false;
+        // Se 'to' não existe, react-day-picker entende como o mesmo dia selecionado
+        const from = dateRange.from;
+        const to = dateRange.to || from;
+        return isToday(from) && isToday(to);
+    }, [dateRange]);
+
     if (loading || !reportData) {
         return <CockpitSkeleton />;
     }
@@ -87,6 +101,22 @@ export const CockpitTab: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mt-1">Fortaleza Privada • Unidade Tavares Bastos</p>
                     </div>
                     <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="flex bg-card/50 p-1 rounded-lg border border-border/40 shrink-0">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn(
+                                    "h-8 px-4 text-[10px] font-black uppercase tracking-tight rounded-md transition-all gap-2",
+                                    isTodayActive 
+                                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(59,130,246,0.2)]" 
+                                        : "text-muted-foreground hover:bg-muted/20"
+                                )}
+                                onClick={handleSetToday}
+                            >
+                                <Clock size={12} />
+                                Hoje
+                            </Button>
+                        </div>
                         <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                     </div>
                 </div>
