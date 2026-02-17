@@ -4,7 +4,7 @@
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
 import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
-import { useToast } from "@/hooks/use-toast"; // CTO: Caminho centralizado para Hooks
+import { useToast } from "@/hooks/use-toast"; 
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/hooks/use-collection';
 import { addMonths, format } from 'date-fns';
@@ -26,9 +26,6 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
-/**
- * Utilitário profundo para remover campos undefined que o Firestore rejeita.
- */
 const sanitizeData = (data: any) => {
   const sanitized = { ...data };
   Object.keys(sanitized).forEach(key => {
@@ -55,7 +52,14 @@ interface DataContextType {
   saveSupplier: (supplierData: Omit<Supplier, 'id'>, supplierId?: string) => Promise<string>;
   deleteSupplier: (supplierId: string) => Promise<void>;
   recordPurchaseAndUpdateStock: (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) => Promise<void>;
-  finalizeOrder: (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount?: number, customDate?: Date) => Promise<string>;
+  finalizeOrder: (
+    order: {items: OrderItem[], total: number, displayName: string}, 
+    customerId: string | null, 
+    paymentMethod: string, 
+    discount?: number, 
+    customDate?: Date,
+    gamePayout?: { productId: string, name: string, amount: number }
+  ) => Promise<string>;
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
@@ -69,7 +73,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast(); 
   const { user, isAdmin } = useAuth();
 
-  // Queries Memoizadas para evitar loops infinitos nos listeners
   const usersQuery = useMemoFirebase(() => (db && user && isAdmin) ? collection(db, 'users') : null, [user, isAdmin]);
   const { data: usersData, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
@@ -242,20 +245,44 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Sucesso', description: 'Compra registrada e estoque reposto.' });
   };
 
-  const finalizeOrder = async (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0, customDate?: Date) => {
-    const finalTotal = Math.max(0, order.total - discount);
+  const finalizeOrder = async (
+    order: {items: OrderItem[], total: number, displayName: string}, 
+    customerId: string | null, 
+    paymentMethod: string, 
+    discount: number = 0, 
+    customDate?: Date,
+    gamePayout?: { productId: string, name: string, amount: number }
+  ) => {
+    const payoutAmount = gamePayout?.amount || 0;
+    const finalTotal = Math.max(0, order.total - discount - payoutAmount);
     const saleDate = customDate || new Date();
     
     try {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
+        
+        // Atualiza estoque apenas para itens originais
         order.items.forEach(item => {
           const dec = item.size ? item.size * item.quantity : item.quantity;
           t.update(doc(db, 'products', item.productId), { stock: increment(-dec), updatedAt: serverTimestamp() });
         });
+
         if (paymentMethod === 'Fiado' && customerId) {
           t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal), updatedAt: serverTimestamp() });
         }
+
+        const finalItems = [...order.items];
+        // Se houver prêmio de jogo, adicionamos um item negativo para auditoria da Banca
+        if (gamePayout && gamePayout.amount > 0) {
+          finalItems.push({
+            productId: gamePayout.productId,
+            name: `ABATE PRÊMIO: ${gamePayout.name}`,
+            quantity: 1,
+            unitPrice: -gamePayout.amount,
+            identifier: 'PAGAMENTO_PREMIO'
+          });
+        }
+
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
           timestamp: saleDate, 
@@ -263,7 +290,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 
           discount: discount,
-          items: order.items, 
+          items: finalItems, 
           paymentMethod, 
           customerId, 
           tabName: order.displayName, 
