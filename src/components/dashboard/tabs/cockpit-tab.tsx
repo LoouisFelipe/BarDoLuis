@@ -17,6 +17,7 @@ import { ExpensesReportModal } from '@/components/financials/expenses-report-mod
 import { ProfitReportModal } from '@/components/financials/profit-report-modal';
 import { SalesVolumeReportModal } from '@/components/financials/sales-volume-report-modal';
 import { PurchasesReportModal } from '@/components/financials/purchases-report-modal';
+import { GoalReportModal } from '@/components/financials/goal-report-modal';
 import { useReportData } from '@/hooks/use-report-data';
 import { CockpitSkeleton } from '../CockpitSkeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -60,6 +61,7 @@ export const CockpitTab: React.FC = () => {
     const [isProfitModalOpen, setIsProfitModalOpen] = useState(false);
     const [isSalesVolumeModalOpen, setIsSalesVolumeModalOpen] = useState(false);
     const [isPurchasesModalOpen, setIsPurchasesModalOpen] = useState(false);
+    const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
     const reportData = useReportData({
         transactions,
@@ -134,7 +136,10 @@ export const CockpitTab: React.FC = () => {
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Atendimentos</CardTitle><ReceiptText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors"/></CardHeader><CardContent><div className="flex items-baseline"><div className="text-2xl font-black">+{reportData.salesCount || 0}</div><TrendIndicator value={reportData.deltas?.salesCount} /></div></CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-yellow-400 shadow-sm bg-gradient-to-br from-card to-yellow-400/5">
+                        <Card 
+                            className="cursor-pointer border-l-4 border-l-yellow-400 shadow-sm bg-gradient-to-br from-card to-yellow-400/5 hover:bg-yellow-400/10 transition-all group"
+                            onClick={() => setIsGoalModalOpen(true)}
+                        >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <div className="flex items-center gap-1">
                                     <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Progresso da Meta</CardTitle>
@@ -146,8 +151,13 @@ export const CockpitTab: React.FC = () => {
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-yellow-400/10" onClick={() => setIsEditingGoal(true)}>
-                                    <Edit className="h-3 w-3 text-muted-foreground" />
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 hover:bg-yellow-400/20" 
+                                    onClick={(e) => { e.stopPropagation(); setIsEditingGoal(true); }}
+                                >
+                                    <Edit className="h-3 w-3 text-muted-foreground group-hover:text-yellow-400 transition-colors" />
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -159,6 +169,7 @@ export const CockpitTab: React.FC = () => {
                                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setIsEditingGoal(false); }}
                                         className="h-8 text-2xl font-black text-yellow-400 p-1 bg-transparent border-none focus-visible:ring-0"
                                         autoFocus
+                                        onClick={(e) => e.stopPropagation()}
                                     />
                                 ) : (
                                     <div className="flex flex-col">
@@ -206,6 +217,7 @@ export const CockpitTab: React.FC = () => {
                 <ProfitReportModal open={isProfitModalOpen} onOpenChange={setIsProfitModalOpen} reportData={reportData} date={dateRange} />
                 <SalesVolumeReportModal open={isSalesVolumeModalOpen} onOpenChange={setIsSalesVolumeModalOpen} reportData={reportData} date={dateRange} />
                 <PurchasesReportModal open={isPurchasesModalOpen} onOpenChange={setIsPurchasesModalOpen} reportData={reportData} date={dateRange} />
+                <GoalReportModal open={isGoalModalOpen} onOpenChange={setIsGoalModalOpen} reportData={reportData} date={dateRange} />
             </div>
         </TooltipProvider>
     );

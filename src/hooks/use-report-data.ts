@@ -43,7 +43,6 @@ export const useReportData = ({
     });
 
     // 2. Lógica de Meta Estratégica (Rateio de Despesas Mensais)
-    // CEO: A meta é cobrir os custos. Pegamos TUDO que é despesa no mês do início do filtro.
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = getDaysInMonth(from);
@@ -52,7 +51,6 @@ export const useReportData = ({
     // CFO: Auditoria de TODAS as despesas do mês corrente (Fixo + Variável + Insumos)
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
-      // Consideramos apenas saídas (expense) registradas no ledger para o mês em análise
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
     }).reduce((acc, t) => acc + (t.total || 0), 0);
 
@@ -224,8 +222,6 @@ export const useReportData = ({
     });
 
     const finalGoal = periodGoal > 0 ? periodGoal : dynamicCostGoal;
-    
-    // CEO: Progresso é a Receita Bruta comparada à Meta de Gastos (Rateada)
     const goalProgress = finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : (currentMetrics.revenue > 0 ? 100 : 0);
 
     return {
@@ -241,6 +237,9 @@ export const useReportData = ({
       avgTicket: currentMetrics.avgTicket || 0,
       goalProgress,
       finalGoal,
+      dailyGoal: dailyExpenseRate,
+      totalMonthlyExpenses,
+      daysInPeriod,
       deltas: {
         revenue: calculateDelta(currentMetrics.revenue, prevMetrics.revenue),
         cashInflow: calculateDelta(currentMetrics.cashInflow, prevMetrics.cashInflow),
