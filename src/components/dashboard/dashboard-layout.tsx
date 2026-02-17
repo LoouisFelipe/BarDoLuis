@@ -63,7 +63,7 @@ const TABS_CONFIG = {
   settings: {
     label: 'Ajustes',
     icon: SettingsIcon,
-    component: <SettingsTab showNotification={() => {}} />,
+    component: <SettingsTab />,
     permission: 'admin',
   },
 };
