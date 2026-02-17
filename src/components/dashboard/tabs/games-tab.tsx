@@ -323,7 +323,9 @@ export const GamesTab: React.FC = () => {
                     open={isQuickEntryOpen}
                     onOpenChange={setIsQuickEntryOpen}
                     gameModalities={gameModalities}
+                    allProducts={products}
                     onSave={finalizeOrder}
+                    onSaveProduct={saveProduct}
                 />
             )}
 
