@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
@@ -54,7 +55,7 @@ interface DataContextType {
   saveSupplier: (supplierData: Omit<Supplier, 'id'>, supplierId?: string) => Promise<string>;
   deleteSupplier: (supplierId: string) => Promise<void>;
   recordPurchaseAndUpdateStock: (supplierId: string, supplierName: string, items: PurchaseItem[], totalCost: number) => Promise<void>;
-  finalizeOrder: (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount?: number) => Promise<string>;
+  finalizeOrder: (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount?: number, customDate?: Date) => Promise<string>;
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
@@ -241,8 +242,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Sucesso', description: 'Compra registrada e estoque reposto.' });
   };
 
-  const finalizeOrder = async (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0) => {
+  const finalizeOrder = async (order: {items: OrderItem[], total: number, displayName: string}, customerId: string | null, paymentMethod: string, discount: number = 0, customDate?: Date) => {
     const finalTotal = Math.max(0, order.total - discount);
+    const saleDate = customDate || new Date();
+    
     try {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
@@ -255,7 +258,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         }
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
-          timestamp: serverTimestamp(), 
+          timestamp: saleDate, 
           type: 'sale', 
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 

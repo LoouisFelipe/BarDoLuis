@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Order, OrderItem, Customer } from '@/lib/schemas';
@@ -10,8 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import { User, CheckCircle2, TicketPercent } from 'lucide-react';
+import { User, CheckCircle2, TicketPercent, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface OrderPaymentModalProps {
   open: boolean;
@@ -41,6 +43,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(order.customerId);
   const [discount, setDiscount] = useState<number>(0);
+  const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -70,7 +73,8 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
         { items: order.items, total: order.total, displayName: finalDisplayName },
         selectedCustomerId,
         paymentMethod,
-        discount
+        discount,
+        saleDate
       );
 
       await onDeleteOrder(order.id);
@@ -89,7 +93,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
         <DialogHeader>
           <DialogTitle>Finalizar: {order.displayName}</DialogTitle>
           <DialogDescription>
-            Confirme o meio de pagamento e o vínculo com o cliente.
+            Confirme o meio de pagamento, data da venda e o vínculo com o cliente.
           </DialogDescription>
         </DialogHeader>
         
@@ -106,6 +110,16 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
           </div>
 
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                <CalendarIcon size={14} /> Data da Venda (Retroativa?)
+              </Label>
+              <DatePicker date={saleDate} setDate={setSaleDate} className="w-full" />
+              <p className="text-[10px] text-muted-foreground italic">
+                * Útil para fechar comandas esquecidas de dias anteriores.
+              </p>
+            </div>
+
             {isAdmin && (
               <div className="space-y-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
