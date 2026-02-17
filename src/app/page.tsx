@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * @fileOverview Página raiz do BarDoLuis.
- * CTO: Refatorado para remover o Toaster redundante, centralizando-o no Layout raiz.
+ * CTO: Refatorado para garantir que a autenticação e os dados fluam sem erros de boot.
  */
 
 export default function RootPage() {
@@ -25,22 +25,21 @@ export default function RootPage() {
     }
   }, [isAuthReady, user, router, isLoadingAuth, authError]);
 
+  // CEO: Feedback visual rico durante o carregamento
   if (isLoadingAuth || !isAuthReady) {
     return <DashboardSkeleton />;
   }
 
   if (authError) {
-    toast({
-      title: "Erro de Autenticação",
-      description: authError.message,
-      variant: "destructive",
-    });
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-red-500 p-4">
-        <p className="text-lg font-semibold mb-4">Ocorreu um erro na autenticação:</p>
-        <p className="text-sm text-center">{authError.message}</p>
-        <button onClick={() => router.replace('/login')} className="mt-6 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-          Ir para Login
+        <p className="text-lg font-semibold mb-4">Erro de Autenticação:</p>
+        <p className="text-sm text-center mb-6">{authError.message}</p>
+        <button 
+          onClick={() => router.replace('/login')} 
+          className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Tentar Novamente
         </button>
       </div>
     );
@@ -66,9 +65,9 @@ export default function RootPage() {
             <Spinner size="h-12 w-12" />
           </div>
         ) : profileError ? (
-          <div className="flex items-center justify-center flex-grow text-red-500 p-4">
-            <p className="text-lg font-semibold mb-4">Erro ao carregar o perfil do usuário:</p>
-            <p className="text-sm text-center">{profileError.message}</p>
+          <div className="flex flex-col items-center justify-center flex-grow text-red-500 p-4">
+            <p className="text-lg font-semibold">Erro ao carregar o perfil:</p>
+            <p className="text-sm text-center opacity-70">{profileError.message}</p>
           </div>
         ) : (
           <DashboardLayout />
