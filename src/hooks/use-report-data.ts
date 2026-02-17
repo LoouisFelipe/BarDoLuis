@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -77,12 +76,14 @@ export const useReportData = ({
           }
           if (t.items) {
             t.items.forEach((item: any) => {
-              // Auditoria de Receita de Jogos
-              if (item.identifier) {
+              const product = (products || []).find((p) => p.id === item.productId);
+              
+              // CTO: Motor de Auditoria de Receita de Jogos Blindado
+              // Identifica pelo marcador 'identifier' ou pelo tipo do produto no cadastro
+              if (item.identifier || product?.saleType === 'game') {
                 gameRevenue += (item.unitPrice * item.quantity);
               }
 
-              const product = (products || []).find((p) => p.id === item.productId);
               if (product) {
                 const baseUnitSize = product.baseUnitSize || 1;
                 const costPerMl = (product.costPrice || 0) / baseUnitSize;
