@@ -43,7 +43,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     }, [date]);
 
     const allSales = useMemo(() => {
-        return reportData?.salesTransactions || [];
+        return (reportData?.salesTransactions as Transaction[]) || [];
     }, [reportData]);
 
     const filteredSales = useMemo(() => {
@@ -138,7 +138,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                             </div>
                                             
                                             <div className="flex flex-wrap gap-1.5">
-                                                {(paymentMethods as string[]).map(method => (
+                                                {paymentMethods.map(method => (
                                                     <Badge 
                                                         key={method}
                                                         variant={selectedMethod === method ? "default" : "outline"}
@@ -153,8 +153,8 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                 ))}
                                                 {selectedMethod && (
                                                     <Badge 
-                                                        variant="ghost" 
-                                                        className="text-[9px] font-black uppercase py-1 text-destructive hover:bg-destructive/10"
+                                                        variant="outline" 
+                                                        className="text-[9px] font-black uppercase py-1 text-destructive hover:bg-destructive/10 border-destructive/20 cursor-pointer"
                                                         onClick={() => setSelectedMethod(null)}
                                                     >
                                                         <X size={10} className="mr-1" /> Limpar

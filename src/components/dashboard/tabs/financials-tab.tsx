@@ -467,7 +467,7 @@ export const FinancialsTab: React.FC = () => {
                                 Esta ação anulará o registro de <strong>{transactionToDelete.description}</strong>.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter className="gap-2">
+                        <AlertDialogFooter>
                             <AlertDialogCancel className="h-12 font-black uppercase text-[10px]">Cancelar</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDeleteTransaction} className="h-12 font-black uppercase text-[10px] bg-destructive text-white hover:bg-destructive/90 shadow-lg">
                                 {processing ? <Spinner /> : 'Sim, Anular'}
