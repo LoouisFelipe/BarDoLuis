@@ -2,12 +2,12 @@
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
-import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem, GameModality } from '@/lib/schemas';
+import { Product, Customer, Supplier, Transaction, PurchaseItem, OrderItem, GameModality, RecurringExpense } from '@/lib/schemas';
 import { UserProfile, useAuth } from './auth-context';
 import { useToast } from "@/hooks/use-toast"; 
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/hooks/use-collection';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, setDate as setDateOfMonth } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
@@ -43,6 +43,7 @@ interface DataContextType {
   suppliers: Supplier[];
   customers: Customer[];
   transactions: Transaction[];
+  recurringExpenses: RecurringExpense[];
   loading: boolean;
   saveProduct: (productData: Omit<Product, 'id'>, productId?: string) => Promise<string>;
   deleteProduct: (productId: string) => Promise<void>;
@@ -91,6 +92,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const suppliersQuery = useMemoFirebase(() => (db && user) ? collection(db, 'suppliers') : null, [user]);
   const { data: suppliersData, isLoading: suppliersLoading } = useCollection<Supplier>(suppliersQuery);
 
+  const recurringQuery = useMemoFirebase(() => (db && user) ? collection(db, 'recurring_expenses') : null, [user]);
+  const { data: recurringData, isLoading: recurringLoading } = useCollection<RecurringExpense>(recurringQuery);
+
   const transactionsQuery = useMemoFirebase(() => (db && user) ? query(collection(db, 'transactions'), orderBy('timestamp', 'desc')) : null, [user]);
   const { data: rawTransactionsData, isLoading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
@@ -106,8 +110,8 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [rawTransactionsData]);
 
   const loading = useMemo(() => 
-    usersLoading || productsLoading || gameModalitiesLoading || customersLoading || suppliersLoading || transactionsLoading,
-    [usersLoading, productsLoading, gameModalitiesLoading, customersLoading, suppliersLoading, transactionsLoading]
+    usersLoading || productsLoading || gameModalitiesLoading || customersLoading || suppliersLoading || transactionsLoading || recurringLoading,
+    [usersLoading, productsLoading, gameModalitiesLoading, customersLoading, suppliersLoading, transactionsLoading, recurringLoading]
   );
   
   const saveProduct = async (data: Omit<Product, 'id'>, id?: string) => {
@@ -298,9 +302,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // Atualiza estoque apenas para itens de bar (produtos)
         order.items.forEach(item => {
-          // Só subtrai estoque se o item não for de uma modalidade de jogo
           const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
           if (!isGame) {
             const dec = item.size ? item.size * item.quantity : item.quantity;
@@ -326,7 +328,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
           timestamp: saleDate,
-          orderCreatedAt: order.createdAt || null, // Armazena início operacional
+          orderCreatedAt: order.createdAt || null, 
           type: 'sale', 
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 
@@ -349,13 +351,42 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const addExpense = async (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) => {
     const batch = writeBatch(db);
     const baseDate = new Date(dateString + 'T12:00:00');
+    
+    // CEO: Se for recorrente, criamos o registro mestre para auditoria futura
+    let recurringId: string | null = null;
+    if (replicateMonths > 0) {
+      const recurringRef = doc(collection(db, 'recurring_expenses'));
+      recurringId = recurringRef.id;
+      batch.set(recurringRef, sanitizeData({
+        id: recurringId,
+        description,
+        amount,
+        category,
+        dayOfMonth: baseDate.getDate(),
+        startDate: dateString,
+        active: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }));
+    }
+
     for (let i = 0; i <= replicateMonths; i++) {
       const expenseRef = doc(collection(db, 'transactions'));
       const currentDate = addMonths(baseDate, i);
-      batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: currentDate, type: 'expense', description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, total: amount, expenseCategory: category, items: [], userId: user?.uid || null }));
+      batch.set(expenseRef, sanitizeData({ 
+        id: expenseRef.id, 
+        timestamp: currentDate, 
+        type: 'expense', 
+        description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, 
+        total: amount, 
+        expenseCategory: category, 
+        items: [], 
+        userId: user?.uid || null,
+        recurringExpenseId: recurringId // Vínculo para facilitar exclusão em lote se o plano for cancelado
+      }));
     }
     await batch.commit();
-    toast({ title: 'Sucesso', description: 'Despesa registrada.' });
+    toast({ title: 'Sucesso', description: replicateMonths > 0 ? 'Plano de custo fixo registrado.' : 'Despesa registrada.' });
   };
 
   const deleteTransaction = async (id: string) => {
@@ -379,7 +410,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const value = {
-    users: usersData || [], products: productsData || [], gameModalities: gameModalitiesData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [],
+    users: usersData || [], products: productsData || [], gameModalities: gameModalitiesData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [], recurringExpenses: recurringData || [],
     loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
   };
 

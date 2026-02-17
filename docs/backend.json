@@ -29,7 +29,7 @@
         "stock": { "type": "number" },
         "costPrice": { "type": "number" },
         "unitPrice": { "type": "number" },
-        "saleType": { "type": "string", "enum": ["unit", "dose", "portion", "weight", "service"] }
+        "saleType": { "type": "string", "enum": ["unit", "dose", "portion", "weight", "game", "service"] }
       },
       "required": ["id", "name", "category", "saleType"]
     },
@@ -84,9 +84,25 @@
         "type": { "type": "string", "enum": ["sale", "expense", "payment"] },
         "total": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "paymentMethod": { "type": "string" }
+        "paymentMethod": { "type": "string" },
+        "recurringExpenseId": { "type": "string" }
       },
       "required": ["id", "type", "total", "timestamp"]
+    },
+    "RecurringExpense": {
+      "title": "Recurring Expense",
+      "type": "object",
+      "description": "Definition for fixed monthly costs.",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "dayOfMonth": { "type": "number" },
+        "startDate": { "type": "string", "format": "date" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "description", "amount", "category"]
     }
   },
   "auth": {
@@ -103,7 +119,7 @@
     },
     "/game_modalities/{modalityId}": {
       "schema": { "$ref": "#/entities/GameModality" },
-      "description": "Entertainment modalities (Independent from bar products)."
+      "description": "Entertainment modalities."
     },
     "/customers/{customerId}": {
       "schema": { "$ref": "#/entities/Customer" },
@@ -116,6 +132,10 @@
     "/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
       "description": "Financial records."
+    },
+    "/recurring_expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/RecurringExpense" },
+      "description": "Master list of fixed monthly costs."
     }
   }
 }

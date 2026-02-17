@@ -65,7 +65,7 @@ export interface OrderItem {
   size?: number; 
   doseName?: string; 
   subcategory?: string;
-  identifier?: string; // Campo para Milhar, Nº Cartela, ID Máquina
+  identifier?: string; 
 }
 
 export interface Order {
@@ -101,7 +101,7 @@ export interface Transaction {
   total: number;
   discount?: number;
   timestamp: FieldValue | Date;
-  orderCreatedAt?: FieldValue | Date | null; // Novo campo para rastrear duração operacional
+  orderCreatedAt?: FieldValue | Date | null; 
   description?: string;
   paymentMethod?: string; 
   customerId?: string; 
@@ -110,4 +110,17 @@ export interface Transaction {
   items?: (OrderItem | PurchaseItem)[]; 
   tabName?: string; 
   userId?: string | null; 
+  recurringExpenseId?: string | null; // Vínculo com a regra mestre de custo fixo
+}
+
+export interface RecurringExpense {
+  id?: string;
+  description: string;
+  amount: number;
+  category: string;
+  dayOfMonth: number;
+  startDate: string;
+  active: boolean;
+  createdAt?: FieldValue | Date;
+  updatedAt?: FieldValue | Date;
 }
