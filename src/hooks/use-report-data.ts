@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,7 +8,7 @@ import { DateRange } from 'react-day-picker';
 /**
  * @fileOverview Hook de inteligência para processamento de KPIs.
  * CTO: Refatorado para implementar a lógica de meta baseada em rateio de despesas mensais.
- * CFO: Garantindo que TODAS as despesas (fixas e fornecedores) componham a meta.
+ * CFO: Consolida Fixos + Insumos para o cálculo do ponto de equilíbrio real.
  */
 
 interface UseReportDataProps {
@@ -45,7 +44,7 @@ export const useReportData = ({
     // 2. Lógica de Meta Estratégica (Rateio de Despesas Mensais)
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
-    const daysInMonth = getDaysInMonth(from);
+    const daysInMonth = Math.max(getDaysInMonth(from), 1);
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
     // CFO: Auditoria de TODAS as despesas do mês corrente (Fixo + Variável + Insumos)
@@ -131,7 +130,6 @@ export const useReportData = ({
       return ((curr - prev) / prev) * 100;
     };
 
-    // Maps para gráficos
     const topProductsMap = new Map<string, number>();
     const profitByProductMap = new Map<string, number>();
     const salesByPaymentMethodMap = new Map<string, number>();

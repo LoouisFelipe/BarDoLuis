@@ -17,6 +17,7 @@ service cloud.firestore {
     }
 
     function isAppUser() {
+      // CEO: Sincronizado com a coleção definitiva /users
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 

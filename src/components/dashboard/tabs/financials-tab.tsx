@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, Customer, RecurringExpense } from '@/lib/schemas';
@@ -134,7 +133,7 @@ export const FinancialsTab: React.FC = () => {
         if (filter === 'expense') return sortedTransactions.filter(t => t.type === 'expense');
         if (filter === 'sales') return sortedTransactions.filter(t => t.type === 'sale');
         if (filter === 'fiado') return customersWithBalance;
-        if (filter === 'recurring') return recurringExpenses;
+        if (filter === 'recurring') return (recurringExpenses || []).sort((a,b) => a.dayOfMonth - b.dayOfMonth);
         return [];
     }, [filteredTransactions, filter, customersWithBalance, recurringExpenses]);
 
@@ -287,7 +286,7 @@ export const FinancialsTab: React.FC = () => {
                                     <p className="text-muted-foreground font-bold uppercase text-xs opacity-50 tracking-widest italic">Nenhum registro encontrado.</p>
                                 </div>
                             ) : (
-                                filteredList.map(item => {
+                                filteredList.map((item: any) => {
                                     if (filter === 'fiado') {
                                         const customer = item as Customer;
                                         return (
@@ -381,8 +380,12 @@ export const FinancialsTab: React.FC = () => {
             <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
                 <DialogContent className="sm:max-w-md bg-card border-border/40">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-tight"><TrendingDown className="text-destructive" /> Registrar Saída</DialogTitle>
-                        <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">Controle de custos e gastos operacionais.</DialogDescription>
+                        <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-tight">
+                            <TrendingDown className="text-destructive" /> Registrar Saída
+                        </DialogTitle>
+                        <DialogDescription className="text-xs font-bold uppercase text-muted-foreground">
+                            Controle de custos e gastos operacionais.
+                        </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
