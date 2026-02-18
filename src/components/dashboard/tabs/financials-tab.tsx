@@ -47,7 +47,7 @@ import { Badge } from '@/components/ui/badge';
  * CEO: Visão total de "A Receber" para controle de inadimplência e Planos de Custos Fixos.
  */
 export function FinancialsTab() {
-    // CTO: isAdmin removido do useData e obtido via useAuth para correção de tipagem
+    // CTO: Permissões obtidas via useAuth para conformidade de build
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
     const { isAdmin } = useAuth();
     
@@ -107,7 +107,7 @@ export function FinancialsTab() {
             else if (t.type === 'expense') expense += val;
         });
 
-        const accountsReceivable = customers.reduce((acc, c) => acc + (c.balance || 0), 0);
+        const accountsReceivable = (customers || []).reduce((acc, c) => acc + (c.balance || 0), 0);
 
         return {
             income,
@@ -326,7 +326,7 @@ export function FinancialsTab() {
                     </div>
 
                     <div className="space-y-4">
-                        {recurringExpenses.length === 0 ? (
+                        {(recurringExpenses || []).length === 0 ? (
                             <div className="text-center py-20 bg-muted/10 border-2 border-dashed rounded-3xl">
                                 <Repeat className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-4" />
                                 <p className="text-xs font-black uppercase text-muted-foreground opacity-50">Nenhum plano de custo fixo registrado.</p>
