@@ -138,7 +138,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                             </div>
                                             
                                             <div className="flex flex-wrap gap-1.5">
-                                                {(paymentMethods as string[]).map((method: string) => (
+                                                {paymentMethods.map((method: string) => (
                                                     <Badge 
                                                         key={method}
                                                         variant={selectedMethod === method ? "default" : "outline"}

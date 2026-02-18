@@ -190,6 +190,21 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     }
   };
 
+  const handleDeleteOrder = async () => {
+    if (!existingOrder.id) return;
+    setProcessing(true);
+    try {
+      await onDeleteOrder(existingOrder.id);
+      toast({ title: "Comanda Excluída", description: "O atendimento foi removido permanentemente." });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Erro ao excluir comanda:", error);
+      toast({ title: "Erro ao Excluir", variant: "destructive" });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (!open) return null; 
 
   const productListContent = (
@@ -280,7 +295,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     <div className="w-full flex flex-col bg-card h-full">
       <div className="p-4 border-b bg-muted/30 flex justify-between items-center shrink-0">
         <h3 className="text-sm font-black flex items-center gap-2 uppercase tracking-tight"><ShoppingCart className="h-4 w-4" /> Sacola ({currentItems.length})</h3>
-        {isAdmin && <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIsDeleteAlertOpen(true)}><Trash2 className="h-4 w-4" /></Button>}
+        {isAdmin && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 text-muted-foreground hover:text-destructive" 
+            onClick={() => setIsDeleteAlertOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       <ScrollArea className="flex-grow">
         <div className="p-3 space-y-3 pb-24">
@@ -329,7 +353,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   return (
     <>
-      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen} onOpenChange={onOpenChange}>
+      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl h-[100vh] md:h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
           <DialogHeader className="p-4 border-b bg-card flex flex-row items-center justify-between shrink-0 h-20">
             <div className="flex items-center gap-3">
@@ -425,6 +449,28 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             <DialogFooter><Button variant="ghost" onClick={() => setItemToCustomize(null)}>Cancelar</Button><Button onClick={handleCustomConfirm} className="bg-primary text-white font-black uppercase">Confirmar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent className="bg-card border-2">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle size={20} /> Excluir Comanda?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed">
+              Você está prestes a apagar permanentemente a comanda <strong>{existingOrder?.displayName}</strong>. Esta ação não pode ser desfeita e todos os itens lançados serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-12 font-bold uppercase text-[10px]">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteOrder} 
+              className="bg-destructive text-white hover:bg-destructive/90 h-12 font-black uppercase text-[10px] shadow-lg"
+            >
+              Sim, Excluir Comanda
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isPaymentModalOpen && (
         <OrderPaymentModal open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen} order={{ id: existingOrder?.id || '', displayName: existingOrder?.displayName || '', items: currentItems, total, customerId: existingOrder?.customerId || null }} onDeleteOrder={onDeleteOrder} onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} />
