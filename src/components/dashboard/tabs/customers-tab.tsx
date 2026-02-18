@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, Filter, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, AlertCircle, ChevronRight, X } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
@@ -25,6 +25,10 @@ import { CustomerHistoryModal } from '@/components/customers/customer-history-mo
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Gestão de Clientes com Navegação Alfabética (UX de Elite).
+ * CTO: Implementado drill-down por iniciais e saneamento de build.
+ */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();
@@ -33,6 +37,16 @@ export const CustomersTab: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
+    const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+
+    // Alfabeto completo para o índice
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+    // Letras que possuem clientes (para destaque visual)
+    const activeLetters = useMemo(() => {
+        const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
+        return Array.from(initials);
+    }, [customers]);
 
     // Estatísticas rápidas
     const stats = useMemo(() => {
@@ -44,17 +58,21 @@ export const CustomersTab: React.FC = () => {
         };
     }, [customers]);
 
-    // Filtragem e Ordenação
+    // Filtragem Multinível: Letra -> Busca -> Status (Devedor)
     const filteredCustomers = useMemo(() => {
         return customers
             .filter(c => {
-                const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    (c.contact && c.contact.toLowerCase().includes(searchTerm.toLowerCase()));
-                const matchesFilter = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
-                return matchesSearch && matchesFilter;
+                const nameMatch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (c.contact && c.contact.toLowerCase().includes(searchTerm.toLowerCase()));
+                const letterMatch = !selectedLetter || c.name.startsWith(selectedLetter) || c.name.startsWith(selectedLetter.toLowerCase());
+                const statusMatch = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
+                
+                // Se estiver buscando, ignora a letra selecionada para busca global
+                if (searchTerm) return nameMatch && statusMatch;
+                return letterMatch && statusMatch;
             })
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-    }, [customers, searchTerm, filterType]);
+    }, [customers, searchTerm, filterType, selectedLetter]);
 
     const closeAllModals = useCallback(() => {
         setModalState({ form: false, payment: false, history: false, delete: false });
@@ -178,6 +196,35 @@ export const CustomersTab: React.FC = () => {
         </div>
     );
 
+    const renderAlphaGrid = () => (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pb-20">
+            {activeLetters.length === 0 ? (
+                <div className="col-span-full py-20 text-center text-muted-foreground opacity-50 italic">
+                    Nenhum fiel cadastrado na Tavares Bastos.
+                </div>
+            ) : (
+                alphabet.map(letter => {
+                    const isActive = activeLetters.includes(letter);
+                    return (
+                        <Card 
+                            key={letter} 
+                            className={cn(
+                                "aspect-square flex flex-col items-center justify-center cursor-pointer transition-all border-2 shadow-sm relative group overflow-hidden",
+                                isActive 
+                                    ? "bg-card/40 hover:border-primary hover:bg-primary/5" 
+                                    : "opacity-30 grayscale cursor-not-allowed border-dashed"
+                            )}
+                            onClick={() => isActive && setSelectedLetter(letter)}
+                        >
+                            <span className={cn("text-3xl font-black transition-transform", isActive && "group-hover:scale-110")}>{letter}</span>
+                            {isActive && <ChevronRight className="absolute right-1 bottom-1 h-3 w-3 text-primary/40 group-hover:text-primary transition-colors" />}
+                        </Card>
+                    );
+                })
+            )}
+        </div>
+    );
+
     return (
         <div className="p-1 md:p-4 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
@@ -241,20 +288,38 @@ export const CustomersTab: React.FC = () => {
                     <p className="text-sm text-muted-foreground mt-4 font-bold uppercase tracking-widest animate-pulse">Sincronizando Lista...</p>
                 </div>
             ) : (
-                filteredCustomers.length === 0 ? (
-                    <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
-                        <AlertCircle size={48} className="opacity-20" />
-                        <div>
-                            <h3 className="text-lg font-bold text-foreground">Nenhum cliente encontrado</h3>
-                            <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
-                        </div>
-                        {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
-                    </div>
+                (!selectedLetter && !searchTerm) ? (
+                    renderAlphaGrid()
                 ) : (
-                    <TooltipProvider>
-                        {renderDesktopView()}
-                        {renderMobileView()}
-                    </TooltipProvider>
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg border">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => { setSelectedLetter(null); setSearchTerm(''); }}
+                                className="text-[10px] font-black uppercase text-primary gap-1"
+                            >
+                                <X size={12} /> Voltar para o Índice
+                            </Button>
+                            {selectedLetter && <Badge className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
+                        </div>
+
+                        {filteredCustomers.length === 0 ? (
+                            <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
+                                <AlertCircle size={48} className="opacity-20" />
+                                <div>
+                                    <h3 className="text-lg font-bold text-foreground">Nenhum cliente encontrado</h3>
+                                    <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
+                                </div>
+                                {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
+                            </div>
+                        ) : (
+                            <TooltipProvider>
+                                {renderDesktopView()}
+                                {renderMobileView()}
+                            </TooltipProvider>
+                        )}
+                    </div>
                 )
             )}
 
@@ -284,10 +349,12 @@ export const CustomersTab: React.FC = () => {
     );
 };
 
-const Badge = ({ children, variant, className }: { children: React.ReactNode, variant: 'warning' | 'outline', className?: string }) => (
+const Badge = ({ children, variant, className }: { children: React.ReactNode, variant: 'warning' | 'outline' | 'default', className?: string }) => (
     <span className={cn(
-        "px-2 py-0.5 rounded-full font-black tracking-tighter",
-        variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : "bg-muted text-muted-foreground border border-border",
+        "px-2 py-0.5 rounded-full font-black tracking-tighter flex items-center justify-center",
+        variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : 
+        variant === 'default' ? "bg-primary text-white" :
+        "bg-muted text-muted-foreground border border-border",
         className
     )}>
         {children}

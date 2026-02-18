@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { 
   TrendingUp, 
   TrendingDown, 
