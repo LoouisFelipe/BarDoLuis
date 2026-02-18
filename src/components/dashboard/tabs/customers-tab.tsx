@@ -301,7 +301,7 @@ export const CustomersTab: React.FC = () => {
                             >
                                 <X size={12} /> Voltar para o Índice
                             </Button>
-                            {selectedLetter && <Badge className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
+                            {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
                         </div>
 
                         {filteredCustomers.length === 0 ? (
@@ -349,7 +349,7 @@ export const CustomersTab: React.FC = () => {
     );
 };
 
-const Badge = ({ children, variant, className }: { children: React.ReactNode, variant: 'warning' | 'outline' | 'default', className?: string }) => (
+const Badge = ({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'warning' | 'outline' | 'default', className?: string }) => (
     <span className={cn(
         "px-2 py-0.5 rounded-full font-black tracking-tighter flex items-center justify-center",
         variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : 
