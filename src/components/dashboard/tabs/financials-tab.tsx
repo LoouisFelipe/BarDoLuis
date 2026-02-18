@@ -22,6 +22,7 @@ import { useForm } from 'react-hook-form';
 
 // Componentes Internos
 import { useData } from '@/contexts/data-context';
+import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 
 // UI Components
@@ -46,7 +47,9 @@ import { Badge } from '@/components/ui/badge';
  * CEO: Visão total de "A Receber" para controle de inadimplência e Planos de Custos Fixos.
  */
 export function FinancialsTab() {
-    const { transactions, customers, recurringExpenses, loading, isAdmin, addExpense, deleteTransaction } = useData();
+    // CTO: isAdmin removido do useData e obtido via useAuth para correção de tipagem
+    const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
+    const { isAdmin } = useAuth();
     
     // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -61,7 +64,6 @@ export function FinancialsTab() {
     }));
 
     // Filtros e Categorias
-    const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
     const fixedCategories = {
         'aluguel': 'Aluguel', 'luz': 'Energia Elétrica', 'agua': 'Água/Esgoto', 'internet': 'Internet', 'funcionarios': 'Salários'
     };
@@ -82,6 +84,7 @@ export function FinancialsTab() {
     });
     const { control, handleSubmit, setValue, watch } = form;
     const isReplicating = watch('replicate');
+    const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
 
     // --- CÁLCULOS ---
     const filteredTransactions = useMemo(() => {
@@ -244,14 +247,12 @@ export function FinancialsTab() {
 
             {activeView === 'fluxo' ? (
                 <>
-                    {/* Título da Listagem */}
                     <div className="pt-4">
                         <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
                             Transações de {formattedPeriodHeader}
                         </h3>
                     </div>
 
-                    {/* Lista de Transações (Modo Dark Premium) */}
                     <div className="space-y-3">
                         {loading ? (
                             <div className="flex justify-center p-20"><Spinner size="h-12 w-12" /></div>
@@ -448,7 +449,7 @@ export function FinancialsTab() {
                             <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
                                 <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
                                 <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
-                                    {processing ? <Spinner /> : "Gravar Saída"}
+                                    {processing ? <Spinner size="h-4 w-4" /> : "Gravar Saída"}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -468,7 +469,7 @@ export function FinancialsTab() {
                         <AlertDialogFooter>
                             <AlertDialogCancel className="h-12 font-black uppercase text-[10px]">Cancelar</AlertDialogCancel>
                             <AlertDialogAction onClick={handleDeleteTransaction} className="h-12 font-black uppercase text-[10px] bg-red-600 text-white hover:bg-red-700 shadow-lg">
-                                {processing ? <Spinner /> : 'Confirmar Anulação'}
+                                {processing ? <Spinner size="h-4 w-4" /> : 'Confirmar Anulação'}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
