@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // CTO: Permite que a Cloud Workstation acesse os recursos do Next.js sem erros de Cross-Origin
+  experimental: {
+    allowedDevOrigins: [
+      '8080-firebase-bardoluiss-1770055778576.cluster-kc2r6y3mtba5mswcmol45orivs.cloudworkstations.dev'
+    ]
+  },
   // 1. Mantém o sistema rodando sem erro de sintaxe (Vital)
   transpilePackages: ['cmdk'],
 
