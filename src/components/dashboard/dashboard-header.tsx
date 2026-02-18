@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { FirebaseUser, UserProfile } from '@/contexts/auth-context';
-import { Button } from '@/components/ui/button'; // Assumindo que você tem um componente Button
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Assumindo que você tem componentes Avatar
-import { Skeleton } from '@/components/ui/skeleton'; // Para placeholders
-import { LogOut, User } from 'lucide-react'; // Ícones
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { LogOut, User as UserIcon, ShieldCheck } from 'lucide-react';
 
 interface DashboardHeaderProps {
   user: FirebaseUser | null;
@@ -16,6 +16,10 @@ interface DashboardHeaderProps {
   profileError: Error | null;
 }
 
+/**
+ * @fileOverview Cabeçalho do Dashboard.
+ * CTO: Saneamento de entidades JSX.
+ */
 export function DashboardHeader({
   user,
   userProfile,
@@ -25,13 +29,18 @@ export function DashboardHeader({
   profileError,
 }: DashboardHeaderProps) {
   const displayName = userProfile?.name || user?.email || 'Usuário';
-  const userRole = userProfile?.role ? `(${userProfile.role})` : '';
+  const roleLabel = userProfile?.role === 'admin' ? 'ADM' : userProfile?.role === 'cashier' ? 'CAIXA' : 'GARÇOM';
 
   return (
-    <header className="flex items-center justify-between p-4 border-b bg-card text-card-foreground">
-      <div className="flex items-center space-x-2">
-        {/* CPO: Logo ou Título do BarDoLuis */}
-        <h1 className="text-xl font-bold">BarDoLuis</h1>
+    <header className="flex items-center justify-between p-4 border-b bg-card text-card-foreground shrink-0 shadow-sm z-50">
+      <div className="flex items-center gap-3">
+        <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20">
+            <ShieldCheck className="h-6 w-6 text-white" />
+        </div>
+        <div>
+            <h1 className="text-xl font-black tracking-tighter leading-none">BarDoLuis</h1>
+            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Gestão Estratégica</p>
+        </div>
       </div>
 
       <div className="flex items-center space-x-4">
@@ -41,23 +50,24 @@ export function DashboardHeader({
             <Skeleton className="h-8 w-8 rounded-full" />
           </div>
         ) : profileError ? (
-          <span className="text-sm text-red-500" title={profileError.message}>
-            Erro ao carregar perfil
+          <span className="text-[10px] font-bold text-red-500 uppercase" title={profileError.message}>
+            Erro de Perfil
           </span>
         ) : (
           <>
-            <div className="flex items-center space-x-2">
-              <Avatar>
+            <div className="flex items-center gap-3 pr-2 border-r border-border/50">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-black truncate max-w-[120px]">{displayName}</p>
+                <p className="text-[9px] font-bold text-primary uppercase tracking-tighter">{roleLabel}</p>
+              </div>
+              <Avatar className="border-2 border-primary/20 h-10 w-10">
                 <AvatarImage src={user?.photoURL || undefined} alt={displayName} />
-                <AvatarFallback>
-                  <User className="h-5 w-5" />
+                <AvatarFallback className="bg-muted">
+                  <UserIcon className="h-5 w-5 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">
-                {displayName} {userRole}
-              </span>
             </div>
-            <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+            <Button variant="ghost" size="icon" onClick={logout} title="Sair do Sistema" className="h-10 w-10 hover:bg-destructive/10 hover:text-destructive">
               <LogOut className="h-5 w-5" />
             </Button>
           </>

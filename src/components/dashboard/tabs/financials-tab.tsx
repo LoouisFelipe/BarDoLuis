@@ -43,11 +43,9 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview Aba Financeira (Redesign V5.0).
- * CTO: Implementação de KPI de 4 colunas e lista de transações em modo dark premium.
- * CEO: Visão total de &quot;A Receber&quot; para controle de inadimplência e Planos de Custos Fixos.
+ * CTO: Correção de isAdmin (via useAuth) e saneamento de aspas literais.
  */
 export function FinancialsTab() {
-    // CTO: Permissões obtidas via useAuth para conformidade de build
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
     const { isAdmin } = useAuth();
     

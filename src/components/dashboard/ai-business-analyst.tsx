@@ -13,7 +13,7 @@ interface AIBusinessAnalystProps {
 
 /**
  * @fileOverview Analista de Negócios com IA.
- * CTO: Saneamento de entidades JSX (&apos; e &quot;) para build Next.js.
+ * CTO: Saneamento de aspas literais (&quot; e &apos;) para conformidade de build.
  */
 export const AIBusinessAnalyst: React.FC<AIBusinessAnalystProps> = ({ reportData }) => {
   const [analysis, setAnalysis] = useState<BusinessAnalysisOutput | null>(null);

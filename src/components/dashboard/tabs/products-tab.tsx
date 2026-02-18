@@ -4,7 +4,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,16 +17,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-import { Package, PlusCircle, Edit, PackagePlus, Trash2, AlertTriangle } from 'lucide-react';
+import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X } from 'lucide-react';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
 /**
- * @fileOverview Gestão de Produtos do Bar.
- * CTO: UX aprimorada - Itens iniciam colapsados para melhor overview das categorias.
+ * @fileOverview Gestão de Produtos do Bar (UX Category-First).
+ * CTO: Corrigido ReferenceError: cn e adicionada navegação por categorias inicial.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -36,6 +38,7 @@ export const ProductsTab: React.FC = () => {
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     const barProducts = useMemo(() => {
         if (!products) return [];
@@ -49,22 +52,11 @@ export const ProductsTab: React.FC = () => {
 
     const filteredProducts = useMemo(() => {
         return barProducts.filter(p => {
-            const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+            const matchesCategory = !selectedCategory || p.category === selectedCategory;
             const matchesSearch = searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesCategory && matchesSearch;
         }).sort((a, b) => a.name.localeCompare(b.name));
-    }, [barProducts, categoryFilter, searchTerm]);
-
-    const groupedProducts = useMemo(() => {
-        return filteredProducts.reduce((acc, product) => {
-            const category = product.category || 'Sem Categoria';
-            if (!acc[category]) {
-                acc[category] = [];
-            }
-            acc[category].push(product);
-            return acc;
-        }, {} as Record<string, Product[]>);
-    }, [filteredProducts]);
+    }, [barProducts, selectedCategory, searchTerm]);
 
     const closeAllModals = () => {
         setModalState({ form: false, stock: false, delete: false });
@@ -136,78 +128,94 @@ export const ProductsTab: React.FC = () => {
         return { label: `${markupValue.toFixed(0)}%`, color };
     };
 
-    const renderAccordionView = () => (
-        <Accordion type="multiple" className="space-y-4">
-            {Object.keys(groupedProducts).sort().map(category => (
-                <AccordionItem key={category} value={category} className="bg-card rounded-xl border-none shadow-sm overflow-hidden border-l-4 border-l-primary/40">
-                    <AccordionTrigger className="px-6 text-lg font-black uppercase tracking-tight hover:no-underline hover:bg-muted/20 transition-all">
-                        <div className="flex items-center gap-3">
-                            <Package size={20} className="text-primary" />
-                            {category}
-                            <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground">{groupedProducts[category].length}</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-1 pt-0 bg-background/40">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/30">
-                                    <TableHead className="pl-6 text-[10px] font-black uppercase">Produto</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Estoque</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Preço</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Markup</TableHead>
-                                    <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {groupedProducts[category].map(p => {
-                                    const cost = Number(p.costPrice) || 0;
-                                    const price = Number(p.unitPrice) || 0;
-                                    const markup = calculateMarkup(p);
-                                    const stockLabel = p.saleType === 'dose' ? 'ml' : p.saleType === 'weight' ? 'kg' : 'un.';
-                                    return (
-                                        <TableRow key={p.id} className="hover:bg-muted/10 transition-colors">
-                                            <TableCell className="font-bold text-sm pl-6">
-                                                {p.name}
-                                                <div className="text-[9px] text-muted-foreground uppercase">{p.subcategory}</div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {p.saleType === 'service' ? (
-                                                    <span className="text-[9px] font-black uppercase opacity-30">N/A</span>
-                                                ) : (p.stock ?? 0) <= 0 ? (
-                                                    <Badge variant="destructive" className="text-[8px] font-black">ESGOTADO</Badge>
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-medium">{p.stock} {stockLabel}</span>
-                                                        {isProductLowOnStock(p) && <div className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse" />}
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-xs font-bold">
-                                                {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
-                                                {p.saleType === 'dose' && 'Doses'}
-                                                {p.saleType === 'service' && 'Aberto'}
-                                            </TableCell>
-                                            <TableCell className={cn("text-xs font-black", markup.color)}>
-                                                {markup.label}
-                                            </TableCell>
-                                            <TableCell className="text-right pr-6">
-                                                <div className="flex justify-end gap-1">
-                                                    {p.saleType !== 'service' && (
-                                                        <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-8 w-8 text-accent hover:bg-accent/10"><PackagePlus size={16} /></Button>
-                                                    )}
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </AccordionContent>
-                </AccordionItem>
+    const renderGridView = () => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-20">
+            {categories.map(cat => (
+                <Card 
+                    key={cat} 
+                    className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all active:scale-95 bg-card/40 border-2 shadow-sm relative group overflow-hidden"
+                    onClick={() => setSelectedCategory(cat)}
+                >
+                    <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-colors">
+                        <Package size={32} className="text-primary" />
+                    </div>
+                    <span className="font-black text-xs uppercase text-center px-2 tracking-widest">{cat}</span>
+                    <ChevronRight className="absolute right-2 bottom-2 h-4 w-4 text-primary/40 group-hover:text-primary transition-colors" />
+                </Card>
             ))}
-        </Accordion>
+        </div>
+    );
+
+    const renderTableView = () => (
+        <div className="bg-card rounded-xl shadow-lg border-2 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="p-4 border-b bg-muted/20 flex items-center justify-between">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setSelectedCategory(null); setSearchTerm(''); }}
+                    className="text-[10px] font-black uppercase text-primary gap-1"
+                >
+                    <X size={12} /> Voltar para Categorias
+                </Button>
+                {selectedCategory && <Badge className="font-black uppercase tracking-widest text-[9px]">{selectedCategory}</Badge>}
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow className="bg-muted/30">
+                        <TableHead className="pl-6 text-[10px] font-black uppercase">Produto</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Estoque</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Preço</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Markup</TableHead>
+                        <TableHead className="text-right pr-6 text-[10px] font-black uppercase">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredProducts.map(p => {
+                        const cost = Number(p.costPrice) || 0;
+                        const price = Number(p.unitPrice) || 0;
+                        const markup = calculateMarkup(p);
+                        const stockLabel = p.saleType === 'dose' ? 'ml' : p.saleType === 'weight' ? 'kg' : 'un.';
+                        return (
+                            <TableRow key={p.id} className="hover:bg-muted/10 transition-colors border-b border-border/50">
+                                <TableCell className="font-bold text-sm pl-6 py-4">
+                                    {p.name}
+                                    <div className="text-[9px] text-muted-foreground uppercase">{p.subcategory}</div>
+                                </TableCell>
+                                <TableCell>
+                                    {p.saleType === 'service' ? (
+                                        <span className="text-[9px] font-black uppercase opacity-30">N/A</span>
+                                    ) : (p.stock ?? 0) <= 0 ? (
+                                        <Badge variant="destructive" className="text-[8px] font-black">ESGOTADO</Badge>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-medium">{p.stock} {stockLabel}</span>
+                                            {isProductLowOnStock(p) && <div className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse" />}
+                                        </div>
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-xs font-bold">
+                                    {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
+                                    {p.saleType === 'dose' && 'Várias Doses'}
+                                    {p.saleType === 'service' && 'Valor Aberto'}
+                                </TableCell>
+                                <TableCell className={cn("text-xs font-black", markup.color)}>
+                                    {markup.label}
+                                </TableCell>
+                                <TableCell className="text-right pr-6">
+                                    <div className="flex justify-end gap-1">
+                                        {p.saleType !== 'service' && (
+                                            <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-8 w-8 text-accent hover:bg-accent/10"><PackagePlus size={16} /></Button>
+                                        )}
+                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </div>
     );
     
     return (
@@ -218,21 +226,15 @@ export const ProductsTab: React.FC = () => {
                         <Package className="mr-3 text-primary" /> Gerenciar Bar
                     </h2>
                      <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-                        <Input 
-                            placeholder="Buscar produto..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-background h-11 border-2"
-                        />
-                         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-full md:w-[180px] bg-background h-11 border-2 font-bold uppercase text-[10px]">
-                                <SelectValue placeholder="Todas Categorias" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">TODAS</SelectItem>
-                                {categories.map(cat => <SelectItem key={cat} value={cat} className="uppercase text-[10px] font-bold">{cat}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                        <div className="relative w-full md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Buscar produto..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-background h-11 pl-10 border-2"
+                            />
+                        </div>
                         <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-black uppercase tracking-tight hover:bg-primary/80 w-full md:w-auto h-11 shadow-lg">
                             <PlusCircle className="mr-2" size={20} /> Novo Produto
                         </Button>
@@ -251,7 +253,7 @@ export const ProductsTab: React.FC = () => {
                         <Button onClick={handleAddNew} variant="outline" className="font-bold h-12 uppercase">Adicionar Primeiro Item</Button>
                     </div>
                 ) : (
-                    renderAccordionView()
+                    (!selectedCategory && !searchTerm) ? renderGridView() : renderTableView()
                 )}
 
                 {modalState.form && <ProductFormModal product={selectedProduct} allProducts={products || []} open={modalState.form} onOpenChange={closeAllModals} onSave={saveProduct} />}
