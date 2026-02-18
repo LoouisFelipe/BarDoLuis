@@ -14,12 +14,13 @@ import {
   HandCoins,
   ArrowRightLeft,
   Trash2,
+  CalendarDays,
+  Repeat,
+  Info
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { addDoc, collection, deleteDoc, doc, Timestamp, serverTimestamp } from 'firebase/firestore';
 
 // Componentes Internos
-import { db } from '@/lib/firebase';
 import { useData } from '@/contexts/data-context';
 import { cn } from '@/lib/utils';
 
@@ -37,14 +38,15 @@ import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/ui/spinner'; 
 import { Combobox } from '@/components/ui/combobox';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal'; 
+import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview Aba Financeira (Redesign V5.0).
  * CTO: Implementação de KPI de 4 colunas e lista de transações em modo dark premium.
- * CEO: Visão total de "A Receber" para controle de inadimplência.
+ * CEO: Visão total de "A Receber" para controle de inadimplência e Planos de Custos Fixos.
  */
 export function FinancialsTab() {
-    const { transactions, customers, loading, isAdmin } = useData();
+    const { transactions, customers, recurringExpenses, loading, isAdmin, addExpense, deleteTransaction } = useData();
     
     // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -117,30 +119,15 @@ export function FinancialsTab() {
         setProcessing(true);
         try {
             const amountVal = parseFloat(data.amount);
-            const baseDoc = {
-                type: 'expense',
-                description: data.description,
-                expenseCategory: data.category || 'Geral',
-                total: amountVal,
-                timestamp: Timestamp.fromDate(new Date(data.expenseDate + 'T12:00:00')),
-                userId: 'system',
-            };
-
-            await addDoc(collection(db, 'transactions'), baseDoc);
-
-            if (expenseType === 'fixed' && data.replicate) {
-                const months = parseInt(data.monthsToReplicate) || 0;
-                const startDate = new Date(data.expenseDate + 'T12:00:00');
-                for (let i = 1; i <= months; i++) {
-                    const nextDate = new Date(startDate);
-                    nextDate.setMonth(startDate.getMonth() + i);
-                    await addDoc(collection(db, 'transactions'), {
-                        ...baseDoc,
-                        timestamp: Timestamp.fromDate(nextDate),
-                        description: `${data.description} (${i}/${months}) - Agendado`
-                    });
-                }
-            }
+            const replicateCount = (expenseType === 'fixed' && data.replicate) ? parseInt(data.monthsToReplicate) : 0;
+            
+            await addExpense(
+                data.description,
+                amountVal,
+                data.category || 'Geral',
+                data.expenseDate,
+                replicateCount
+            );
 
             setIsExpenseModalOpen(false);
             form.reset();
@@ -155,7 +142,7 @@ export function FinancialsTab() {
         if (!transactionToDelete?.id) return;
         setProcessing(true);
         try {
-            await deleteDoc(doc(db, 'transactions', transactionToDelete.id));
+            await deleteTransaction(transactionToDelete.id);
             setTransactionToDelete(null);
         } catch (error) {
             console.error("Erro ao deletar:", error);
@@ -255,76 +242,128 @@ export function FinancialsTab() {
                 </Button>
             </div>
 
-            {/* Título da Listagem */}
-            <div className="pt-4">
-                <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                    Transações de {formattedPeriodHeader}
-                </h3>
-            </div>
-
-            {/* Lista de Transações (Modo Dark Premium) */}
-            <div className="space-y-3">
-                {loading ? (
-                    <div className="flex justify-center p-20"><Spinner size="h-12 w-12" /></div>
-                ) : filteredTransactions.length === 0 ? (
-                    <div className="text-center py-24 text-muted-foreground font-black uppercase text-xs opacity-40 italic border-2 border-dashed rounded-3xl">
-                        Nenhuma transação capturada no período.
+            {activeView === 'fluxo' ? (
+                <>
+                    {/* Título da Listagem */}
+                    <div className="pt-4">
+                        <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                            Transações de {formattedPeriodHeader}
+                        </h3>
                     </div>
-                ) : (
-                    filteredTransactions.map((t: any) => {
-                        const dateVal = t.timestamp instanceof Date ? t.timestamp : t.timestamp?.toDate?.() || new Date();
-                        const isExpense = t.type === 'expense';
-                        const isSale = t.type === 'sale';
-                        const isPayment = t.type === 'payment';
-                        
-                        return (
-                            <div 
-                                key={t.id}
-                                className="group flex items-center p-5 rounded-2xl bg-card/40 border-2 border-transparent hover:border-primary/30 transition-all shadow-sm cursor-pointer"
-                                onClick={() => setSelectedTransaction(t)}
-                            >
-                                <div className={cn(
-                                    "mr-5 p-3 rounded-xl", 
-                                    isExpense ? 'bg-red-500/10 text-red-500' : 
-                                    isSale ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary'
-                                )}>
-                                    {isSale ? <ShoppingCart size={20} /> : isPayment ? <HandCoins size={20} /> : <TrendingDown size={20} />}
-                                </div>
-                                
-                                <div className="flex-grow min-w-0 pr-4">
-                                    <p className="font-black text-base truncate uppercase tracking-tight text-slate-100">
-                                        {t.description || (isSale ? `VENDA: ${t.tabName || 'BALCÃO'}` : t.type)}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                        {format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}
-                                    </p>
-                                </div>
 
-                                <div className="flex items-center gap-6">
-                                    <div className="text-right">
-                                        <span className={cn(
-                                            "font-black text-xl whitespace-nowrap", 
-                                            isExpense ? 'text-red-500' : 'text-emerald-400'
-                                        )}>
-                                            {isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}
-                                        </span>
-                                    </div>
-                                    {isAdmin && (
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-10 w-10 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" 
-                                            onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}}
-                                        >
-                                            <Trash2 size={18} />
-                                        </Button>
-                                    )}
-                                </div>
+                    {/* Lista de Transações (Modo Dark Premium) */}
+                    <div className="space-y-3">
+                        {loading ? (
+                            <div className="flex justify-center p-20"><Spinner size="h-12 w-12" /></div>
+                        ) : filteredTransactions.length === 0 ? (
+                            <div className="text-center py-24 text-muted-foreground font-black uppercase text-xs opacity-40 italic border-2 border-dashed rounded-3xl">
+                                Nenhuma transação capturada no período.
                             </div>
-                        );
-                    })
-                )}
-            </div>
+                        ) : (
+                            filteredTransactions.map((t: any) => {
+                                const dateVal = t.timestamp instanceof Date ? t.timestamp : t.timestamp?.toDate?.() || new Date();
+                                const isExpense = t.type === 'expense';
+                                const isSale = t.type === 'sale';
+                                const isPayment = t.type === 'payment';
+                                
+                                return (
+                                    <div 
+                                        key={t.id}
+                                        className="group flex items-center p-5 rounded-2xl bg-card/40 border-2 border-transparent hover:border-primary/30 transition-all shadow-sm cursor-pointer"
+                                        onClick={() => setSelectedTransaction(t)}
+                                    >
+                                        <div className={cn(
+                                            "mr-5 p-3 rounded-xl", 
+                                            isExpense ? 'bg-red-500/10 text-red-500' : 
+                                            isSale ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary'
+                                        )}>
+                                            {isSale ? <ShoppingCart size={20} /> : isPayment ? <HandCoins size={20} /> : <TrendingDown size={20} />}
+                                        </div>
+                                        
+                                        <div className="flex-grow min-w-0 pr-4">
+                                            <p className="font-black text-base truncate uppercase tracking-tight text-slate-100">
+                                                {t.description || (isSale ? `VENDA: ${t.tabName || 'BALCÃO'}` : t.type)}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                                                {format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-right">
+                                                <span className={cn(
+                                                    "font-black text-xl whitespace-nowrap", 
+                                                    isExpense ? 'text-red-500' : 'text-emerald-400'
+                                                )}>
+                                                    {isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}
+                                                </span>
+                                            </div>
+                                            {isAdmin && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-10 w-10 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" 
+                                                    onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </>
+            ) : (
+                <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                            Contratos de Custos Fixos
+                        </h3>
+                        <CalendarDays className="h-5 w-5 text-muted-foreground opacity-50" />
+                    </div>
+
+                    <div className="space-y-4">
+                        {recurringExpenses.length === 0 ? (
+                            <div className="text-center py-20 bg-muted/10 border-2 border-dashed rounded-3xl">
+                                <Repeat className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-4" />
+                                <p className="text-xs font-black uppercase text-muted-foreground opacity-50">Nenhum plano de custo fixo registrado.</p>
+                            </div>
+                        ) : (
+                            recurringExpenses.map((expense) => (
+                                <div key={expense.id} className="group p-6 rounded-2xl bg-card/40 border-2 border-dashed border-border/40 hover:border-primary/30 transition-all">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-primary/5 rounded-xl text-primary border border-primary/10">
+                                                <Repeat size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black text-lg leading-none mb-2">{expense.description}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline" className="text-[8px] font-black uppercase bg-background">Todo dia {expense.dayOfMonth}</Badge>
+                                                    <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">{expense.category}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Valor Mensal</p>
+                                            <p className="text-2xl font-black text-red-500">- R$ {Number(expense.amount || 0).toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex gap-4">
+                        <Info size={20} className="text-primary shrink-0" />
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
+                            💡 Gestão Estratégica: Custos fixos são rateados diariamente pelo B.I. Cockpit para calcular sua meta de sobrevivência em tempo real.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* --- MODAIS --- */}
 
@@ -346,13 +385,13 @@ export function FinancialsTab() {
                                     <FormControl><SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="variable" className="font-bold uppercase text-xs">Despesa Variável (Avulsa)</SelectItem>
-                                        <SelectItem value="fixed" className="font-bold uppercase text-xs">Custo Fixo (Recorrente)</SelectItem>
+                                        <SelectItem value="fixed" className="font-bold uppercase text-xs">Custo Fixo (Plano Mensal)</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </FormItem>
                             
                             <FormField control={control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Descrição</FormLabel><FormControl><Input placeholder="Ex: Gelo, Limpeza..." required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Descrição</FormLabel><FormControl><Input placeholder="Ex: Aluguel, Gelo, Limpeza..." required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl></FormItem>
                             )}/>
                             
                             <FormField control={control} name="category" render={({ field }) => {
@@ -385,7 +424,7 @@ export function FinancialsTab() {
                                         <FormItem className="flex items-center justify-between space-y-0">
                                             <div className="space-y-0.5">
                                                 <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</FormLabel>
-                                                <p className="text-[9px] text-muted-foreground font-bold uppercase leading-none">Repetir mensalmente</p>
+                                                <p className="text-[9px] text-muted-foreground font-bold uppercase leading-none">Agendar próximos meses</p>
                                             </div>
                                             <FormControl>
                                                 <Switch checked={field.value} onCheckedChange={(val) => { field.onChange(val); if(val) setValue('monthsToReplicate', '11'); }} className="data-[state=checked]:bg-primary"/>
@@ -394,16 +433,22 @@ export function FinancialsTab() {
                                     )}/>
                                     {isReplicating && (
                                         <FormField control={control} name="monthsToReplicate" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Meses</FormLabel><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Repetir por quantos meses?</FormLabel><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl></FormItem>
                                         )}/>
                                     )}
                                 </div>
                             )}
 
+                            <div className="p-3 bg-muted/20 rounded-lg">
+                                <p className="text-[9px] text-muted-foreground font-bold uppercase text-center">
+                                    Dica do CTO: O sistema salva o plano em &quot;Custos Fixos&quot; para auditoria mensal automática.
+                                </p>
+                            </div>
+
                             <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
                                 <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
                                 <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
-                                    {processing ? <Spinner /> : "Gravar Despesa"}
+                                    {processing ? <Spinner /> : "Gravar Saída"}
                                 </Button>
                             </DialogFooter>
                         </form>
