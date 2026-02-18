@@ -44,7 +44,7 @@ import { Badge } from '@/components/ui/badge';
 /**
  * @fileOverview Aba Financeira (Redesign V5.0).
  * CTO: Implementação de KPI de 4 colunas e lista de transações em modo dark premium.
- * CEO: Visão total de "A Receber" para controle de inadimplência e Planos de Custos Fixos.
+ * CEO: Visão total de &quot;A Receber&quot; para controle de inadimplência e Planos de Custos Fixos.
  */
 export function FinancialsTab() {
     // CTO: Permissões obtidas via useAuth para conformidade de build

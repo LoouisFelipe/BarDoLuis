@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck, Package, ChevronRight } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -38,6 +38,10 @@ interface OrderManagementModalProps {
   onDeleteOrder: (orderId: string) => Promise<void>;
 }
 
+/**
+ * @fileOverview Gestão de Comanda (PDV).
+ * CTO: UX aprimorada - Exibição inicial de categorias para agilidade no balcão.
+ */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
   onOpenChange,
@@ -60,7 +64,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
 
-  // Estado para Jogo / Valor Aberto
   const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service', unitPrice?: number } | null>(null);
   const [customData, setCustomItemData] = useState({ price: '', identifier: '' });
 
@@ -79,6 +82,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setCustomerSearch('');
       setActiveTab('menu');
       setItemToCustomize(null);
+      setSelectedCategory(null);
     }
   }, [open, existingOrder]);
   
@@ -219,20 +223,51 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
-          <Button variant={selectedCategory === null ? "default" : "outline"} size="sm" className="rounded-full text-[10px] font-black uppercase whitespace-nowrap h-8 px-4" onClick={() => setSelectedCategory(null)}>Todos</Button>
-          {categories.map(cat => (
-            <Button key={cat} variant={selectedCategory === cat ? "default" : "outline"} size="sm" className="rounded-full text-[10px] font-black uppercase whitespace-nowrap h-8 px-4" onClick={() => setSelectedCategory(cat)}>{cat}</Button>
-          ))}
-        </div>
+        
+        {(selectedCategory || searchTerm) && (
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-[10px] font-black uppercase text-primary gap-1 h-8 px-2 border border-primary/20 bg-primary/5"
+              onClick={() => { setSelectedCategory(null); setSearchTerm(''); }}
+            >
+              <X size={12} /> Voltar para Categorias
+            </Button>
+            {selectedCategory && (
+              <Badge className="h-8 rounded-md px-3 font-black uppercase tracking-widest text-[9px]">
+                {selectedCategory}
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
+
       <ScrollArea className="flex-grow">
-        {dataLoading ? <div className="flex justify-center p-8"><Spinner /></div> : (
+        {dataLoading ? (
+          <div className="flex justify-center p-8"><Spinner /></div>
+        ) : !selectedCategory && !searchTerm ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-24">
+            {categories.map(cat => (
+              <Card 
+                key={cat} 
+                className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all active:scale-95 bg-card/40 border-2 shadow-sm relative overflow-hidden group"
+                onClick={() => setSelectedCategory(cat)}
+              >
+                <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-colors">
+                  <Package size={32} className="text-primary" />
+                </div>
+                <span className="font-black text-[10px] sm:text-xs uppercase text-center px-2 tracking-widest">{cat}</span>
+                <ChevronRight className="absolute right-2 bottom-2 h-4 w-4 text-primary/40 group-hover:text-primary transition-colors" />
+              </Card>
+            ))}
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-20 md:pb-10">
             {filteredItems.map(item => (
               <Card 
                 key={item.id} 
-                className="hover:border-primary transition-all cursor-pointer active:scale-95 shadow-sm overflow-hidden" 
+                className="hover:border-primary transition-all cursor-pointer active:scale-95 shadow-sm overflow-hidden border-2" 
                 onClick={() => {
                     if (item.saleType === 'game') {
                         setItemToCustomize({ id: item.id!, name: item.name, type: 'game', unitPrice: item.unitPrice });
@@ -285,6 +320,12 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 </CardContent>
               </Card>
             ))}
+            {filteredItems.length === 0 && (
+              <div className="col-span-full py-20 text-center opacity-40 italic flex flex-col items-center gap-4">
+                <Search size={48} strokeWidth={1} />
+                <p className="text-xs font-black uppercase">Nenhum item encontrado.</p>
+              </div>
+            )}
           </div>
         )}
       </ScrollArea>
@@ -388,7 +429,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         </DialogContent>
       </Dialog>
       
-      {/* Modal de Vínculo de Cliente */}
       <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -464,7 +504,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             <AlertDialogCancel className="h-12 font-bold uppercase text-[10px]">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteOrder} 
-              className="bg-destructive text-white hover:bg-destructive/90 h-12 font-black uppercase text-[10px] shadow-lg"
+              className="bg-destructive text-white hover:bg-destructive/90 h-12 font-black uppercase text-[10px] shadow-lg px-8"
             >
               Sim, Excluir Comanda
             </AlertDialogAction>

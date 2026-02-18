@@ -27,6 +27,10 @@ interface SalesRevenueReportModalProps {
     date: DateRange | undefined;
 }
 
+/**
+ * @fileOverview Relatório de Vendas Premium.
+ * CTO: Saneamento de tipagem para métodos de pagamento e filtros.
+ */
 export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = ({
     open,
     onOpenChange,
