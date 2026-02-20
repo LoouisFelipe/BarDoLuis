@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Gestão de Fornecedores com Opções de Lista/Cards.
- * CTO: Implementação do ViewMode para visualização analítica ou executiva.
+ * CTO: Correção de importações ausentes (CardDescription, TooltipProvider).
  */
 export const SuppliersTab: React.FC = () => {
     const { suppliers, products, loading, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, saveProduct } = useData();

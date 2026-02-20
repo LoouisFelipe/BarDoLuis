@@ -47,7 +47,7 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda (PDV Alta Fidelidade).
- * CTO: UX Replicada com Grid de Categorias e suporte a Modo Lista/Cards.
+ * CTO: UX Hierárquica para Listas Master (Categoria > Subcategoria > Itens).
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -356,6 +356,15 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 {categories.map(cat => {
                     const itemsInCategory = allItems.filter(i => i.category === cat || (cat === "ENTRETENIMENTO" && i.type === 'game'));
                     if (itemsInCategory.length === 0) return null;
+
+                    // Group by subcategory for UX hierarchy
+                    const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
+                        const sub = i.subcategory || 'Diversos';
+                        if (!acc[sub]) acc[sub] = [];
+                        acc[sub].push(i);
+                        return acc;
+                    }, {} as Record<string, any[]>);
+
                     return (
                         <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-xl px-0 border-b-0">
                             <AccordionTrigger className="px-8 hover:no-underline hover:bg-slate-900/60 h-20">
@@ -367,9 +376,18 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                                     <Badge variant="secondary" className="ml-2 text-[10px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length} Itens</Badge>
                                 </div>
                             </AccordionTrigger>
-                            <AccordionContent className="p-4 pt-0 border-t border-slate-800/50">
-                                <div className="flex flex-col gap-2 mt-4">
-                                    {itemsInCategory.map(item => renderItemRow(item))}
+                            <AccordionContent className="p-0 border-t border-slate-800/50">
+                                <div className="flex flex-col">
+                                    {Object.entries(subcategoriesMap).map(([sub, items]) => (
+                                        <div key={sub} className="border-b last:border-0 border-slate-800/30">
+                                            <div className="bg-slate-900/60 px-8 py-2 border-b border-slate-800/20">
+                                                <p className="text-[10px] font-black uppercase text-primary/60 tracking-widest">{sub}</p>
+                                            </div>
+                                            <div className="flex flex-col gap-2 p-4">
+                                                {items.map(item => renderItemRow(item))}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </AccordionContent>
                         </AccordionItem>

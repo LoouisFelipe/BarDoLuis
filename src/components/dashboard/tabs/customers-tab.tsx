@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Gestão de Clientes com Navegação por Acordeão Alfabético.
- * CTO: Estabilização de tipos e importações de Badges oficiais.
+ * CTO: Correção de erro fatal: Importação do componente Badge.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();

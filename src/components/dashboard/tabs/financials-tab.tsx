@@ -42,7 +42,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * @fileOverview Aba Financeira do BarDoLuis.
- * CTO: Saneamento integral de sintaxe e permissões via useAuth.
+ * CTO: Saneamento de sintaxe e centralização de permissões via useAuth.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();

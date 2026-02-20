@@ -31,8 +31,8 @@ import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
 /**
- * @fileOverview Gestão de Produtos com Visualização Hierárquica por Categoria.
- * CTO: Implementação de Acordeão para Listagem e Grid para Navegação Visual.
+ * @fileOverview Gestão de Produtos com Hierarquia: Categoria > Subcategoria > Itens.
+ * CTO: Implementação de Acordeão de dois níveis para organização profunda do estoque.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -121,6 +121,14 @@ export const ProductsTab: React.FC = () => {
                 const itemsInCategory = filteredProducts.filter(p => p.category === cat);
                 if (itemsInCategory.length === 0) return null;
 
+                // Group by subcategory
+                const subcategoriesMap = itemsInCategory.reduce((acc, p) => {
+                    const sub = p.subcategory || 'Diversos';
+                    if (!acc[sub]) acc[sub] = [];
+                    acc[sub].push(p);
+                    return acc;
+                }, {} as Record<string, Product[]>);
+
                 return (
                     <AccordionItem key={cat} value={cat} className="bg-card border rounded-xl overflow-hidden shadow-sm px-0">
                         <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30">
@@ -134,39 +142,46 @@ export const ProductsTab: React.FC = () => {
                         </AccordionTrigger>
                         <AccordionContent className="p-0 border-t">
                             <div className="flex flex-col">
-                                {itemsInCategory.map(p => (
-                                    <div 
-                                        key={p.id} 
-                                        className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-4 min-w-0 pr-4">
-                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400">
-                                                <Package size={16} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-sm truncate uppercase tracking-tight">{p.name}</p>
-                                                <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">
-                                                    {p.category} {p.subcategory ? `• ${p.subcategory}` : ''}
-                                                </p>
-                                            </div>
+                                {Object.entries(subcategoriesMap).map(([sub, items]) => (
+                                    <div key={sub} className="border-b last:border-0">
+                                        <div className="bg-muted/30 px-6 py-2 border-b">
+                                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{sub}</p>
                                         </div>
-                                        <div className="flex items-center gap-4 sm:gap-10 shrink-0">
-                                            <div className="text-right hidden sm:block">
-                                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Preço</p>
-                                                <p className="text-sm font-black text-slate-100 leading-none">R$ {Number(p.unitPrice || 0).toFixed(2)}</p>
+                                        {items.map(p => (
+                                            <div 
+                                                key={p.id} 
+                                                className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-4 min-w-0 pr-4">
+                                                    <div className="p-2 rounded-lg bg-slate-900 text-slate-400">
+                                                        <Package size={16} />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-bold text-sm truncate uppercase tracking-tight">{p.name}</p>
+                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">
+                                                            {p.subcategory || 'Geral'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4 sm:gap-10 shrink-0">
+                                                    <div className="text-right hidden sm:block">
+                                                        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Preço</p>
+                                                        <p className="text-sm font-black text-slate-100 leading-none">R$ {Number(p.unitPrice || 0).toFixed(2)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Estoque</p>
+                                                        <p className={cn("text-sm font-black leading-none", (p.stock || 0) <= (p.lowStockThreshold || 0) ? "text-red-500" : "text-emerald-500")}>
+                                                            {p.stock} {p.saleType === 'dose' ? 'ml' : 'un.'}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-8 w-8 text-accent hover:bg-accent/10"><PackagePlus size={16} /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Estoque</p>
-                                                <p className={cn("text-sm font-black leading-none", (p.stock || 0) <= (p.lowStockThreshold || 0) ? "text-red-500" : "text-emerald-500")}>
-                                                    {p.stock} {p.saleType === 'dose' ? 'ml' : 'un.'}
-                                                </p>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-8 w-8 text-accent hover:bg-accent/10"><PackagePlus size={16} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
-                                            </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 ))}
                             </div>
