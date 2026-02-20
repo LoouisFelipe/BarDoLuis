@@ -17,18 +17,18 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X } from 'lucide-react';
+import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
 /**
- * @fileOverview Gestão de Produtos do Bar (UX Category-First).
- * CTO: Corrigido ReferenceError: cn e adicionada navegação por categorias inicial.
+ * @fileOverview Gestão de Produtos com Opções de Lista/Cards e Navegação por Categorias.
+ * CTO: Estabilização de utilitários e implementação do ViewMode Toggle.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -37,8 +37,8 @@ export const ProductsTab: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
     const barProducts = useMemo(() => {
         if (!products) return [];
@@ -171,8 +171,6 @@ export const ProductsTab: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                     {filteredProducts.map(p => {
-                        const cost = Number(p.costPrice) || 0;
-                        const price = Number(p.unitPrice) || 0;
                         const markup = calculateMarkup(p);
                         const stockLabel = p.saleType === 'dose' ? 'ml' : p.saleType === 'weight' ? 'kg' : 'un.';
                         return (
@@ -194,7 +192,7 @@ export const ProductsTab: React.FC = () => {
                                     )}
                                 </TableCell>
                                 <TableCell className="text-xs font-bold">
-                                    {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${price.toFixed(2)}`}
+                                    {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') && `R$ ${Number(p.unitPrice || 0).toFixed(2)}`}
                                     {p.saleType === 'dose' && 'Várias Doses'}
                                     {p.saleType === 'service' && 'Valor Aberto'}
                                 </TableCell>
@@ -215,6 +213,64 @@ export const ProductsTab: React.FC = () => {
                     })}
                 </TableBody>
             </Table>
+        </div>
+    );
+
+    const renderCardItemsView = () => (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="p-4 border-b bg-muted/20 flex items-center justify-between rounded-xl border-2">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setSelectedCategory(null); setSearchTerm(''); }}
+                    className="text-[10px] font-black uppercase text-primary gap-1"
+                >
+                    <X size={12} /> Voltar para Categorias
+                </Button>
+                {selectedCategory && <Badge className="font-black uppercase tracking-widest text-[9px]">{selectedCategory}</Badge>}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+                {filteredProducts.map(p => {
+                    const markup = calculateMarkup(p);
+                    const stockLabel = p.saleType === 'dose' ? 'ml' : p.saleType === 'weight' ? 'kg' : 'un.';
+                    return (
+                        <Card key={p.id} className="bg-card border-2 hover:border-primary/20 transition-all overflow-hidden group">
+                            <CardHeader className="p-4">
+                                <div className="flex justify-between items-start">
+                                    <div className="min-w-0">
+                                        <CardTitle className="text-sm font-bold truncate">{p.name}</CardTitle>
+                                        <CardDescription className="text-[9px] uppercase font-bold text-muted-foreground">{p.subcategory || 'Geral'}</CardDescription>
+                                    </div>
+                                    <Badge variant={isProductLowOnStock(p) ? 'destructive' : 'outline'} className="text-[8px] font-black">
+                                        {p.stock} {stockLabel}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                                <div className="flex justify-between items-end mt-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Preço</span>
+                                        <span className="text-base font-black text-foreground">
+                                            {(p.saleType === 'unit' || p.saleType === 'portion' || p.saleType === 'weight') ? `R$ ${Number(p.unitPrice || 0).toFixed(2)}` : p.saleType === 'dose' ? 'Doses' : 'Aberto'}
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest block">Markup</span>
+                                        <span className={cn("text-sm font-black", markup.color)}>{markup.label}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="p-2 bg-muted/20 flex justify-end gap-1">
+                                {p.saleType !== 'service' && (
+                                    <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-9 w-9 text-accent hover:bg-accent/10"><PackagePlus size={18} /></Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-9 w-9 text-primary hover:bg-primary/10"><Edit size={18} /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-9 w-9 text-destructive hover:bg-destructive/10"><Trash2 size={18} /></Button>
+                            </CardFooter>
+                        </Card>
+                    );
+                })}
+            </div>
         </div>
     );
     
@@ -240,6 +296,29 @@ export const ProductsTab: React.FC = () => {
                         </Button>
                     </div>
                 </div>
+
+                {(selectedCategory || searchTerm) && (
+                    <div className="flex justify-end pr-2">
+                        <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+                            <Button 
+                                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                                size="icon" 
+                                onClick={() => setViewMode('list')}
+                                className="h-8 w-8"
+                            >
+                                <List size={16} />
+                            </Button>
+                            <Button 
+                                variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+                                size="icon" 
+                                onClick={() => setViewMode('grid')}
+                                className="h-8 w-8"
+                            >
+                                <LayoutGrid size={16} />
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -253,7 +332,7 @@ export const ProductsTab: React.FC = () => {
                         <Button onClick={handleAddNew} variant="outline" className="font-bold h-12 uppercase">Adicionar Primeiro Item</Button>
                     </div>
                 ) : (
-                    (!selectedCategory && !searchTerm) ? renderGridView() : renderTableView()
+                    (!selectedCategory && !searchTerm) ? renderGridView() : (viewMode === 'list' ? renderTableView() : renderCardItemsView())
                 )}
 
                 {modalState.form && <ProductFormModal product={selectedProduct} allProducts={products || []} open={modalState.form} onOpenChange={closeAllModals} onSave={saveProduct} />}

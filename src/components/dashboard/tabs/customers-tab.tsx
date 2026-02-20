@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, AlertCircle, ChevronRight, X } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, AlertCircle, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
@@ -26,8 +26,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Gestão de Clientes com Navegação Alfabética (UX de Elite).
- * CTO: Estabilização de tipos para o componente Badge e saneamento de build.
+ * @fileOverview Gestão de Clientes com Navegação Alfabética e Opções de Lista/Cards.
+ * CTO: Estabilização de tipos para o componente Badge e introdução do ViewMode.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -38,17 +38,15 @@ export const CustomersTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
-    // Alfabeto completo para o índice
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-    // Letras que possuem clientes (para destaque visual)
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
         return Array.from(initials);
     }, [customers]);
 
-    // Estatísticas rápidas
     const stats = useMemo(() => {
         const debtors = customers.filter(c => (c.balance || 0) > 0);
         const totalDebt = debtors.reduce((sum, c) => sum + (c.balance || 0), 0);
@@ -58,7 +56,6 @@ export const CustomersTab: React.FC = () => {
         };
     }, [customers]);
 
-    // Filtragem Multinível: Letra -> Busca -> Status (Devedor)
     const filteredCustomers = useMemo(() => {
         return customers
             .filter(c => {
@@ -67,7 +64,6 @@ export const CustomersTab: React.FC = () => {
                 const letterMatch = !selectedLetter || c.name.startsWith(selectedLetter) || c.name.startsWith(selectedLetter.toLowerCase());
                 const statusMatch = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
                 
-                // Se estiver buscando, ignora a letra selecionada para busca global
                 if (searchTerm) return nameMatch && statusMatch;
                 return letterMatch && statusMatch;
             })
@@ -120,7 +116,7 @@ export const CustomersTab: React.FC = () => {
     };
 
     const renderDesktopView = () => (
-        <div className="bg-card rounded-xl shadow-lg overflow-hidden hidden md:block border">
+        <div className="bg-card rounded-xl shadow-lg overflow-hidden border">
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
@@ -136,7 +132,7 @@ export const CustomersTab: React.FC = () => {
                         {filteredCustomers.map(c => (
                             <TableRow key={c.id} className="hover:bg-muted/10 transition-colors">
                                 <TableCell className="font-medium">{c.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{c.contact || '&mdash;'}</TableCell>
+                                <TableCell className="text-muted-foreground">{c.contact || '—'}</TableCell>
                                 <TableCell className={cn("font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
                                     R$ {(Number(c.balance) || 0).toFixed(2)}
                                 </TableCell>
@@ -162,18 +158,18 @@ export const CustomersTab: React.FC = () => {
         </div>
     );
     
-    const renderMobileView = () => (
-        <div className="grid grid-cols-1 gap-4 md:hidden">
+    const renderCardView = () => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCustomers.map(c => (
-                <Card key={c.id} className="bg-card shadow-md border-2 border-transparent hover:border-primary/20 transition-all">
+                <Card key={c.id} className="bg-card shadow-md border-2 border-transparent hover:border-primary/20 transition-all overflow-hidden group">
                     <CardHeader className="p-4 pb-2">
                         <div className="flex justify-between items-start">
                             <div>
-                                <CardTitle className="text-base">{c.name}</CardTitle>
+                                <CardTitle className="text-base truncate max-w-[150px]">{c.name}</CardTitle>
                                 <CardDescription className="text-[10px] uppercase font-bold">{c.contact || 'Sem contato'}</CardDescription>
                             </div>
                             <Badge variant={(c.balance || 0) > 0 ? "warning" : "outline"} className="text-[10px]">
-                                {(c.balance || 0) > 0 ? "D&Eacute;BITO" : "EM DIA"}
+                                {(c.balance || 0) > 0 ? "DÉBITO" : "EM DIA"}
                             </Badge>
                         </div>
                     </CardHeader>
@@ -239,7 +235,6 @@ export const CustomersTab: React.FC = () => {
                 </Button>
             </div>
 
-            {/* Resumo de Dívida */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-card border-l-4 border-l-yellow-400 p-4 rounded-xl shadow-sm flex flex-col justify-center">
                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total a Receber (Fiado)</p>
@@ -251,9 +246,8 @@ export const CustomersTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* Busca e Filtros */}
-            <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-grow">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-grow w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                         placeholder="Buscar por nome ou telefone..." 
@@ -262,7 +256,25 @@ export const CustomersTab: React.FC = () => {
                         className="pl-10 h-11 bg-card border-2 focus:border-primary transition-all"
                     />
                 </div>
-                <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+                <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
+                    <Button 
+                        variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                        size="icon" 
+                        onClick={() => setViewMode('list')}
+                        className="h-9 w-9"
+                    >
+                        <List size={18} />
+                    </Button>
+                    <Button 
+                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+                        size="icon" 
+                        onClick={() => setViewMode('grid')}
+                        className="h-9 w-9"
+                    >
+                        <LayoutGrid size={18} />
+                    </Button>
+                </div>
+                <div className="flex gap-1 bg-muted/50 p-1 rounded-lg shrink-0">
                     <Button 
                         variant={filterType === 'all' ? 'secondary' : 'ghost'} 
                         size="sm" 
@@ -299,7 +311,7 @@ export const CustomersTab: React.FC = () => {
                                 onClick={() => { setSelectedLetter(null); setSearchTerm(''); }}
                                 className="text-[10px] font-black uppercase text-primary gap-1"
                             >
-                                <X size={12} /> Voltar para o &Iacute;ndice
+                                <X size={12} /> Voltar para o Índice
                             </Button>
                             {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
                         </div>
@@ -315,8 +327,7 @@ export const CustomersTab: React.FC = () => {
                             </div>
                         ) : (
                             <TooltipProvider>
-                                {renderDesktopView()}
-                                {renderMobileView()}
+                                {viewMode === 'list' ? renderDesktopView() : renderCardView()}
                             </TooltipProvider>
                         )}
                     </div>
@@ -333,7 +344,7 @@ export const CustomersTab: React.FC = () => {
                         <AlertDialogHeader>
                             <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Cliente?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Essa a&ccedil;&atilde;o excluir&aacute; permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que n&atilde;o h&aacute; d&eacute;bitos pendentes.
+                                Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

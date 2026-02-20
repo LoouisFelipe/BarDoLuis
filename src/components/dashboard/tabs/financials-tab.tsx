@@ -46,7 +46,7 @@ import { Badge } from '@/components/ui/badge';
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
-    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth
+    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth para evitar erro de build
     
     // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);

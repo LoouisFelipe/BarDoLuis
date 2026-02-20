@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,18 +14,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Truck, PlusCircle, ShoppingCart, FileText, Edit, Trash2 } from 'lucide-react';
+import { Truck, PlusCircle, ShoppingCart, FileText, Edit, Trash2, LayoutGrid, List } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { Supplier } from '@/lib/schemas';
 import { SupplierFormModal } from '@/components/suppliers/supplier-form-modal';
 import { PurchaseModal } from '@/components/suppliers/purchase-modal';
 import { PurchaseHistoryModal } from '@/components/suppliers/purchase-history-modal';
+import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Gestão de Fornecedores com Opções de Lista/Cards.
+ * CTO: Implementação do ViewMode para visualização analítica ou executiva.
+ */
 export const SuppliersTab: React.FC = () => {
     const { suppliers, products, loading, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, saveProduct } = useData();
     
     const [modalState, setModalState] = useState({ form: false, purchase: false, history: false, delete: false });
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
     const closeAllModals = () => {
         setModalState({ form: false, purchase: false, history: false, delete: false });
@@ -108,16 +115,72 @@ export const SuppliersTab: React.FC = () => {
         </Accordion>
     );
 
+    const renderCardView = () => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+            {suppliers.map(s => (
+                <Card key={s.id} className="bg-card border-2 hover:border-primary/20 transition-all group overflow-hidden">
+                    <CardHeader className="p-5 pb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary border border-primary/10 group-hover:bg-primary group-hover:text-white transition-all">
+                                <Truck size={24} />
+                            </div>
+                            <div className="min-w-0">
+                                <CardTitle className="text-base font-black uppercase truncate">{s.name}</CardTitle>
+                                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">{s.contactPerson || 'Geral'}</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-5 pt-0 space-y-3">
+                        <div className="space-y-1.5">
+                            {s.phone && <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/40"/> {s.phone}</p>}
+                            {s.email && <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/40"/> {s.email}</p>}
+                        </div>
+                    </CardContent>
+                    <CardFooter className="p-2 bg-muted/20 flex items-center justify-between gap-1">
+                        <TooltipProvider>
+                            <div className="flex gap-1 w-full">
+                                <Button onClick={() => handleOpenModal('purchase', s)} variant="ghost" size="icon" className="h-9 w-9 text-accent hover:bg-accent/10" title="Registrar Compra"><ShoppingCart size={18}/></Button>
+                                <Button onClick={() => handleOpenModal('history', s)} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-muted" title="Histórico"><FileText size={18}/></Button>
+                                <Button onClick={() => handleOpenModal('form', s)} variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/10" title="Editar"><Edit size={18}/></Button>
+                                <Button onClick={() => handleDeleteClick(s)} variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" title="Excluir"><Trash2 size={18}/></Button>
+                            </div>
+                        </TooltipProvider>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+
     return (
         <>
             <div className="p-1 md:p-4 space-y-6">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
                     <h2 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center">
-                        <Truck className="mr-3" /> Gerenciar Fornecedores
+                        <Truck className="mr-3 text-primary" /> Fornecedores
                     </h2>
-                    <Button onClick={() => handleOpenModal('form')} className="bg-primary text-primary-foreground font-bold hover:bg-primary/80 w-full md:w-auto h-11">
-                        <PlusCircle className="mr-2" size={20} /> Novo Fornecedor
-                    </Button>
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg">
+                            <Button 
+                                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                                size="icon" 
+                                onClick={() => setViewMode('list')}
+                                className="h-9 w-9"
+                            >
+                                <List size={18} />
+                            </Button>
+                            <Button 
+                                variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+                                size="icon" 
+                                onClick={() => setViewMode('grid')}
+                                className="h-9 w-9"
+                            >
+                                <LayoutGrid size={18} />
+                            </Button>
+                        </div>
+                        <Button onClick={() => handleOpenModal('form')} className="bg-primary text-primary-foreground font-bold hover:bg-primary/80 flex-grow md:flex-grow-0 h-11 uppercase text-xs tracking-widest">
+                            <PlusCircle className="mr-2" size={20} /> Novo Fornecedor
+                        </Button>
+                    </div>
                 </div>
                 
                 {suppliers.length === 0 ? (
@@ -128,7 +191,7 @@ export const SuppliersTab: React.FC = () => {
                         <Button onClick={() => handleOpenModal('form')}>Adicionar Fornecedor</Button>
                     </div>
                 ) : (
-                   renderAccordionView()
+                   viewMode === 'list' ? renderAccordionView() : renderCardView()
                 )}
 
                 {modalState.form && <SupplierFormModal supplier={selectedSupplier} open={modalState.form} onOpenChange={closeAllModals} onSave={saveSupplier} />}
@@ -146,7 +209,7 @@ export const SuppliersTab: React.FC = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white">
+                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white font-bold">
                                     Sim, excluir fornecedor
                                 </AlertDialogAction>
                             </AlertDialogFooter>
