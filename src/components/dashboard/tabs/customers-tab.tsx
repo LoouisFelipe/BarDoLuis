@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Gestão de Clientes com Navegação Alfabética (UX de Elite).
- * CTO: Implementado drill-down por iniciais e saneamento de build.
+ * CTO: Estabilização de tipos para o componente Badge e saneamento de build.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -136,7 +136,7 @@ export const CustomersTab: React.FC = () => {
                         {filteredCustomers.map(c => (
                             <TableRow key={c.id} className="hover:bg-muted/10 transition-colors">
                                 <TableCell className="font-medium">{c.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{c.contact || '—'}</TableCell>
+                                <TableCell className="text-muted-foreground">{c.contact || '&mdash;'}</TableCell>
                                 <TableCell className={cn("font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
                                     R$ {(Number(c.balance) || 0).toFixed(2)}
                                 </TableCell>
@@ -173,7 +173,7 @@ export const CustomersTab: React.FC = () => {
                                 <CardDescription className="text-[10px] uppercase font-bold">{c.contact || 'Sem contato'}</CardDescription>
                             </div>
                             <Badge variant={(c.balance || 0) > 0 ? "warning" : "outline"} className="text-[10px]">
-                                {(c.balance || 0) > 0 ? "DÉBITO" : "EM DIA"}
+                                {(c.balance || 0) > 0 ? "D&Eacute;BITO" : "EM DIA"}
                             </Badge>
                         </div>
                     </CardHeader>
@@ -299,7 +299,7 @@ export const CustomersTab: React.FC = () => {
                                 onClick={() => { setSelectedLetter(null); setSearchTerm(''); }}
                                 className="text-[10px] font-black uppercase text-primary gap-1"
                             >
-                                <X size={12} /> Voltar para o Índice
+                                <X size={12} /> Voltar para o &Iacute;ndice
                             </Button>
                             {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
                         </div>
@@ -333,7 +333,7 @@ export const CustomersTab: React.FC = () => {
                         <AlertDialogHeader>
                             <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Cliente?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
+                                Essa a&ccedil;&atilde;o excluir&aacute; permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que n&atilde;o h&aacute; d&eacute;bitos pendentes.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

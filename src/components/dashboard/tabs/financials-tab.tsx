@@ -41,12 +41,12 @@ import { TransactionDetailModal } from '@/components/financials/transaction-deta
 import { Badge } from '@/components/ui/badge';
 
 /**
- * @fileOverview Aba Financeira (Redesign V5.0).
- * CTO: Correção de isAdmin (via useAuth) e saneamento de aspas literais.
+ * @fileOverview Aba Financeira (Redesign Premium).
+ * CTO: Correção de obtenção de permissão via useAuth e saneamento de build.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
-    const { isAdmin } = useAuth();
+    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth
     
     // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -169,7 +169,7 @@ export function FinancialsTab() {
                     </div>
                     <div>
                         <h2 className="text-4xl font-black text-foreground tracking-tighter leading-none">Financeiro</h2>
-                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.25em] mt-1">Gestão de Fluxo de Caixa • Tavares Bastos</p>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.25em] mt-1">Gestão de Fluxo de Caixa &bull; Tavares Bastos</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -183,7 +183,7 @@ export function FinancialsTab() {
                 </div>
             </div>
 
-            {/* Matrix de KPIs (4 Colunas - Estilo Blueprint) */}
+            {/* Matrix de KPIs (4 Colunas) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -283,7 +283,7 @@ export function FinancialsTab() {
                                                 {t.description || (isSale ? `VENDA: ${t.tabName || 'BALCÃO'}` : t.type)}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                {format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}
+                                                {format(dateVal, 'HH:mm')} &bull; {t.paymentMethod || t.expenseCategory || 'Geral'}
                                             </p>
                                         </div>
 
