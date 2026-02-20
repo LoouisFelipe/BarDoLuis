@@ -7,6 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,8 +32,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Gestão de Clientes com Navegação Alfabética Versátil (Lista ou Cards).
- * CTO: Implementação do modo drill-down para letras iniciais.
+ * @fileOverview Gestão de Clientes com Navegação Alfabética por Acordeão (UX Premium).
+ * CTO: Implementação do modo drill-down com setas expansíveis para maior agilidade.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -38,7 +44,7 @@ export const CustomersTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -115,52 +121,50 @@ export const CustomersTab: React.FC = () => {
         }
     };
 
-    const renderDesktopView = () => (
-        <div className="bg-card rounded-xl shadow-lg overflow-hidden border">
-            <div className="overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-muted/30">
-                            <TableHead className="font-bold">Nome</TableHead>
-                            <TableHead className="font-bold">Contato</TableHead>
-                            <TableHead className="font-bold">Saldo Devedor</TableHead>
-                            <TableHead className="font-bold">Limite</TableHead>
-                            <TableHead className="text-right font-bold">Ações</TableHead>
+    const renderCustomerTable = (customerList: Customer[]) => (
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow className="bg-muted/30">
+                        <TableHead className="font-bold">Nome</TableHead>
+                        <TableHead className="font-bold">Contato</TableHead>
+                        <TableHead className="font-bold">Saldo Devedor</TableHead>
+                        <TableHead className="font-bold">Limite</TableHead>
+                        <TableHead className="text-right font-bold">Ações</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {customerList.map(c => (
+                        <TableRow key={c.id} className="hover:bg-muted/10 transition-colors">
+                            <TableCell className="font-medium">{c.name}</TableCell>
+                            <TableCell className="text-muted-foreground">{c.contact || '—'}</TableCell>
+                            <TableCell className={cn("font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
+                                R$ {(Number(c.balance) || 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                                {typeof c.creditLimit === 'number'
+                                    ? `R$ ${c.creditLimit.toFixed(2)}`
+                                    : <span className="text-muted-foreground opacity-50">N/A</span>
+                                }
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center justify-end space-x-1">
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-8 w-8 text-muted-foreground hover:text-foreground"><History size={18} /></Button></TooltipTrigger><TooltipContent><p>Extrato</p></TooltipContent></Tooltip>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-8 w-8 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button></TooltipTrigger><TooltipContent><p>Receber</p></TooltipContent></Tooltip>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={18} /></Button></TooltipTrigger><TooltipContent><p>Editar</p></TooltipContent></Tooltip>
+                                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button></TooltipTrigger><TooltipContent><p>Excluir</p></TooltipContent></Tooltip>
+                                </div>
+                            </TableCell>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredCustomers.map(c => (
-                            <TableRow key={c.id} className="hover:bg-muted/10 transition-colors">
-                                <TableCell className="font-medium">{c.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{c.contact || '—'}</TableCell>
-                                <TableCell className={cn("font-black", (c.balance || 0) > 0 ? 'text-yellow-400' : 'text-accent')}>
-                                    R$ {(Number(c.balance) || 0).toFixed(2)}
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                    {typeof c.creditLimit === 'number'
-                                        ? `R$ ${c.creditLimit.toFixed(2)}`
-                                        : <span className="text-muted-foreground opacity-50">N/A</span>
-                                    }
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center justify-end space-x-1">
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-8 w-8 text-muted-foreground hover:text-foreground"><History size={18} /></Button></TooltipTrigger><TooltipContent><p>Extrato</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-8 w-8 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button></TooltipTrigger><TooltipContent><p>Receber</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={18} /></Button></TooltipTrigger><TooltipContent><p>Editar</p></TooltipContent></Tooltip>
-                                        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button></TooltipTrigger><TooltipContent><p>Excluir</p></TooltipContent></Tooltip>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
     
-    const renderCardView = () => (
+    const renderCardView = (customerList: Customer[]) => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCustomers.map(c => (
+            {customerList.map(c => (
                 <Card key={c.id} className="bg-card shadow-md border-2 border-transparent hover:border-primary/20 transition-all overflow-hidden group">
                     <CardHeader className="p-4 pb-2">
                         <div className="flex justify-between items-start">
@@ -168,7 +172,7 @@ export const CustomersTab: React.FC = () => {
                                 <CardTitle className="text-base truncate max-w-[150px]">{c.name}</CardTitle>
                                 <CardDescription className="text-[10px] uppercase font-bold">{c.contact || 'Sem contato'}</CardDescription>
                             </div>
-                            <Badge variant={(c.balance || 0) > 0 ? "warning" : "outline"} className="text-[10px]">
+                            <Badge variant={(c.balance || 0) > 0 ? "warning" : "default"} className="text-[10px]">
                                 {(c.balance || 0) > 0 ? "DÉBITO" : "EM DIA"}
                             </Badge>
                         </div>
@@ -215,43 +219,47 @@ export const CustomersTab: React.FC = () => {
         </div>
     );
 
-    const renderAlphaList = () => (
-        <div className="space-y-2 pb-20">
+    const renderAlphaAccordionList = () => (
+        <Accordion type="multiple" className="space-y-3 pb-20">
             {alphabet.map(letter => {
                 const isActive = activeLetters.includes(letter);
-                const count = customers.filter(c => c.name.charAt(0).toUpperCase() === letter).length;
+                const customersForLetter = customers
+                    .filter(c => c.name.charAt(0).toUpperCase() === letter)
+                    .filter(c => filterType === 'debtors' ? (c.balance || 0) > 0 : true)
+                    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+                if (customersForLetter.length === 0 && !isActive) return null;
+                if (customersForLetter.length === 0 && isActive && filterType === 'debtors') return null;
+
                 return (
-                    <Card 
+                    <AccordionItem 
                         key={letter} 
+                        value={letter} 
                         className={cn(
-                            "cursor-pointer transition-all border-l-4 group",
-                            isActive 
-                                ? "hover:bg-muted/50 border-l-primary bg-card" 
-                                : "opacity-30 grayscale cursor-not-allowed border-l-transparent bg-muted/10"
+                            "bg-card rounded-xl border-none shadow-sm overflow-hidden",
+                            !isActive && "opacity-30 grayscale pointer-events-none"
                         )}
-                        onClick={() => isActive && setSelectedLetter(letter)}
                     >
-                        <CardContent className="p-4 flex items-center justify-between">
+                        <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/30 transition-all border-l-4 border-l-primary">
                             <div className="flex items-center gap-4">
-                                <div className={cn(
-                                    "w-10 h-10 flex items-center justify-center rounded-lg font-black text-xl",
-                                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                                )}>
+                                <div className="w-10 h-10 flex items-center justify-center rounded-lg font-black text-xl bg-primary/10 text-primary">
                                     {letter}
                                 </div>
-                                <div>
+                                <div className="text-left">
                                     <p className="font-bold text-base">Letra {letter}</p>
                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                        {isActive ? `${count} fiéis encontrados` : 'Nenhum fiel cadastrado'}
+                                        {customersForLetter.length} fiéis encontrados
                                     </p>
                                 </div>
                             </div>
-                            {isActive && <ChevronRight size={20} className="text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />}
-                        </CardContent>
-                    </Card>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 border-t">
+                            {renderCustomerTable(customersForLetter)}
+                        </AccordionContent>
+                    </AccordionItem>
                 );
             })}
-        </div>
+        </Accordion>
     );
 
     return (
@@ -334,7 +342,7 @@ export const CustomersTab: React.FC = () => {
                 </div>
             ) : (
                 (!selectedLetter && !searchTerm) ? (
-                    viewMode === 'list' ? renderAlphaList() : renderAlphaGrid()
+                    viewMode === 'list' ? renderAlphaAccordionList() : renderAlphaGrid()
                 ) : (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg border">
@@ -360,7 +368,7 @@ export const CustomersTab: React.FC = () => {
                             </div>
                         ) : (
                             <TooltipProvider>
-                                {viewMode === 'list' ? renderDesktopView() : renderCardView()}
+                                {viewMode === 'list' ? renderCustomerTable(filteredCustomers) : renderCardView(filteredCustomers)}
                             </TooltipProvider>
                         )}
                     </div>
