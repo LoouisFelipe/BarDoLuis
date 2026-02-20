@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -263,141 +264,141 @@ export const CustomersTab: React.FC = () => {
     );
 
     return (
-        <div className="p-1 md:p-4 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
-                <div>
-                    <h2 className="text-3xl font-bold text-foreground flex items-center">
-                        <Users className="mr-3 text-primary" /> Clientes
-                    </h2>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fiéis e Fiado</p>
-                </div>
-                <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-black uppercase tracking-tight hover:bg-primary/80 w-full md:w-auto h-12 shadow-lg">
-                    <UserPlus className="mr-2" size={20} /> Novo Cliente
-                </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-card border-l-4 border-l-yellow-400 p-4 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total a Receber (Fiado)</p>
-                    <p className="text-2xl font-black text-yellow-400">R$ {stats.total.toFixed(2)}</p>
-                </div>
-                <div className="bg-card border-l-4 border-l-primary p-4 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Clientes com Débito</p>
-                    <p className="text-2xl font-black text-primary">{stats.count} Pessoas</p>
-                </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative flex-grow w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Buscar por nome ou telefone..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 h-11 bg-card border-2 focus:border-primary transition-all"
-                    />
-                </div>
-                <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
-                    <Button 
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
-                        size="icon" 
-                        onClick={() => setViewMode('list')}
-                        className="h-9 w-9"
-                    >
-                        <List size={18} />
-                    </Button>
-                    <Button 
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
-                        size="icon" 
-                        onClick={() => setViewMode('grid')}
-                        className="h-9 w-9"
-                    >
-                        <LayoutGrid size={18} />
-                    </Button>
-                </div>
-                <div className="flex gap-1 bg-muted/50 p-1 rounded-lg shrink-0">
-                    <Button 
-                        variant={filterType === 'all' ? 'secondary' : 'ghost'} 
-                        size="sm" 
-                        onClick={() => setFilterType('all')}
-                        className="text-[10px] uppercase font-bold h-9 px-4"
-                    >
-                        Todos
-                    </Button>
-                    <Button 
-                        variant={filterType === 'debtors' ? 'secondary' : 'ghost'} 
-                        size="sm" 
-                        onClick={() => setFilterType('debtors')}
-                        className={cn("text-[10px] uppercase font-bold h-9 px-4", filterType === 'debtors' && "text-yellow-400")}
-                    >
-                        Devedores
-                    </Button>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <Spinner size="h-12 w-12" />
-                    <p className="text-sm text-muted-foreground mt-4 font-bold uppercase tracking-widest animate-pulse">Sincronizando Lista...</p>
-                </div>
-            ) : (
-                (!selectedLetter && !searchTerm) ? (
-                    viewMode === 'list' ? renderAlphaAccordionList() : renderAlphaGrid()
-                ) : (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg border">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => { setSelectedLetter(null); setSearchTerm(''); }}
-                                className="text-[10px] font-black uppercase text-primary gap-1"
-                            >
-                                <X size={12} /> Voltar para o Índice
-                            </Button>
-                            {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7 px-4">{selectedLetter}</Badge>}
-                        </div>
-
-                        {filteredCustomers.length === 0 ? (
-                            <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
-                                <AlertCircle size={48} className="opacity-20" />
-                                <div>
-                                    <h3 className="text-lg font-bold text-foreground">Nenhum fiel encontrado</h3>
-                                    <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
-                                </div>
-                                {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
-                            </div>
-                        ) : (
-                            <TooltipProvider>
-                                {viewMode === 'list' ? renderCustomerTable(filteredCustomers) : renderCardView(filteredCustomers)}
-                            </TooltipProvider>
-                        )}
+        <TooltipProvider>
+            <div className="p-1 md:p-4 space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
+                    <div>
+                        <h2 className="text-3xl font-bold text-foreground flex items-center">
+                            <Users className="mr-3 text-primary" /> Clientes
+                        </h2>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fiéis e Fiado</p>
                     </div>
-                )
-            )}
+                    <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-black uppercase tracking-tight hover:bg-primary/80 w-full md:w-auto h-12 shadow-lg">
+                        <UserPlus className="mr-2" size={20} /> Novo Cliente
+                    </Button>
+                </div>
 
-            {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
-            {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
-            {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
-            
-            {selectedCustomer && modalState.delete && (
-                <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Fiel?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white font-bold">
-                                Sim, excluir registro
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            )}
-        </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-card border-l-4 border-l-yellow-400 p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Total a Receber (Fiado)</p>
+                        <p className="text-2xl font-black text-yellow-400">R$ {stats.total.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-card border-l-4 border-l-primary p-4 rounded-xl shadow-sm flex flex-col justify-center">
+                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Clientes com Débito</p>
+                        <p className="text-2xl font-black text-primary">{stats.count} Pessoas</p>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative flex-grow w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Buscar por nome ou telefone..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 h-11 bg-card border-2 focus:border-primary transition-all"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg shrink-0">
+                        <Button 
+                            variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                            size="icon" 
+                            onClick={() => setViewMode('list')}
+                            className="h-9 w-9"
+                        >
+                            <List size={18} />
+                        </Button>
+                        <Button 
+                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+                            size="icon" 
+                            onClick={() => setViewMode('grid')}
+                            className="h-9 w-9"
+                        >
+                            <LayoutGrid size={18} />
+                        </Button>
+                    </div>
+                    <div className="flex gap-1 bg-muted/50 p-1 rounded-lg shrink-0">
+                        <Button 
+                            variant={filterType === 'all' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setFilterType('all')}
+                            className="text-[10px] uppercase font-bold h-9 px-4"
+                        >
+                            Todos
+                        </Button>
+                        <Button 
+                            variant={filterType === 'debtors' ? 'secondary' : 'ghost'} 
+                            size="sm" 
+                            onClick={() => setFilterType('debtors')}
+                            className={cn("text-[10px] uppercase font-bold h-9 px-4", filterType === 'debtors' && "text-yellow-400")}
+                        >
+                            Devedores
+                        </Button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Spinner size="h-12 w-12" />
+                        <p className="text-sm text-muted-foreground mt-4 font-bold uppercase tracking-widest animate-pulse">Sincronizando Lista...</p>
+                    </div>
+                ) : (
+                    (!selectedLetter && !searchTerm) ? (
+                        viewMode === 'list' ? renderAlphaAccordionList() : renderAlphaGrid()
+                    ) : (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg border">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => { setSelectedLetter(null); setSearchTerm(''); }}
+                                    className="text-[10px] font-black uppercase text-primary gap-1"
+                                >
+                                    <X size={12} /> Voltar para o Índice
+                                </Button>
+                                {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7 px-4">{selectedLetter}</Badge>}
+                            </div>
+
+                            {filteredCustomers.length === 0 ? (
+                                <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
+                                    <AlertCircle size={48} className="opacity-20" />
+                                    <div>
+                                        <h3 className="text-lg font-bold text-foreground">Nenhum fiel encontrado</h3>
+                                        <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
+                                    </div>
+                                    {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
+                                </div>
+                            ) : (
+                                viewMode === 'list' ? renderCustomerTable(filteredCustomers) : renderCardView(filteredCustomers)
+                            )}
+                        </div>
+                    )
+                )}
+
+                {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
+                {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
+                {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
+                
+                {selectedCustomer && modalState.delete && (
+                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Fiel?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white font-bold">
+                                    Sim, excluir registro
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
+        </TooltipProvider>
     );
 };
 

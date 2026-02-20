@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -38,6 +39,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     periodGoal,
     date,
 }) => {
+    // RULES OF HOOKS: All hooks at top level
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 

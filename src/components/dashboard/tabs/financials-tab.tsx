@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -44,6 +45,7 @@ import { Badge } from '@/components/ui/badge';
  * CTO: Saneamento de permissão via useAuth e entidades JSX.
  */
 export function FinancialsTab() {
+    // RULES OF HOOKS: All hooks at top level
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
     const { isAdmin } = useAuth(); 
     
