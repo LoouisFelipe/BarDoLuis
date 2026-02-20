@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -7,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Accordion,
   AccordionContent,
@@ -52,7 +52,7 @@ export const CustomersTab: React.FC = () => {
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
         return alphabet.filter(l => initials.has(l));
-    }, [customers]);
+    }, [customers, alphabet]);
 
     const filteredCustomers = useMemo(() => {
         return customers
@@ -265,15 +265,3 @@ export const CustomersTab: React.FC = () => {
         </TooltipProvider>
     );
 };
-
-const BadgeLocal = ({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'warning' | 'outline' | 'default', className?: string }) => (
-    <span className={cn(
-        "px-2 py-0.5 rounded-full font-black tracking-tighter flex items-center justify-center text-[10px]",
-        variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : 
-        variant === 'outline' ? "bg-muted text-muted-foreground border border-border" :
-        "bg-primary text-white",
-        className
-    )}>
-        {children}
-    </span>
-);
