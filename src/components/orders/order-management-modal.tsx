@@ -89,7 +89,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const total = useMemo(() => currentItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [currentItems]);
 
   const categories = useMemo(() => {
-    const cats = new Set([...products.map(p => p.category), "Entretenimento"]);
+    const cats = new Set([...products.map(p => p.category), "ENTRETENIMENTO"]);
     return Array.from(cats).sort();
   }, [products]);
 
@@ -99,7 +99,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     
     return [...allProducts, ...allGames].filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || p.category === selectedCategory || (selectedCategory === "Entretenimento" && p.type === 'game');
+        const matchesCategory = !selectedCategory || p.category.toUpperCase() === selectedCategory.toUpperCase() || (selectedCategory === "ENTRETENIMENTO" && p.type === 'game');
         return matchesSearch && matchesCategory;
     }).sort((a, b) => a.name.localeCompare(b.name));
   }, [products, gameModalities, searchTerm, selectedCategory]);

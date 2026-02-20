@@ -42,7 +42,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * @fileOverview Aba Financeira do BarDoLuis.
- * CTO: Saneamento de permissões via useAuth e entidades JSX.
+ * CTO: Saneamento integral de sintaxe e permissões via useAuth.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
@@ -349,7 +349,7 @@ export function FinancialsTab() {
                         <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex gap-4">
                             <Info size={20} className="text-primary shrink-0" />
                             <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                                💡 Gestão Estratégica: Custos fixos são rateados diariamente pelo B.I. Cockpit para calcular sua meta de sobrevivência em tempo real.
+                                &quot;💡 Gestão Estratégica: Custos fixos são rateados diariamente pelo B.I. Cockpit para calcular sua meta de sobrevivência em tempo real.&quot;
                             </p>
                         </div>
                     </div>

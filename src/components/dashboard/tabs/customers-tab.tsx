@@ -3,7 +3,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +33,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Gestão de Clientes com Navegação por Acordeão Alfabético.
- * CTO: Implementação de Índice A-Z integrado com modo Lista Premium.
+ * CTO: Estabilização de tipos e importações de Badges oficiais.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
