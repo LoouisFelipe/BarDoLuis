@@ -27,12 +27,11 @@ import { cn } from '@/lib/utils';
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/ui/spinner'; 
@@ -46,9 +45,8 @@ import { Badge } from '@/components/ui/badge';
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
-    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth
+    const { isAdmin } = useAuth(); 
     
-    // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
@@ -60,7 +58,6 @@ export function FinancialsTab() {
         to: new Date(),
     }));
 
-    // Filtros e Categorias
     const fixedCategories = {
         'aluguel': 'Aluguel', 'luz': 'Energia Elétrica', 'agua': 'Água/Esgoto', 'internet': 'Internet', 'funcionarios': 'Salários'
     };
@@ -68,7 +65,6 @@ export function FinancialsTab() {
         'fornecedor': 'Fornecedor Bebidas', 'manutencao': 'Manutenção', 'limpeza': 'Limpeza', 'extra': 'Extra/Outros'
     };
 
-    // --- FORMULÁRIO ---
     const form = useForm({
         defaultValues: {
             description: '',
@@ -83,7 +79,6 @@ export function FinancialsTab() {
     const isReplicating = watch('replicate');
     const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
 
-    // --- CÁLCULOS ---
     const filteredTransactions = useMemo(() => {
         if (!dateRange?.from || !transactions) return [];
         const start = startOfDay(dateRange.from);
@@ -114,7 +109,6 @@ export function FinancialsTab() {
         };
     }, [filteredTransactions, customers]);
 
-    // --- AÇÕES ---
     const handleAddExpense = async (data: any) => {
         setProcessing(true);
         try {
@@ -160,8 +154,6 @@ export function FinancialsTab() {
 
     return (
         <div className="p-1 md:p-4 space-y-8 animate-in fade-in duration-500">
-            
-            {/* Header / Top Bar */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
@@ -183,7 +175,6 @@ export function FinancialsTab() {
                 </div>
             </div>
 
-            {/* Matrix de KPIs (4 Colunas) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -218,7 +209,6 @@ export function FinancialsTab() {
                 </div>
             </div>
 
-            {/* Sub-Tabs Navegação */}
             <div className="flex bg-card/30 p-1 rounded-xl border border-border/40 w-fit">
                 <Button 
                     variant="ghost" 
@@ -363,8 +353,6 @@ export function FinancialsTab() {
                 </div>
             )}
 
-            {/* --- MODAIS --- */}
-
             <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
                 <DialogContent className="sm:max-w-md bg-card border-border/40">
                     <DialogHeader>
@@ -389,7 +377,7 @@ export function FinancialsTab() {
                             </FormItem>
                             
                             <FormField control={control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Descrição</FormLabel><FormControl><Input placeholder="Ex: Aluguel, Gelo, Limpeza..." required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl></FormItem>
+                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Descrição</FormLabel><FormControl><Input placeholder="Ex: Aluguel, Gelo, Limpeza..." required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
                             )}/>
                             
                             <FormField control={control} name="category" render={({ field }) => {
@@ -403,16 +391,16 @@ export function FinancialsTab() {
                                             placeholder="Selecione..." 
                                             createLabel="Criar:" 
                                         />
-                                    </FormControl></FormItem>
+                                    </FormControl><FormMessage /></FormItem>
                                 )
                             }}/>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={control} name="amount" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" required {...field} className="h-12 bg-background border-2 font-black text-red-500 text-lg" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" required {...field} className="h-12 bg-background border-2 font-black text-red-500 text-lg" /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 <FormField control={control} name="expenseDate" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Data</FormLabel><FormControl><Input type="date" required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Data</FormLabel><FormControl><Input type="date" required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
                                 )}/>
                             </div>
 
@@ -421,7 +409,7 @@ export function FinancialsTab() {
                                     <FormField control={control} name="replicate" render={({ field }) => (
                                         <FormItem className="flex items-center justify-between space-y-0">
                                             <div className="space-y-0.5">
-                                                <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</Label>
+                                                <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</FormLabel>
                                                 <p className="text-[9px] text-muted-foreground font-bold uppercase leading-none">Agendar próximos meses</p>
                                             </div>
                                             <FormControl>
@@ -431,7 +419,7 @@ export function FinancialsTab() {
                                     )}/>
                                     {isReplicating && (
                                         <FormField control={control} name="monthsToReplicate" render={({ field }) => (
-                                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Repetir por quantos meses?</FormLabel><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl></FormItem>
+                                            <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Repetir por quantos meses?</FormLabel><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
                                         )}/>
                                     )}
                                 </div>
@@ -444,7 +432,7 @@ export function FinancialsTab() {
                             </div>
 
                             <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
-                                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
+                                <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
                                 <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
                                     {processing ? <Spinner size="h-4 w-4" /> : "Gravar Saída"}
                                 </Button>

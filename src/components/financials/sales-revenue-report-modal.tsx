@@ -76,7 +76,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                             <div className="flex-1 min-w-0">
                                 <DialogTitle className="text-lg sm:text-xl font-black uppercase tracking-tight truncate">Relatório de Vendas</DialogTitle>
                                 <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest truncate">
-                                    Inteligência de Receita • BarDoLuis
+                                    Inteligência de Receita &bull; BarDoLuis
                                 </DialogDescription>
                             </div>
                         </div>
