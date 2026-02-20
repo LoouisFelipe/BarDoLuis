@@ -3,8 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,18 +21,19 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X, LayoutGrid, List, Layers, ShoppingBasket } from 'lucide-react';
+import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
 /**
- * @fileOverview Gestão de Produtos com Visualização Flexível (Lista/Cards).
- * CTO: Implementação do modo drill-down tático e header unificado.
+ * @fileOverview Gestão de Produtos com Visualização Hierárquica por Categoria.
+ * CTO: Implementação de Acordeão para Listagem e Grid para Navegação Visual.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -43,7 +43,7 @@ export const ProductsTab: React.FC = () => {
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
     const barProducts = useMemo(() => {
         if (!products) return [];
@@ -68,7 +68,7 @@ export const ProductsTab: React.FC = () => {
     const closeAllModals = () => {
         setModalState({ form: false, stock: false, delete: false });
         setSelectedProduct(null);
-        setProductToDelete(null);
+        productToDelete && setProductToDelete(null);
     };
 
     const handleAddNew = () => {
@@ -93,7 +93,7 @@ export const ProductsTab: React.FC = () => {
 
     const confirmDelete = async () => {
         if (productToDelete && productToDelete.id) {
-            await deleteProduct(productToDelete.id!);
+            await deleteProduct(productToDelete.id);
             closeAllModals();
         }
     };
@@ -116,46 +116,66 @@ export const ProductsTab: React.FC = () => {
         </div>
     );
 
-    const renderListView = (items: Product[]) => (
-        <div className="space-y-2 pb-20">
-            {items.map(p => (
-                <Card 
-                    key={p.id} 
-                    className="bg-card hover:bg-muted/50 transition-all border-l-4 border-l-transparent hover:border-l-primary"
-                >
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 rounded-lg bg-muted text-muted-foreground">
-                                <Package size={20} />
+    const renderListView = () => (
+        <Accordion type="multiple" className="space-y-2 pb-20">
+            {categories.map(cat => {
+                const itemsInCategory = filteredProducts.filter(p => p.category === cat);
+                if (itemsInCategory.length === 0) return null;
+
+                return (
+                    <AccordionItem key={cat} value={cat} className="bg-card border rounded-xl overflow-hidden shadow-sm px-0">
+                        <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                    <Package size={18} />
+                                </div>
+                                <span className="font-black uppercase text-xs tracking-widest">{cat}</span>
+                                <Badge variant="secondary" className="ml-2 text-[9px] font-bold">{itemsInCategory.length} Itens</Badge>
                             </div>
-                            <div>
-                                <p className="font-bold text-base">{p.name}</p>
-                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                    {p.category} {p.subcategory ? `• ${p.subcategory}` : ''}
-                                </p>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 border-t">
+                            <div className="flex flex-col">
+                                {itemsInCategory.map(p => (
+                                    <div 
+                                        key={p.id} 
+                                        className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4 min-w-0 pr-4">
+                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400">
+                                                <Package size={16} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-sm truncate uppercase tracking-tight">{p.name}</p>
+                                                <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest">
+                                                    {p.category} {p.subcategory ? `• ${p.subcategory}` : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 sm:gap-10 shrink-0">
+                                            <div className="text-right hidden sm:block">
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Preço</p>
+                                                <p className="text-sm font-black text-slate-100 leading-none">R$ {Number(p.unitPrice || 0).toFixed(2)}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Estoque</p>
+                                                <p className={cn("text-sm font-black leading-none", (p.stock || 0) <= (p.lowStockThreshold || 0) ? "text-red-500" : "text-emerald-500")}>
+                                                    {p.stock} {p.saleType === 'dose' ? 'ml' : 'un.'}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-8 w-8 text-accent hover:bg-accent/10"><PackagePlus size={16} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-8 w-8 text-destructive hover:bg-destructive/10"><Trash2 size={16} /></Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Preço</p>
-                                <p className="text-sm font-black">R$ {Number(p.unitPrice || 0).toFixed(2)}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase">Estoque</p>
-                                <p className={cn("text-sm font-black", (p.stock || 0) <= (p.lowStockThreshold || 0) ? "text-red-500" : "text-emerald-500")}>
-                                    {p.stock} {p.saleType === 'dose' ? 'ml' : 'un.'}
-                                </p>
-                            </div>
-                            <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-9 w-9 text-accent"><PackagePlus size={18} /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-9 w-9 text-destructive"><Trash2 size={18} /></Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                );
+            })}
+        </Accordion>
     );
 
     return (
@@ -201,7 +221,7 @@ export const ProductsTab: React.FC = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
                         <Spinner size="h-12 w-12" />
-                        <p className="text-xs font-black uppercase text-muted-foreground animate-pulse tracking-widest">Sincronizando Inventário...</p>
+                        <p className="text-xs font-black uppercase text-muted-foreground animate-pulse tracking-widest">Auditando Inventário...</p>
                     </div>
                 ) : barProducts.length === 0 ? (
                     <div className="text-center py-32 bg-muted/10 border-2 border-dashed rounded-3xl flex flex-col items-center gap-4">
@@ -225,10 +245,35 @@ export const ProductsTab: React.FC = () => {
                             </div>
                         )}
 
-                        {viewMode === 'grid' && !selectedCategory && !searchTerm ? (
+                        {searchTerm ? (
+                            <div className="space-y-2 pb-20">
+                                {filteredProducts.map(p => (
+                                    <Card key={p.id} className="bg-card hover:bg-muted/50 transition-all">
+                                        <CardContent className="p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Package size={20} /></div>
+                                                <div>
+                                                    <p className="font-bold text-base">{p.name}</p>
+                                                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">{p.category} {p.subcategory ? `• ${p.subcategory}` : ''}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <div className="text-right hidden sm:block"><p className="text-[10px] font-bold text-muted-foreground uppercase">Preço</p><p className="text-sm font-black">R$ {Number(p.unitPrice || 0).toFixed(2)}</p></div>
+                                                <div className="text-right"><p className="text-[10px] font-bold text-muted-foreground uppercase">Estoque</p><p className={cn("text-sm font-black", (p.stock || 0) <= (p.lowStockThreshold || 0) ? "text-red-500" : "text-emerald-500")}>{p.stock} {p.saleType === 'dose' ? 'ml' : 'un.'}</p></div>
+                                                <div className="flex gap-1">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleStock(p)} className="h-9 w-9 text-accent"><PackagePlus size={18} /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(p)} className="h-9 w-9 text-destructive"><Trash2 size={18} /></Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : viewMode === 'grid' && !selectedCategory ? (
                             renderGridView()
                         ) : (
-                            renderListView(filteredProducts)
+                            renderListView()
                         )}
                     </>
                 )}

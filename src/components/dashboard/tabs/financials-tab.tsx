@@ -10,13 +10,13 @@ import {
   Scale,
   Users,
   PlusCircle,
-  ShoppingCart,
-  HandCoins,
   ArrowRightLeft,
   Trash2,
   CalendarDays,
   Repeat,
-  Info
+  Info,
+  ShoppingCart,
+  HandCoins
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
@@ -42,8 +42,8 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
- * @fileOverview Aba Financeira (Build Stable).
- * CTO: Saneamento de permissão via useAuth e entidades JSX.
+ * @fileOverview Aba Financeira do BarDoLuis.
+ * CTO: Saneamento de permissões via useAuth e entidades JSX.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();

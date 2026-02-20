@@ -33,8 +33,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Gestão de Clientes com Navegação por Índice e Visualização Flexível.
- * CTO: Implementação de Índice A-Z e header unificado para experiência mobile.
+ * @fileOverview Gestão de Clientes com Navegação por Acordeão Alfabético.
+ * CTO: Implementação de Índice A-Z integrado com modo Lista Premium.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -44,19 +44,14 @@ export const CustomersTab: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
-        return Array.from(initials);
-    }, [customers]);
-
-    const stats = useMemo(() => {
-        const debtors = customers.filter(c => (c.balance || 0) > 0);
-        return { count: debtors.length, total: debtors.reduce((sum, c) => sum + (c.balance || 0), 0) };
+        return alphabet.filter(l => initials.has(l));
     }, [customers]);
 
     const filteredCustomers = useMemo(() => {
@@ -91,7 +86,7 @@ export const CustomersTab: React.FC = () => {
         if (selectedCustomer?.id) { await deleteCustomer(selectedCustomer.id); closeAllModals(); }
     };
 
-    const renderIndex = () => (
+    const renderIndexGrid = () => (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pb-20">
             {alphabet.map(letter => {
                 const isActive = activeLetters.includes(letter);
@@ -115,31 +110,51 @@ export const CustomersTab: React.FC = () => {
     );
 
     const renderListView = () => (
-        <div className="space-y-2 pb-20">
-            {filteredCustomers.map(c => (
-                <Card key={c.id} className="bg-card hover:bg-muted/50 transition-all">
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                <Users size={20} />
+        <Accordion type="multiple" className="space-y-2 pb-20">
+            {activeLetters.map(letter => {
+                const customersInLetter = filteredCustomers.filter(c => c.name.charAt(0).toUpperCase() === letter);
+                if (customersInLetter.length === 0) return null;
+
+                return (
+                    <AccordionItem key={letter} value={letter} className="bg-card border rounded-xl overflow-hidden shadow-sm px-0">
+                        <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                    <span className="font-black text-sm">{letter}</span>
+                                </div>
+                                <span className="font-black uppercase text-xs tracking-widest">Inicial {letter}</span>
+                                <Badge variant="secondary" className="ml-2 text-[9px] font-bold">{customersInLetter.length} Fiéis</Badge>
                             </div>
-                            <div>
-                                <p className="font-bold text-base">{c.name}</p>
-                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                    Saldo: R$ {(c.balance || 0).toFixed(2)}
-                                </p>
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 border-t">
+                            <div className="flex flex-col">
+                                {customersInLetter.map(c => (
+                                    <div key={c.id} className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400">
+                                                <Users size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-sm uppercase tracking-tight">{c.name}</p>
+                                                <p className={cn("text-[9px] font-black uppercase tracking-widest", (c.balance || 0) > 0 ? "text-yellow-500" : "text-emerald-500")}>
+                                                    Saldo: R$ {(c.balance || 0).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-8 w-8 text-slate-400 hover:text-white"><History size={16} /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-8 w-8 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={16} /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-8 w-8 text-primary hover:bg-primary/10"><Edit size={16} /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-8 w-8 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={16} /></Button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9"><History size={18} /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                );
+            })}
+        </Accordion>
     );
 
     return (
@@ -193,7 +208,7 @@ export const CustomersTab: React.FC = () => {
                                         <X size={12} /> Voltar para o Índice
                                     </Button>
                                 )}
-                                {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
+                                {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7 text-white">{selectedLetter}</Badge>}
                             </div>
                             <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
                                 <Button variant={filterType === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('all')} className="text-[10px] font-bold px-3 h-7">Todos</Button>
@@ -201,7 +216,30 @@ export const CustomersTab: React.FC = () => {
                             </div>
                         </div>
 
-                        {viewMode === 'grid' && !selectedLetter && !searchTerm ? renderIndex() : renderListView()}
+                        {searchTerm ? (
+                            <div className="space-y-2 pb-20">
+                                {filteredCustomers.map(c => (
+                                    <Card key={c.id} className="bg-card hover:bg-muted/50 transition-all">
+                                        <CardContent className="p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-2 rounded-lg bg-primary/10 text-primary"><Users size={20} /></div>
+                                                <div><p className="font-bold text-base">{c.name}</p><p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Saldo: R$ {(c.balance || 0).toFixed(2)}</p></div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9"><History size={18} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        ) : viewMode === 'grid' && !selectedLetter ? (
+                            renderIndexGrid()
+                        ) : (
+                            renderListView()
+                        )}
                     </>
                 )}
 
@@ -228,7 +266,7 @@ export const CustomersTab: React.FC = () => {
     );
 };
 
-const Badge = ({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'warning' | 'outline' | 'default', className?: string }) => (
+const BadgeLocal = ({ children, variant = 'default', className }: { children: React.ReactNode, variant?: 'warning' | 'outline' | 'default', className?: string }) => (
     <span className={cn(
         "px-2 py-0.5 rounded-full font-black tracking-tighter flex items-center justify-center text-[10px]",
         variant === 'warning' ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/20" : 

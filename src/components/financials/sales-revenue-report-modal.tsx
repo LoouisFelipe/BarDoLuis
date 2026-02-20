@@ -39,7 +39,6 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
     periodGoal,
     date,
 }) => {
-    // RULES OF HOOKS: All hooks at top level
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
@@ -150,7 +149,7 @@ export const SalesRevenueReportModal: React.FC<SalesRevenueReportModalProps> = (
                                                         variant={selectedMethod === method ? "default" : "outline"}
                                                         className={cn(
                                                             "cursor-pointer text-[9px] font-black uppercase py-1 transition-all",
-                                                            selectedMethod === method ? "bg-primary shadow-[0_0_10px_rgba(59,130,246,0.3)]" : "hover:bg-muted"
+                                                            selectedMethod === method ? "bg-primary shadow-[0_0_10px_rgba(59,130,246,0.3)] text-white border-none" : "hover:bg-muted"
                                                         )}
                                                         onClick={() => setSelectedMethod(selectedMethod === method ? null : method)}
                                                     >
