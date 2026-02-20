@@ -26,8 +26,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 /**
- * @fileOverview Gestão de Clientes com Navegação Alfabética e Opções de Lista/Cards.
- * CTO: Estabilização de tipos para o componente Badge e introdução do ViewMode.
+ * @fileOverview Gestão de Clientes com Navegação Alfabética Versátil (Lista ou Cards).
+ * CTO: Implementação do modo drill-down para letras iniciais.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -38,7 +38,7 @@ export const CustomersTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -194,30 +194,63 @@ export const CustomersTab: React.FC = () => {
 
     const renderAlphaGrid = () => (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pb-20">
-            {activeLetters.length === 0 ? (
-                <div className="col-span-full py-20 text-center text-muted-foreground opacity-50 italic">
-                    Nenhum fiel cadastrado na Tavares Bastos.
-                </div>
-            ) : (
-                alphabet.map(letter => {
-                    const isActive = activeLetters.includes(letter);
-                    return (
-                        <Card 
-                            key={letter} 
-                            className={cn(
-                                "aspect-square flex flex-col items-center justify-center cursor-pointer transition-all border-2 shadow-sm relative group overflow-hidden",
-                                isActive 
-                                    ? "bg-card/40 hover:border-primary hover:bg-primary/5" 
-                                    : "opacity-30 grayscale cursor-not-allowed border-dashed"
-                            )}
-                            onClick={() => isActive && setSelectedLetter(letter)}
-                        >
-                            <span className={cn("text-3xl font-black transition-transform", isActive && "group-hover:scale-110")}>{letter}</span>
-                            {isActive && <ChevronRight className="absolute right-1 bottom-1 h-3 w-3 text-primary/40 group-hover:text-primary transition-colors" />}
-                        </Card>
-                    );
-                })
-            )}
+            {alphabet.map(letter => {
+                const isActive = activeLetters.includes(letter);
+                return (
+                    <Card 
+                        key={letter} 
+                        className={cn(
+                            "aspect-square flex flex-col items-center justify-center cursor-pointer transition-all border-2 shadow-sm relative group overflow-hidden",
+                            isActive 
+                                ? "bg-card/40 hover:border-primary hover:bg-primary/5" 
+                                : "opacity-30 grayscale cursor-not-allowed border-dashed"
+                        )}
+                        onClick={() => isActive && setSelectedLetter(letter)}
+                    >
+                        <span className={cn("text-3xl font-black transition-transform", isActive && "group-hover:scale-110")}>{letter}</span>
+                        {isActive && <ChevronRight className="absolute right-1 bottom-1 h-3 w-3 text-primary/40 group-hover:text-primary transition-colors" />}
+                    </Card>
+                );
+            })}
+        </div>
+    );
+
+    const renderAlphaList = () => (
+        <div className="space-y-2 pb-20">
+            {alphabet.map(letter => {
+                const isActive = activeLetters.includes(letter);
+                const count = customers.filter(c => c.name.charAt(0).toUpperCase() === letter).length;
+                return (
+                    <Card 
+                        key={letter} 
+                        className={cn(
+                            "cursor-pointer transition-all border-l-4 group",
+                            isActive 
+                                ? "hover:bg-muted/50 border-l-primary bg-card" 
+                                : "opacity-30 grayscale cursor-not-allowed border-l-transparent bg-muted/10"
+                        )}
+                        onClick={() => isActive && setSelectedLetter(letter)}
+                    >
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className={cn(
+                                    "w-10 h-10 flex items-center justify-center rounded-lg font-black text-xl",
+                                    isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                )}>
+                                    {letter}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-base">Letra {letter}</p>
+                                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                                        {isActive ? `${count} fiéis encontrados` : 'Nenhum fiel cadastrado'}
+                                    </p>
+                                </div>
+                            </div>
+                            {isActive && <ChevronRight size={20} className="text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />}
+                        </CardContent>
+                    </Card>
+                );
+            })}
         </div>
     );
 
@@ -228,7 +261,7 @@ export const CustomersTab: React.FC = () => {
                     <h2 className="text-3xl font-bold text-foreground flex items-center">
                         <Users className="mr-3 text-primary" /> Clientes
                     </h2>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fieis e Fiado</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest mt-1">Gestão de Fiéis e Fiado</p>
                 </div>
                 <Button onClick={handleAddNew} className="bg-primary text-primary-foreground font-black uppercase tracking-tight hover:bg-primary/80 w-full md:w-auto h-12 shadow-lg">
                     <UserPlus className="mr-2" size={20} /> Novo Cliente
@@ -241,7 +274,7 @@ export const CustomersTab: React.FC = () => {
                     <p className="text-2xl font-black text-yellow-400">R$ {stats.total.toFixed(2)}</p>
                 </div>
                 <div className="bg-card border-l-4 border-l-primary p-4 rounded-xl shadow-sm flex flex-col justify-center">
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Clientes Inadimplentes</p>
+                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Clientes com Débito</p>
                     <p className="text-2xl font-black text-primary">{stats.count} Pessoas</p>
                 </div>
             </div>
@@ -301,7 +334,7 @@ export const CustomersTab: React.FC = () => {
                 </div>
             ) : (
                 (!selectedLetter && !searchTerm) ? (
-                    renderAlphaGrid()
+                    viewMode === 'list' ? renderAlphaList() : renderAlphaGrid()
                 ) : (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="flex items-center justify-between bg-muted/20 p-2 rounded-lg border">
@@ -320,7 +353,7 @@ export const CustomersTab: React.FC = () => {
                             <div className="text-center text-muted-foreground p-12 mt-4 bg-muted/10 rounded-xl border-2 border-dashed flex flex-col items-center gap-4">
                                 <AlertCircle size={48} className="opacity-20" />
                                 <div>
-                                    <h3 className="text-lg font-bold text-foreground">Nenhum cliente encontrado</h3>
+                                    <h3 className="text-lg font-bold text-foreground">Nenhum fiel encontrado</h3>
                                     <p className="text-sm">Tente ajustar sua busca ou filtro.</p>
                                 </div>
                                 {searchTerm && <Button variant="link" onClick={() => setSearchTerm('')}>Limpar Busca</Button>}
@@ -342,7 +375,7 @@ export const CustomersTab: React.FC = () => {
                 <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Cliente?</AlertDialogTitle>
+                            <AlertDialogTitle className="flex items-center gap-2 text-destructive"><Trash2 size={20}/> Excluir Fiel?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 Essa ação excluirá permanentemente o registro de <strong>{selectedCustomer.name}</strong>. Certifique-se de que não há débitos pendentes.
                             </AlertDialogDescription>
@@ -350,7 +383,7 @@ export const CustomersTab: React.FC = () => {
                         <AlertDialogFooter>
                             <AlertDialogCancel onClick={closeAllModals}>Cancelar</AlertDialogCancel>
                             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80 text-white font-bold">
-                                Sim, excluir cliente
+                                Sim, excluir registro
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
