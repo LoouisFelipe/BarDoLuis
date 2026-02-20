@@ -42,11 +42,11 @@ import { Badge } from '@/components/ui/badge';
 
 /**
  * @fileOverview Aba Financeira (Redesign Premium).
- * CTO: Correção de obtenção de permissão via useAuth e saneamento de build.
+ * CTO: Saneamento de permissão via useAuth e entidades JSX.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
-    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth para evitar erro de build
+    const { isAdmin } = useAuth(); // CEO: Obtido do contexto correto de Auth
     
     // --- ESTADOS ---
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -421,7 +421,7 @@ export function FinancialsTab() {
                                     <FormField control={control} name="replicate" render={({ field }) => (
                                         <FormItem className="flex items-center justify-between space-y-0">
                                             <div className="space-y-0.5">
-                                                <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</FormLabel>
+                                                <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</Label>
                                                 <p className="text-[9px] text-muted-foreground font-bold uppercase leading-none">Agendar próximos meses</p>
                                             </div>
                                             <FormControl>
@@ -444,7 +444,7 @@ export function FinancialsTab() {
                             </div>
 
                             <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
-                                <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
+                                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
                                 <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
                                     {processing ? <Spinner size="h-4 w-4" /> : "Gravar Saída"}
                                 </Button>

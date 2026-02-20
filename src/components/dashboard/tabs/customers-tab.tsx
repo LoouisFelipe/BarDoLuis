@@ -313,7 +313,7 @@ export const CustomersTab: React.FC = () => {
                             >
                                 <X size={12} /> Voltar para o Índice
                             </Button>
-                            {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7">{selectedLetter}</Badge>}
+                            {selectedLetter && <Badge variant="default" className="font-black uppercase tracking-widest text-[10px] bg-primary h-7 px-4">{selectedLetter}</Badge>}
                         </div>
 
                         {filteredCustomers.length === 0 ? (
