@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, AlertCircle, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';

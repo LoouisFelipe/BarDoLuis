@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
 import {
   AlertDialog,
@@ -141,18 +141,18 @@ export const ProductsTab: React.FC = () => {
     };
 
     const renderGridView = () => (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-20">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 pb-20">
             {categories.map(cat => (
                 <Card 
                     key={cat} 
-                    className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-all active:scale-95 bg-card/40 border-2 shadow-sm relative group overflow-hidden"
+                    className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-all active:scale-95 bg-slate-900/40 border-2 border-slate-800 shadow-xl relative group overflow-hidden"
                     onClick={() => setSelectedCategory(cat)}
                 >
-                    <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-colors">
-                        <Package size={32} className="text-primary" />
+                    <div className="p-6 bg-primary/10 rounded-3xl mb-5 group-hover:bg-primary/20 transition-all duration-300 shadow-2xl shadow-primary/5 group-hover:scale-110">
+                        <Package size={48} className="text-primary" />
                     </div>
-                    <span className="font-black text-xs uppercase text-center px-2 tracking-widest">{cat}</span>
-                    <ChevronRight className="absolute right-2 bottom-2 h-4 w-4 text-primary/40 group-hover:text-primary transition-colors" />
+                    <span className="font-black text-xs uppercase text-center px-4 tracking-[0.25em] text-foreground/90">{cat}</span>
+                    <ChevronRight className="absolute right-4 bottom-4 h-5 w-5 text-primary/30 group-hover:text-primary transition-colors" />
                 </Card>
             ))}
         </div>
