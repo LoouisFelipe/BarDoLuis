@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck, Package, ChevronRight, LayoutGrid } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck, Package, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -16,6 +16,12 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useOpenOrders } from '@/hooks/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
 import { Label } from '../ui/label';
@@ -29,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface OrderManagementModalProps {
   open: boolean;
@@ -40,7 +47,7 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda (PDV Alta Fidelidade).
- * CTO: UX Replicada do blueprint com Grid de Categorias e Header de impacto.
+ * CTO: UX Replicada com Grid de Categorias e suporte a Modo Lista/Cards.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -63,6 +70,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service', unitPrice?: number } | null>(null);
   const [customData, setCustomItemData] = useState({ price: '', identifier: '' });
@@ -93,16 +101,19 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     return Array.from(cats).sort();
   }, [products]);
 
+  const allItems = useMemo(() => {
+    const p = products.map(prod => ({ ...prod, type: 'product' as const }));
+    const g = gameModalities.map(game => ({ ...game, type: 'game' as const, saleType: 'game' as const, stock: null }));
+    return [...p, ...g];
+  }, [products, gameModalities]);
+
   const filteredItems = useMemo(() => {
-    const allProducts = products.map(p => ({ ...p, type: 'product' as const }));
-    const allGames = gameModalities.map(g => ({ ...g, type: 'game' as const, saleType: 'game' as const, stock: null }));
-    
-    return [...allProducts, ...allGames].filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || p.category.toUpperCase() === selectedCategory.toUpperCase() || (selectedCategory === "ENTRETENIMENTO" && p.type === 'game');
+    return allItems.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = !selectedCategory || item.category.toUpperCase() === selectedCategory.toUpperCase() || (selectedCategory === "ENTRETENIMENTO" && item.type === 'game');
         return matchesSearch && matchesCategory;
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [products, gameModalities, searchTerm, selectedCategory]);
+  }, [allItems, searchTerm, selectedCategory]);
 
   const filteredCustomersForLink = useMemo(() => {
     return customers.filter(c => 
@@ -209,17 +220,96 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     }
   };
 
+  const renderItemRow = (item: any) => (
+    <div 
+      key={item.id} 
+      className="flex items-center justify-between p-5 bg-slate-900/40 hover:bg-slate-900/60 transition-all cursor-pointer rounded-2xl border-2 border-transparent hover:border-primary/30 group animate-in fade-in slide-in-from-bottom-2"
+      onClick={() => {
+          if (item.saleType === 'game') {
+              setItemToCustomize({ id: item.id!, name: item.name, type: 'game', unitPrice: item.unitPrice });
+              setCustomItemData({ price: String(item.unitPrice || ''), identifier: '' });
+          } else if (item.saleType === 'service') {
+              setItemToCustomize({ id: item.id!, name: item.name, type: 'service' });
+              setCustomItemData({ price: '', identifier: '' });
+          } else if (item.saleType !== 'dose') {
+              handleAddItem(item);
+          }
+      }}
+    >
+      <div className="flex items-center gap-5">
+          <div className="p-4 bg-primary/10 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-lg">
+              {item.saleType === 'game' ? <Dices size={28} /> : <Package size={28} />}
+          </div>
+          <div className="min-w-0">
+              <p className="font-black text-lg leading-tight truncate uppercase tracking-tight">{item.name}</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mt-1">{item.category}</p>
+          </div>
+      </div>
+      <div className="flex items-center gap-8">
+          <div className="text-right">
+              <p className="font-black text-xl text-primary tracking-tighter">
+                  {item.saleType !== 'dose' && item.saleType !== 'service' ? `R$ ${item.unitPrice?.toFixed(2)}` : item.saleType === 'service' ? 'VALOR ABERTO' : 'VÁRIAS DOSES'}
+              </p>
+              {item.saleType !== 'service' && item.saleType !== 'game' && (
+                  <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40 tracking-widest">
+                      {item.stock} {item.saleType === 'dose' ? 'ML' : 'UN.'} EM ESTOQUE
+                  </span>
+              )}
+          </div>
+          {item.saleType === 'dose' ? (
+            <Popover>
+              <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}><Button size="icon" variant="outline" className="h-14 w-14 rounded-2xl border-2 border-primary/20 hover:bg-primary hover:text-white transition-all shadow-xl"><Plus className="h-8 w-8" /></Button></PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-4 shadow-2xl bg-slate-900 border-slate-800 rounded-3xl">
+                <div className="flex flex-col gap-2">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-2 px-2">Selecione a Dose</p>
+                  {item.doseOptions?.filter((d: any) => d.enabled).map((dose: any) => (
+                    <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-sm h-14 font-black uppercase hover:bg-primary/10 hover:text-primary rounded-xl">
+                      <span>{dose.name}</span><span className="text-primary font-black">R$ {dose.price.toFixed(2)}</span>
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <div className="h-14 w-14 rounded-2xl bg-primary/5 border-2 border-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
+              <Plus className="h-8 w-8" />
+            </div>
+          )}
+      </div>
+    </div>
+  );
+
   const productListContent = (
     <div className="flex-grow flex flex-col p-4 sm:p-8 gap-8 overflow-hidden h-full">
       <div className="space-y-4">
-        <div className="relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input 
-            placeholder="Buscar item..." 
-            className="pl-14 h-16 bg-slate-900/50 border-none shadow-inner text-xl font-bold rounded-2xl focus-visible:ring-primary/20 placeholder:text-muted-foreground/40"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-4">
+            <div className="relative group flex-grow">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input 
+                    placeholder="Buscar item..." 
+                    className="pl-14 h-16 bg-slate-900/50 border-none shadow-inner text-xl font-bold rounded-2xl focus-visible:ring-primary/20 placeholder:text-muted-foreground/40"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 shrink-0 h-16">
+                <Button 
+                    variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
+                    size="icon" 
+                    onClick={() => setViewMode('grid')}
+                    className="h-12 w-12 rounded-lg"
+                >
+                    <LayoutGrid size={22} />
+                </Button>
+                <Button 
+                    variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
+                    size="icon" 
+                    onClick={() => setViewMode('list')}
+                    className="h-12 w-12 rounded-lg"
+                >
+                    <List size={22} />
+                </Button>
+            </div>
         </div>
         
         {(selectedCategory || searchTerm) && (
@@ -230,7 +320,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               className="text-[10px] font-black uppercase text-primary gap-1 h-9 px-4 border border-primary/20 bg-primary/5 hover:bg-primary/10 rounded-full"
               onClick={() => { setSelectedCategory(null); setSearchTerm(''); }}
             >
-              <X size={14} /> Voltar para Categorias
+              <X size={14} /> Voltar
             </Button>
             {selectedCategory && (
               <Badge className="h-9 rounded-full px-5 font-black uppercase tracking-widest text-[9px] bg-primary text-white border-none shadow-lg shadow-primary/20">
@@ -245,81 +335,51 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         {dataLoading ? (
           <div className="flex justify-center p-12"><Spinner size="h-12 w-12" /></div>
         ) : !selectedCategory && !searchTerm ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pb-24 pr-4">
-            {categories.map(cat => (
-              <Card 
-                key={cat} 
-                className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-all active:scale-95 bg-slate-900/40 border-2 border-slate-800 shadow-xl relative overflow-hidden group"
-                onClick={() => setSelectedCategory(cat)}
-              >
-                <div className="p-6 bg-primary/10 rounded-3xl mb-5 group-hover:bg-primary/20 transition-all duration-300 shadow-2xl shadow-primary/5 group-hover:scale-110">
-                  <Package size={48} className="text-primary" />
-                </div>
-                <span className="font-black text-xs uppercase text-center px-4 tracking-[0.25em] text-foreground/90">{cat}</span>
-                <ChevronRight className="absolute right-4 bottom-4 h-5 w-5 text-primary/30 group-hover:text-primary transition-colors" />
-              </Card>
-            ))}
-          </div>
+          viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pb-24 pr-4">
+                {categories.map(cat => (
+                <Card 
+                    key={cat} 
+                    className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-all active:scale-95 bg-slate-900/40 border-2 border-slate-800 shadow-xl relative overflow-hidden group"
+                    onClick={() => setSelectedCategory(cat)}
+                >
+                    <div className="p-6 bg-primary/10 rounded-3xl mb-5 group-hover:bg-primary/20 transition-all duration-300 shadow-2xl shadow-primary/5 group-hover:scale-110">
+                    <Package size={48} className="text-primary" />
+                    </div>
+                    <span className="font-black text-xs uppercase text-center px-4 tracking-[0.25em] text-foreground/90">{cat}</span>
+                    <ChevronRight className="absolute right-4 bottom-4 h-5 w-5 text-primary/30 group-hover:text-primary transition-colors" />
+                </Card>
+                ))}
+            </div>
+          ) : (
+            <Accordion type="multiple" className="space-y-3 pb-24 pr-4">
+                {categories.map(cat => {
+                    const itemsInCategory = allItems.filter(i => i.category === cat || (cat === "ENTRETENIMENTO" && i.type === 'game'));
+                    if (itemsInCategory.length === 0) return null;
+                    return (
+                        <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-3xl overflow-hidden shadow-xl px-0 border-b-0">
+                            <AccordionTrigger className="px-8 hover:no-underline hover:bg-slate-900/60 h-20">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+                                        <Package size={24} />
+                                    </div>
+                                    <span className="font-black uppercase text-sm tracking-[0.2em]">{cat}</span>
+                                    <Badge variant="secondary" className="ml-2 text-[10px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length} Itens</Badge>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-4 pt-0 border-t border-slate-800/50">
+                                <div className="flex flex-col gap-2 mt-4">
+                                    {itemsInCategory.map(item => renderItemRow(item))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    );
+                })}
+            </Accordion>
+          )
         ) : (
           <div className="flex flex-col gap-3 pb-24 pr-4">
-            {filteredItems.map(item => (
-              <div 
-                key={item.id} 
-                className="flex items-center justify-between p-5 bg-slate-900/40 hover:bg-slate-900/60 transition-all cursor-pointer rounded-2xl border-2 border-transparent hover:border-primary/30 group animate-in fade-in slide-in-from-bottom-2"
-                onClick={() => {
-                    if (item.saleType === 'game') {
-                        setItemToCustomize({ id: item.id!, name: item.name, type: 'game', unitPrice: item.unitPrice });
-                        setCustomItemData({ price: String(item.unitPrice || ''), identifier: '' });
-                    } else if (item.saleType === 'service') {
-                        setItemToCustomize({ id: item.id!, name: item.name, type: 'service' });
-                        setCustomItemData({ price: '', identifier: '' });
-                    } else if (item.saleType !== 'dose') {
-                        handleAddItem(item);
-                    }
-                }}
-              >
-                <div className="flex items-center gap-5">
-                    <div className="p-4 bg-primary/10 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-lg">
-                        {item.saleType === 'game' ? <Dices size={28} /> : <Package size={28} />}
-                    </div>
-                    <div className="min-w-0">
-                        <p className="font-black text-lg leading-tight truncate uppercase tracking-tight">{item.name}</p>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-[0.2em] mt-1">{item.category}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-8">
-                    <div className="text-right">
-                        <p className="font-black text-xl text-primary tracking-tighter">
-                            {item.saleType !== 'dose' && item.saleType !== 'service' ? `R$ ${item.unitPrice?.toFixed(2)}` : item.saleType === 'service' ? 'VALOR ABERTO' : 'VÁRIAS DOSES'}
-                        </p>
-                        {item.saleType !== 'service' && item.saleType !== 'game' && (
-                            <span className="text-[10px] font-black uppercase text-muted-foreground opacity-40 tracking-widest">
-                                {item.stock} {item.saleType === 'dose' ? 'ML' : 'UN.'} EM ESTOQUE
-                            </span>
-                        )}
-                    </div>
-                    {item.saleType === 'dose' ? (
-                      <Popover>
-                        <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}><Button size="icon" variant="outline" className="h-14 w-14 rounded-2xl border-2 border-primary/20 hover:bg-primary hover:text-white transition-all shadow-xl"><Plus className="h-8 w-8" /></Button></PopoverTrigger>
-                        <PopoverContent align="end" className="w-72 p-4 shadow-2xl bg-slate-900 border-slate-800 rounded-3xl">
-                          <div className="flex flex-col gap-2">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-2 px-2">Selecione a Dose</p>
-                            {item.doseOptions?.filter((d: any) => d.enabled).map((dose: any) => (
-                              <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-sm h-14 font-black uppercase hover:bg-primary/10 hover:text-primary rounded-xl">
-                                <span>{dose.name}</span><span className="text-primary font-black">R$ {dose.price.toFixed(2)}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <div className="h-14 w-14 rounded-2xl bg-primary/5 border-2 border-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
-                        <Plus className="h-8 w-8" />
-                      </div>
-                    )}
-                </div>
-              </div>
-            ))}
+            {filteredItems.map(item => renderItemRow(item))}
             {filteredItems.length === 0 && (
               <div className="col-span-full py-32 text-center opacity-20 italic flex flex-col items-center gap-8">
                 <Search size={80} strokeWidth={1} />
@@ -397,59 +457,61 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   return (
     <>
-      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[98vw] sm:max-w-[1400px] h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl rounded-[40px]">
-          <DialogHeader className="p-8 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-28 relative">
-            <div className="flex items-center gap-6">
-              <div className="p-4 bg-primary/10 rounded-[24px] border border-primary/20 shadow-2xl shadow-primary/10">
-                <Receipt className="h-10 w-10 text-primary" />
-              </div>
-              <div className="flex flex-col">
-                <DialogTitle className="text-3xl font-black uppercase tracking-tight text-white truncate max-w-[250px] md:max-w-xl">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
-                <div className="flex items-center gap-4 mt-2">
-                    <div className={cn(
-                        "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                        linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground"
-                    )}>
-                        <UserCheck size={12} /> {linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}
-                    </div>
-                    <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-black uppercase text-primary flex items-center gap-2 hover:no-underline hover:brightness-125 transition-all" onClick={() => setIsLinkCustomerOpen(true)}>
-                        <UserPlus size={14} /> {linkedCustomer ? 'TROCAR' : 'VINCULAR FIEL'}
-                    </Button>
+      <TooltipProvider>
+        <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-[98vw] sm:max-w-[1400px] h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl rounded-[40px]">
+            <DialogHeader className="p-8 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-28 relative">
+                <div className="flex items-center gap-6">
+                <div className="p-4 bg-primary/10 rounded-[24px] border border-primary/20 shadow-2xl shadow-primary/10">
+                    <Receipt className="h-10 w-10 text-primary" />
                 </div>
-              </div>
-            </div>
-            
-            <div className="text-right hidden md:flex flex-col items-end gap-1 pr-8">
-              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">Total Acumulado</p>
-              <p className="text-5xl font-black text-primary tracking-tighter leading-none drop-shadow-lg">R$ {total.toFixed(2)}</p>
-            </div>
+                <div className="flex flex-col">
+                    <DialogTitle className="text-3xl font-black uppercase tracking-tight text-white truncate max-w-[250px] md:max-w-xl">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
+                    <div className="flex items-center gap-4 mt-2">
+                        <div className={cn(
+                            "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                            linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground"
+                        )}>
+                            <UserCheck size={12} /> {linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}
+                        </div>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-[10px] font-black uppercase text-primary flex items-center gap-2 hover:no-underline hover:brightness-125 transition-all" onClick={() => setIsLinkCustomerOpen(true)}>
+                            <UserPlus size={14} /> {linkedCustomer ? 'TROCAR' : 'VINCULAR FIEL'}
+                        </Button>
+                    </div>
+                </div>
+                </div>
+                
+                <div className="text-right hidden md:flex flex-col items-end gap-1 pr-8">
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">Total Acumulado</p>
+                <p className="text-5xl font-black text-primary tracking-tighter leading-none drop-shadow-lg">R$ {total.toFixed(2)}</p>
+                </div>
 
-            <DialogDescription className="sr-only">Painel de controle de vendas e atendimento BarDoLuis.</DialogDescription>
-          </DialogHeader>
+                <DialogDescription className="sr-only">Painel de controle de vendas e atendimento BarDoLuis.</DialogDescription>
+            </DialogHeader>
 
-          <div className="flex-grow flex flex-col overflow-hidden">
-            <div className="flex flex-col h-full lg:hidden">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-20 border-b border-slate-800/50 p-0">
-                    <TabsTrigger value="menu" className="gap-4 font-black uppercase text-[11px] tracking-[0.2em] h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={24}/> CARDÁPIO</TabsTrigger>
-                    <TabsTrigger value="cart" className="gap-4 font-black uppercase text-[11px] tracking-[0.2em] h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all">
-                        <ShoppingCart size={24}/> SACOLA {currentItems.length > 0 && <span className="ml-2 px-3 py-1 bg-primary text-white rounded-full text-[10px] shadow-lg shadow-primary/20">{currentItems.length}</span>}
-                    </TabsTrigger>
-                </TabsList>
-                <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
-                <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
-              </Tabs>
+            <div className="flex-grow flex flex-col overflow-hidden">
+                <div className="flex flex-col h-full lg:hidden">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-20 border-b border-slate-800/50 p-0">
+                        <TabsTrigger value="menu" className="gap-4 font-black uppercase text-[11px] tracking-[0.2em] h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={24}/> CARDÁPIO</TabsTrigger>
+                        <TabsTrigger value="cart" className="gap-4 font-black uppercase text-[11px] tracking-[0.2em] h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all">
+                            <ShoppingCart size={24}/> SACOLA {currentItems.length > 0 && <span className="ml-2 px-3 py-1 bg-primary text-white rounded-full text-[10px] shadow-lg shadow-primary/20">{currentItems.length}</span>}
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
+                    <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
+                </Tabs>
+                </div>
+                <div className="hidden lg:flex h-full overflow-hidden">
+                    <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
+                    <div className="w-[520px] shrink-0">{cartContent}</div>
+                </div>
             </div>
-            <div className="hidden lg:flex h-full overflow-hidden">
-                <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
-                <div className="w-[520px] shrink-0">{cartContent}</div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+        </Dialog>
+      </TooltipProvider>
       
-      {/* Modais Secundários Mantidos sem alteração na lógica, apenas ajustes leves de UI */}
+      {/* Modais Secundários */}
       <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
         <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 shadow-2xl rounded-3xl">
             <DialogHeader>
