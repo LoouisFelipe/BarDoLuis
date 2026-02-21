@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +20,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ import { Product } from '@/lib/schemas';
 
 /**
  * @fileOverview Gestão de Produtos Mobile-Optimized.
- * CTO: Filtro de baixo estoque e visualização híbrida integrados.
+ * CTO: Ordem alfabética rigorosa e hierarquia tática implementada.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -56,7 +56,7 @@ export const ProductsTab: React.FC = () => {
 
     const categories = useMemo(() => {
         const uniqueCategories = new Set(barProducts.map(p => p.category).filter(Boolean));
-        return Array.from(uniqueCategories).sort();
+        return Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }, [barProducts]);
 
     const filteredProducts = useMemo(() => {
@@ -69,7 +69,7 @@ export const ProductsTab: React.FC = () => {
             const matchesLowStockFilter = !showLowStockOnly || isLowStock;
             
             return matchesCategory && matchesSearch && matchesLowStockFilter;
-        }).sort((a, b) => a.name.localeCompare(b.name));
+        }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
     }, [barProducts, selectedCategory, searchTerm, showLowStockOnly]);
 
     const closeAllModals = () => {
@@ -146,6 +146,8 @@ export const ProductsTab: React.FC = () => {
                     return acc;
                 }, {} as Record<string, Product[]>);
 
+                const sortedSubcategories = Object.keys(subcategoriesMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
                 return (
                     <AccordionItem key={cat} value={cat} className="bg-card border rounded-2xl overflow-hidden shadow-sm px-0 border-b-0">
                         <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30 h-16">
@@ -159,13 +161,13 @@ export const ProductsTab: React.FC = () => {
                         </AccordionTrigger>
                         <AccordionContent className="p-0 border-t">
                             <div className="flex flex-col">
-                                {Object.entries(subcategoriesMap).map(([sub, items]) => (
+                                {sortedSubcategories.map(sub => (
                                     <div key={sub} className="border-b last:border-0 border-border/10">
                                         <div className="bg-muted/30 px-6 py-2 border-b border-border/10">
                                             <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">{sub}</p>
                                         </div>
                                         <div className="flex flex-col gap-1 p-2">
-                                            {items.map(p => (
+                                            {subcategoriesMap[sub].map(p => (
                                                 <div 
                                                     key={p.id} 
                                                     className="flex items-center justify-between p-4 bg-background/40 rounded-xl hover:bg-muted/20 transition-colors active:scale-[0.98]"

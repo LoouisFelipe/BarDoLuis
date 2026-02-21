@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -58,9 +57,11 @@ export const SuppliersTab: React.FC = () => {
         return <div className="flex justify-center items-center h-full"><Spinner /></div>;
     }
 
+    const sortedSuppliers = [...suppliers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
     const renderAccordionView = () => (
-        <Accordion type="multiple" className="space-y-4" defaultValue={suppliers.map(s => s.id!)}>
-            {suppliers.map(s => (
+        <Accordion type="multiple" className="space-y-4" defaultValue={sortedSuppliers.map(s => s.id!)}>
+            {sortedSuppliers.map(s => (
                 <AccordionItem key={s.id} value={s.id!} className="bg-card rounded-xl border-b-0 shadow-sm overflow-hidden">
                     <AccordionTrigger className="px-6 text-lg font-semibold hover:no-underline">
                         <div className="flex items-center gap-2">
@@ -119,7 +120,7 @@ export const SuppliersTab: React.FC = () => {
 
     const renderCardView = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
-            {suppliers.map(s => (
+            {sortedSuppliers.map(s => (
                 <Card key={s.id} className="bg-card border-2 hover:border-primary/20 transition-all group overflow-hidden">
                     <CardHeader className="p-5 pb-3">
                         <div className="flex items-center gap-3">
@@ -139,14 +140,12 @@ export const SuppliersTab: React.FC = () => {
                         </div>
                     </CardContent>
                     <CardFooter className="p-2 bg-muted/20 flex items-center justify-between gap-1">
-                        <TooltipProvider>
-                            <div className="flex gap-1 w-full">
-                                <Button onClick={() => handleOpenModal('purchase', s)} variant="ghost" size="icon" className="h-9 w-9 text-accent hover:bg-accent/10" title="Registrar Compra"><ShoppingCart size={18}/></Button>
-                                <Button onClick={() => handleOpenModal('history', s)} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-muted" title="Histórico"><FileText size={18}/></Button>
-                                <Button onClick={() => handleOpenModal('form', s)} variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/10" title="Editar"><Edit size={18}/></Button>
-                                <Button onClick={() => handleDeleteClick(s)} variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" title="Excluir"><Trash2 size={18}/></Button>
-                            </div>
-                        </TooltipProvider>
+                        <div className="flex gap-1 w-full">
+                            <Button onClick={() => handleOpenModal('purchase', s)} variant="ghost" size="icon" className="h-9 w-9 text-accent hover:bg-accent/10" title="Registrar Compra"><ShoppingCart size={18}/></Button>
+                            <Button onClick={() => handleOpenModal('history', s)} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:bg-muted" title="Histórico"><FileText size={18}/></Button>
+                            <Button onClick={() => handleOpenModal('form', s)} variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/10" title="Editar"><Edit size={18}/></Button>
+                            <Button onClick={() => handleDeleteClick(s)} variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" title="Excluir"><Trash2 size={18}/></Button>
+                        </div>
                     </CardFooter>
                 </Card>
             ))}

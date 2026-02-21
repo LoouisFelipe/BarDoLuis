@@ -43,14 +43,14 @@ export const CustomersTab: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'list'>('list'); // Only list mode for consistent mobile experience
     const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
-        return alphabet.filter(l => initials.has(l));
+        return alphabet.filter(l => initials.has(l)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }, [customers, alphabet]);
 
     const filteredCustomers = useMemo(() => {
@@ -84,29 +84,6 @@ export const CustomersTab: React.FC = () => {
     const confirmDelete = async () => {
         if (selectedCustomer?.id) { await deleteCustomer(selectedCustomer.id); closeAllModals(); }
     };
-
-    const renderIndexGrid = () => (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 pb-20 pr-1">
-            {alphabet.map(letter => {
-                const isActive = activeLetters.includes(letter);
-                const count = customers.filter(c => c.name.charAt(0).toUpperCase() === letter).length;
-                
-                return (
-                    <Card 
-                        key={letter} 
-                        className={cn(
-                            "aspect-square flex flex-col items-center justify-center cursor-pointer transition-all border-2 active:scale-95",
-                            isActive ? "hover:border-primary bg-card border-border/40" : "opacity-20 pointer-events-none bg-muted border-transparent"
-                        )}
-                        onClick={() => setSelectedLetter(letter)}
-                    >
-                        <span className="text-2xl font-black text-primary">{letter}</span>
-                        {isActive && <span className="text-[8px] font-black text-muted-foreground mt-1 uppercase tracking-tighter">{count} Fiéis</span>}
-                    </Card>
-                );
-            })}
-        </div>
-    );
 
     const renderListView = () => (
         <Accordion type="multiple" className="space-y-3 pb-20 pr-1">
@@ -171,24 +148,6 @@ export const CustomersTab: React.FC = () => {
                                 disabled={loading}
                             />
                         </div>
-                        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-xl shrink-0 h-12">
-                            <Button 
-                                variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
-                                size="icon" 
-                                onClick={() => setViewMode('grid')}
-                                className="h-10 w-10"
-                            >
-                                <LayoutGrid size={18} />
-                            </Button>
-                            <Button 
-                                variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
-                                size="icon" 
-                                onClick={() => setViewMode('list')}
-                                className="h-10 w-10"
-                            >
-                                <List size={18} />
-                            </Button>
-                        </div>
                     </div>
                     <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}>
                         <UserPlus className="h-5 w-5" />
@@ -218,30 +177,7 @@ export const CustomersTab: React.FC = () => {
                             </div>
                         </div>
 
-                        {searchTerm ? (
-                            <div className="space-y-2 pb-20 pr-1">
-                                {filteredCustomers.map(c => (
-                                    <Card key={c.id} className="bg-card hover:bg-muted/50 transition-all active:scale-[0.98]">
-                                        <CardContent className="p-4 flex items-center justify-between">
-                                            <div className="flex items-center gap-4 min-w-0 pr-2">
-                                                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0"><Users size={20} /></div>
-                                                <div className="min-w-0"><p className="font-bold text-sm truncate uppercase tracking-tight">{c.name}</p><p className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-widest truncate">Saldo: R$ {(c.balance || 0).toFixed(2)}</p></div>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9"><History size={18} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        ) : viewMode === 'grid' && !selectedLetter ? (
-                            renderIndexGrid()
-                        ) : (
-                            renderListView()
-                        )}
+                        {renderListView()}
                     </>
                 )}
 

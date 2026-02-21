@@ -21,7 +21,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from "@/accordion-ui"; // Using a simple internal name or standard Accordion
 import { useOpenOrders } from '@/hooks/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
 import { Label } from '../ui/label';
@@ -37,6 +37,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+// Import local components properly
+import { Accordion as ShadcnAccordion, AccordionContent as ShadcnAccordionContent, AccordionItem as ShadcnAccordionItem, AccordionTrigger as ShadcnAccordionTrigger } from '@/components/ui/accordion';
+
 interface OrderManagementModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,7 +50,7 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda (PDV Alta Fidelidade - Mobile Optimized).
- * CTO: UX Hierárquica e Design de PDV escuro para agilidade de balcão.
+ * CTO: Ordem alfabética rigorosa em Categorias, Subcategorias e Itens.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -70,7 +73,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [customerSearch, setCustomerSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service' | 'manual', unitPrice?: number } | null>(null);
   const [customData, setCustomItemData] = useState({ price: '', identifier: '', name: '' });
@@ -96,29 +99,29 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   
   const total = useMemo(() => currentItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [currentItems]);
 
-  const categories = useMemo(() => {
-    const cats = new Set([...products.map(p => p.category), "ENTRETENIMENTO"]);
-    return Array.from(cats).sort();
-  }, [products]);
-
   const allItems = useMemo(() => {
     const p = products.map(prod => ({ ...prod, type: 'product' as const }));
     const g = gameModalities.map(game => ({ ...game, type: 'game' as const, saleType: 'game' as const, stock: null }));
-    return [...p, ...g];
+    return [...p, ...g].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [products, gameModalities]);
+
+  const categories = useMemo(() => {
+    const cats = new Set(allItems.map(i => i.category.toUpperCase()));
+    return Array.from(cats).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [allItems]);
 
   const filteredItems = useMemo(() => {
     return allItems.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || item.category.toUpperCase() === selectedCategory.toUpperCase() || (selectedCategory === "ENTRETENIMENTO" && item.type === 'game');
+        const matchesCategory = !selectedCategory || item.category.toUpperCase() === selectedCategory.toUpperCase();
         return matchesSearch && matchesCategory;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    });
   }, [allItems, searchTerm, selectedCategory]);
 
   const filteredCustomersForLink = useMemo(() => {
     return customers.filter(c => 
       c.name.toLowerCase().includes(customerSearch.toLowerCase())
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    ).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [customers, customerSearch]);
 
   const handleUpdateQuantity = (productId: string, doseName: string | undefined | null, change: number, identifier?: string) => {
@@ -267,7 +270,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               <PopoverContent align="end" className="w-64 p-2 bg-slate-900 border-slate-800 rounded-2xl">
                 <div className="flex flex-col gap-1">
                   <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1 px-2">Selecione Dose</p>
-                  {item.doseOptions?.filter((d: any) => d.enabled).map((dose: any) => (
+                  {item.doseOptions?.filter((d: any) => d.enabled).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((dose: any) => (
                     <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-xs h-12 font-black uppercase hover:bg-primary/10 rounded-lg">
                       <span>{dose.name}</span><span className="text-primary">R$ {dose.price.toFixed(2)}</span>
                     </Button>
@@ -368,9 +371,9 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 ))}
             </div>
           ) : (
-            <Accordion type="multiple" className="space-y-2 pb-20">
+            <ShadcnAccordion type="multiple" className="space-y-2 pb-20">
                 {categories.map(cat => {
-                    const itemsInCategory = allItems.filter(i => i.category === cat || (cat === "ENTRETENIMENTO" && i.type === 'game'));
+                    const itemsInCategory = allItems.filter(i => i.category.toUpperCase() === cat);
                     if (itemsInCategory.length === 0) return null;
 
                     const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
@@ -380,9 +383,11 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         return acc;
                     }, {} as Record<string, any[]>);
 
+                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
                     return (
-                        <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
-                            <AccordionTrigger className="px-5 hover:no-underline h-16">
+                        <ShadcnAccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
+                            <ShadcnAccordionTrigger className="px-5 hover:no-underline h-16">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                                         <Package size={18} />
@@ -390,25 +395,25 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                                     <span className="font-black uppercase text-[11px] tracking-widest">{cat}</span>
                                     <Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length}</Badge>
                                 </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 border-t border-slate-800/50">
+                            </ShadcnAccordionTrigger>
+                            <ShadcnAccordionContent className="p-0 border-t border-slate-800/50">
                                 <div className="flex flex-col">
-                                    {Object.entries(subcategoriesMap).map(([sub, items]) => (
+                                    {sortedSubKeys.map(sub => (
                                         <div key={sub} className="border-b last:border-0 border-slate-800/30">
                                             <div className="bg-slate-900/60 px-5 py-1.5 border-b border-slate-800/20">
                                                 <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">{sub}</p>
                                             </div>
                                             <div className="flex flex-col gap-1 p-2">
-                                                {items.map(item => renderItemRow(item))}
+                                                {subcategoriesMap[sub].map(item => renderItemRow(item))}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            </AccordionContent>
-                        </AccordionItem>
+                            </ShadcnAccordionContent>
+                        </ShadcnAccordionItem>
                     );
                 })}
-            </Accordion>
+            </ShadcnAccordion>
           )
         ) : (
           <div className="flex flex-col gap-2 pb-20">

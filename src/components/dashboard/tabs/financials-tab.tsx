@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -39,6 +40,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal'; 
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Card } from '@/components/ui/card';
 
 /**
  * @fileOverview Aba Financeira Mobile-Optimized.
