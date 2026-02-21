@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -42,8 +41,8 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
- * @fileOverview Aba Financeira do BarDoLuis.
- * CTO: Saneamento de sintaxe e centralização de permissões via useAuth.
+ * @fileOverview Aba Financeira Mobile-Optimized.
+ * CTO: Refatoração para build estável e UX tática.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
@@ -156,99 +155,97 @@ export function FinancialsTab() {
 
     return (
         <TooltipProvider>
-            <div className="p-1 md:p-4 space-y-8 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="p-1 md:p-4 space-y-6 animate-in fade-in duration-500 pb-24">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-5 rounded-2xl shadow-sm border">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
-                            <History className="h-8 w-8 text-primary" />
+                        <div className="p-3 bg-primary/10 rounded-xl text-primary shrink-0">
+                            <History size={24} />
                         </div>
                         <div>
-                            <h2 className="text-4xl font-black text-foreground tracking-tighter leading-none">Financeiro</h2>
-                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-[0.25em] mt-1">Gestão de Fluxo de Caixa &bull; Tavares Bastos</p>
+                            <h2 className="text-2xl font-black text-foreground tracking-tight leading-none">Financeiro</h2>
+                            <p className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest mt-1">Fluxo & Custos • Tavares Bastos</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <DateRangePicker date={dateRange} onDateChange={setDateRange} className="bg-card/50 border-none shadow-none font-bold h-12" />
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <DateRangePicker date={dateRange} onDateChange={setDateRange} className="flex-grow h-12 rounded-xl" />
                         <Button 
                             onClick={() => setIsExpenseModalOpen(true)} 
-                            className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-xs gap-2 px-6 shadow-lg shadow-red-900/20"
+                            className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-[10px] gap-2 px-4 shadow-lg shrink-0 rounded-xl"
                         >
-                            <PlusCircle size={18} /> Nova Despesa
+                            <PlusCircle size={16} /> Nova Saída
                         </Button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-4">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp size={18} className="text-emerald-500" />
-                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Entradas</span>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-emerald-500/5 border-emerald-500/20 p-4 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp size={14} className="text-emerald-500" />
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Entradas</span>
                         </div>
-                        <div className="text-3xl font-black text-emerald-400">R$ {stats.income.toFixed(2)}</div>
-                    </div>
+                        <div className="text-xl font-black text-emerald-400">R$ {stats.income.toFixed(2)}</div>
+                    </Card>
 
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingDown size={18} className="text-red-500" />
-                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Saídas</span>
+                    <Card className="bg-red-500/5 border-red-500/20 p-4 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                            <TrendingDown size={14} className="text-red-500" />
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Saídas</span>
                         </div>
-                        <div className="text-3xl font-black text-red-500">R$ {stats.expense.toFixed(2)}</div>
-                    </div>
+                        <div className="text-xl font-black text-red-500">R$ {stats.expense.toFixed(2)}</div>
+                    </Card>
 
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Scale size={18} className="text-primary" />
-                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Saldo</span>
+                    <Card className="bg-primary/5 border-primary/20 p-4 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Scale size={14} className="text-primary" />
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Saldo</span>
                         </div>
-                        <div className="text-3xl font-black text-primary">R$ {stats.balance.toFixed(2)}</div>
-                    </div>
+                        <div className="text-xl font-black text-primary">R$ {stats.balance.toFixed(2)}</div>
+                    </Card>
 
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Users size={18} className="text-yellow-500" />
-                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">A Receber</span>
+                    <Card className="bg-yellow-500/5 border-yellow-500/20 p-4 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Users size={14} className="text-yellow-500" />
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Fiado</span>
                         </div>
-                        <div className="text-3xl font-black text-yellow-400">R$ {stats.receivable.toFixed(2)}</div>
-                    </div>
+                        <div className="text-xl font-black text-yellow-400">R$ {stats.receivable.toFixed(2)}</div>
+                    </Card>
                 </div>
 
-                <div className="flex bg-card/30 p-1 rounded-xl border border-border/40 w-fit">
+                <div className="flex bg-card/50 p-1.5 rounded-2xl border border-border/40 w-full sm:w-fit">
                     <Button 
                         variant="ghost" 
                         onClick={() => setActiveTab('fluxo')}
                         className={cn(
-                            "text-[10px] font-black uppercase tracking-tight gap-2 px-6 h-10 rounded-lg transition-all",
+                            "flex-1 sm:flex-none text-[10px] font-black uppercase tracking-tight gap-2 px-6 h-10 rounded-xl transition-all",
                             activeView === 'fluxo' ? "bg-primary/20 text-primary border border-primary/50" : "text-muted-foreground hover:bg-muted/20"
                         )}
                     >
-                        <History size={14} /> Fluxo de Caixa
+                        <History size={14} /> Fluxo
                     </Button>
                     <Button 
                         variant="ghost" 
                         onClick={() => setActiveTab('custos')}
                         className={cn(
-                            "text-[10px] font-black uppercase tracking-tight gap-2 px-6 h-10 rounded-lg transition-all",
+                            "flex-1 sm:flex-none text-[10px] font-black uppercase tracking-tight gap-2 px-6 h-10 rounded-xl transition-all",
                             activeView === 'custos' ? "bg-primary/20 text-primary border border-primary/50" : "text-muted-foreground hover:bg-muted/20"
                         )}
                     >
-                        <ArrowRightLeft size={14} /> Custos Fixos (Planos)
+                        <ArrowRightLeft size={14} /> Fixos
                     </Button>
                 </div>
 
                 {activeView === 'fluxo' ? (
-                    <div className="space-y-6">
-                        <div className="pt-4">
-                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                                Transações de {formattedPeriodHeader}
-                            </h3>
-                        </div>
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-2">
+                            Extrato de {formattedPeriodHeader}
+                        </h3>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             {loading ? (
-                                <div className="flex justify-center p-20"><Spinner size="h-12 w-12" /></div>
+                                <div className="flex justify-center p-12"><Spinner /></div>
                             ) : filteredTransactions.length === 0 ? (
-                                <div className="text-center py-24 text-muted-foreground font-black uppercase text-xs opacity-40 italic border-2 border-dashed rounded-3xl">
-                                    Nenhuma transação capturada no período.
+                                <div className="text-center py-20 text-muted-foreground font-bold uppercase text-[9px] opacity-40 border-2 border-dashed rounded-3xl">
+                                    Nenhum registro no período.
                                 </div>
                             ) : (
                                 filteredTransactions.map((t: any) => {
@@ -260,43 +257,41 @@ export function FinancialsTab() {
                                     return (
                                         <div 
                                             key={t.id}
-                                            className="group flex items-center p-5 rounded-2xl bg-card/40 border-2 border-transparent hover:border-primary/30 transition-all shadow-sm cursor-pointer"
+                                            className="group flex items-center p-4 rounded-xl bg-card border hover:border-primary/30 transition-all shadow-sm cursor-pointer active:scale-[0.98]"
                                             onClick={() => setSelectedTransaction(t)}
                                         >
                                             <div className={cn(
-                                                "mr-5 p-3 rounded-xl", 
+                                                "mr-4 p-2 rounded-lg shrink-0", 
                                                 isExpense ? 'bg-red-500/10 text-red-500' : 
                                                 isSale ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary/10 text-primary'
                                             )}>
-                                                {isSale ? <ShoppingCart size={20} /> : isPayment ? <HandCoins size={20} /> : <TrendingDown size={20} />}
+                                                {isSale ? <ShoppingCart size={18} /> : isPayment ? <HandCoins size={18} /> : <TrendingDown size={18} />}
                                             </div>
                                             
-                                            <div className="flex-grow min-w-0 pr-4">
-                                                <p className="font-black text-base truncate uppercase tracking-tight text-slate-100">
+                                            <div className="flex-grow min-w-0 pr-2">
+                                                <p className="font-bold text-sm truncate uppercase tracking-tight text-slate-100">
                                                     {t.description || (isSale ? `VENDA: ${t.tabName || 'BALCÃO'}` : t.type)}
                                                 </p>
-                                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                                                    {format(dateVal, 'HH:mm')} &bull; {t.paymentMethod || t.expenseCategory || 'Geral'}
+                                                <p className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider">
+                                                    {format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}
                                                 </p>
                                             </div>
 
-                                            <div className="flex items-center gap-6">
-                                                <div className="text-right">
-                                                    <span className={cn(
-                                                        "font-black text-xl whitespace-nowrap", 
-                                                        isExpense ? 'text-red-500' : 'text-emerald-400'
-                                                    )}>
-                                                        {isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}
-                                                    </span>
-                                                </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className={cn(
+                                                    "font-black text-sm whitespace-nowrap", 
+                                                    isExpense ? 'text-red-500' : 'text-emerald-400'
+                                                )}>
+                                                    {isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}
+                                                </span>
                                                 {isAdmin && (
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
-                                                        className="h-10 w-10 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all" 
+                                                        className="h-8 w-8 text-muted-foreground hover:text-red-500" 
                                                         onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}}
                                                     >
-                                                        <Trash2 size={18} />
+                                                        <Trash2 size={16} />
                                                     </Button>
                                                 )}
                                             </div>
@@ -307,136 +302,118 @@ export function FinancialsTab() {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                                Contratos de Custos Fixos
-                            </h3>
-                            <CalendarDays className="h-5 w-5 text-muted-foreground opacity-50" />
-                        </div>
+                    <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground px-2">
+                            Planos de Custos Fixos
+                        </h3>
 
-                        <div className="space-y-4">
+                        <div className="grid gap-3">
                             {(recurringExpenses || []).length === 0 ? (
                                 <div className="text-center py-20 bg-muted/10 border-2 border-dashed rounded-3xl">
-                                    <Repeat className="h-12 w-12 text-muted-foreground opacity-20 mx-auto mb-4" />
-                                    <p className="text-xs font-black uppercase text-muted-foreground opacity-50">Nenhum plano de custo fixo registrado.</p>
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground opacity-50">Nenhum plano ativo.</p>
                                 </div>
                             ) : (
                                 recurringExpenses.map((expense) => (
-                                    <div key={expense.id} className="group p-6 rounded-2xl bg-card/40 border-2 border-dashed border-border/40 hover:border-primary/30 transition-all">
+                                    <div key={expense.id} className="p-5 rounded-2xl bg-card border border-dashed border-border/60">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-3 bg-primary/5 rounded-xl text-primary border border-primary/10">
-                                                    <Repeat size={20} />
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/5 rounded-lg text-primary">
+                                                    <Repeat size={18} />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-black text-lg leading-none mb-2">{expense.description}</h4>
+                                                    <h4 className="font-bold text-sm leading-none mb-1">{expense.description}</h4>
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant="outline" className="text-[8px] font-black uppercase bg-background">Todo dia {expense.dayOfMonth}</Badge>
-                                                        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60">{expense.category}</span>
+                                                        <Badge variant="outline" className="text-[7px] font-black uppercase h-4">Todo dia {expense.dayOfMonth}</Badge>
+                                                        <span className="text-[8px] font-black uppercase text-muted-foreground/60">{expense.category}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">Valor Mensal</p>
-                                                <p className="text-2xl font-black text-red-500">- R$ {Number(expense.amount || 0).toFixed(2)}</p>
-                                            </div>
+                                            <p className="text-base font-black text-red-500">- R$ {Number(expense.amount || 0).toFixed(2)}</p>
                                         </div>
                                     </div>
                                 ))
                             )}
                         </div>
 
-                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex gap-4">
-                            <Info size={20} className="text-primary shrink-0" />
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                                &quot;💡 Gestão Estratégica: Custos fixos são rateados diariamente pelo B.I. Cockpit para calcular sua meta de sobrevivência em tempo real.&quot;
+                        <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex gap-3 items-start">
+                            <Info size={16} className="text-primary shrink-0 mt-0.5" />
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase leading-relaxed">
+                                &quot;💡 Gestão Estratégica: Custos fixos são rateados pelo BI Cockpit para calcular sua meta de sobrevivência real.&quot;
                             </p>
                         </div>
                     </div>
                 )}
 
+                {/* Modais Financeiros */}
                 <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
-                    <DialogContent className="sm:max-w-md bg-card border-border/40">
+                    <DialogContent className="sm:max-w-md bg-card border-border/40 rounded-3xl p-6">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-tight">
-                                <TrendingDown className="text-red-500" /> Registrar Saída
+                            <DialogTitle className="flex items-center gap-2 font-black uppercase tracking-tight text-base">
+                                <TrendingDown className="text-red-500" /> REGISTRAR SAÍDA
                             </DialogTitle>
-                            <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground">
-                                Controle de custos e gastos operacionais da Tavares Bastos.
-                            </DialogDescription>
                         </DialogHeader>
                         <Form {...form}>
                             <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
                                 <FormItem>
-                                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Tipo de Saída</FormLabel>
+                                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Tipo</Label>
                                     <Select onValueChange={(value: 'variable' | 'fixed') => { setExpenseType(value); setValue('category', ''); }} value={expenseType}>
-                                        <FormControl><SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                        <FormControl><SelectTrigger className="h-12 bg-background border-2 rounded-xl font-bold"><SelectValue /></SelectTrigger></FormControl>
                                         <SelectContent>
-                                            <SelectItem value="variable" className="font-bold uppercase text-xs">Despesa Variável (Avulsa)</SelectItem>
-                                            <SelectItem value="fixed" className="font-bold uppercase text-xs">Custo Fixo (Plano Mensal)</SelectItem>
+                                            <SelectItem value="variable" className="font-bold uppercase text-[10px]">Variável (Avulsa)</SelectItem>
+                                            <SelectItem value="fixed" className="font-bold uppercase text-[10px]">Custo Fixo (Recorrente)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </FormItem>
                                 
                                 <FormField control={control} name="description" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Descrição</FormLabel><FormControl><Input placeholder="Ex: Aluguel, Gelo, Limpeza..." required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label><FormControl><Input placeholder="Ex: Gelo, Manutenção..." required {...field} className="h-12 bg-background border-2 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>
                                 )}/>
                                 
                                 <FormField control={control} name="category" render={({ field }) => {
                                     const cats = expenseType === 'fixed' ? fixedCategories : variableCategories;
                                     return (
-                                        <FormItem className="flex flex-col"><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Categoria</FormLabel><FormControl>
+                                        <FormItem className="flex flex-col"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Categoria</Label><FormControl>
                                             <Combobox 
                                                 options={Object.entries(cats).map(([v, l]) => ({ value: v, label: l }))} 
                                                 value={field.value} 
                                                 onChange={(val) => field.onChange(val)} 
                                                 placeholder="Selecione..." 
-                                                createLabel="Criar:" 
+                                                createLabel="Nova:" 
                                             />
                                         </FormControl><FormMessage /></FormItem>
                                     )
                                 }}/>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-3">
                                     <FormField control={control} name="amount" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</FormLabel><FormControl><Input type="number" step="0.01" required {...field} className="h-12 bg-background border-2 font-black text-red-500 text-lg" /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</Label><FormControl><Input type="number" step="0.01" required {...field} className="h-12 bg-background border-2 rounded-xl font-black text-red-500 text-lg" /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                     <FormField control={control} name="expenseDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Data</FormLabel><FormControl><Input type="date" required {...field} className="h-12 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Data</Label><FormControl><Input type="date" required {...field} className="h-12 bg-background border-2 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>
                                     )}/>
                                 </div>
 
                                 {expenseType === 'fixed' && (
-                                    <div className="p-4 border-2 border-dashed border-primary/20 rounded-xl bg-primary/5 space-y-4">
+                                    <div className="p-4 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/5 space-y-3">
                                         <FormField control={control} name="replicate" render={({ field }) => (
                                             <FormItem className="flex items-center justify-between space-y-0">
-                                                <div className="space-y-0.5">
-                                                    <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest">Recorrência</FormLabel>
-                                                    <p className="text-[9px] text-muted-foreground font-bold uppercase leading-none">Agendar próximos meses</p>
-                                                </div>
+                                                <Label className="text-[9px] font-black uppercase text-primary tracking-widest">Recorrência Mensal</Label>
                                                 <FormControl>
-                                                    <Switch checked={field.value} onCheckedChange={(val) => { field.onChange(val); if(val) setValue('monthsToReplicate', '11'); }} className="data-[state=checked]:bg-primary"/>
+                                                    <Switch checked={field.value} onCheckedChange={(val) => { field.onChange(val); if(val) setValue('monthsToReplicate', '11'); }} />
                                                 </FormControl>
                                             </FormItem>
                                         )}/>
                                         {isReplicating && (
                                             <FormField control={control} name="monthsToReplicate" render={({ field }) => (
-                                                <FormItem><FormLabel className="text-[10px] font-black uppercase text-muted-foreground">Repetir por quantos meses?</FormLabel><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 font-bold" /></FormControl><FormMessage /></FormItem>
+                                                <FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Meses (Duração)</Label><FormControl><Input type="number" {...field} className="h-10 bg-background border-2 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>
                                             )}/>
                                         )}
                                     </div>
                                 )}
 
-                                <div className="p-3 bg-muted/20 rounded-lg">
-                                    <p className="text-[9px] text-muted-foreground font-bold uppercase text-center">
-                                        Dica do CTO: O sistema salva o plano em &quot;Custos Fixos&quot; para auditoria mensal automática.
-                                    </p>
-                                </div>
-
-                                <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
-                                    <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-bold uppercase text-xs">Cancelar</Button>
-                                    <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
+                                <DialogFooter className="pt-4 gap-2">
+                                    <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-bold uppercase text-[10px] rounded-xl flex-1">Cancelar</Button>
+                                    <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-xs shadow-lg bg-red-600 hover:bg-red-700 text-white rounded-xl flex-[2]">
                                         {processing ? <Spinner size="h-4 w-4" /> : "Gravar Saída"}
                                     </Button>
                                 </DialogFooter>
@@ -447,17 +424,17 @@ export function FinancialsTab() {
                  
                 {transactionToDelete && (
                     <AlertDialog open={!!transactionToDelete} onOpenChange={() => setTransactionToDelete(null)}>
-                        <AlertDialogContent className="bg-card border-2 border-border/40">
+                        <AlertDialogContent className="rounded-3xl p-8 border-border/40">
                             <AlertDialogHeader>
-                                <AlertDialogTitle className="font-black uppercase text-red-500 tracking-tight">Excluir Transação?</AlertDialogTitle>
-                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed">
-                                    Esta ação anulará o registro de &quot;{transactionToDelete.description || 'Venda/Despesa'}&quot;. O saldo será recalculado instantaneamente.
+                                <AlertDialogTitle className="font-black uppercase text-red-500 tracking-tight text-lg">Anular Registro?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">
+                                    Confirmar exclusão de &quot;{transactionToDelete.description || 'Transação'}&quot;? O saldo será recalculado.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px]">Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteTransaction} className="h-12 font-black uppercase text-[10px] bg-red-600 text-white hover:bg-red-700 shadow-lg">
-                                    {processing ? <Spinner size="h-4 w-4" /> : 'Confirmar Anulação'}
+                            <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2">
+                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteTransaction} className="h-12 font-black uppercase text-[10px] bg-red-600 text-white hover:bg-red-700 rounded-xl">
+                                    {processing ? <Spinner size="h-4 w-4" /> : 'Sim, Anular'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
