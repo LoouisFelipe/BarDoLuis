@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -227,7 +228,7 @@ export const CustomersTab: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9"><History size={18} /></Button>
                                                 <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(p)} className="h-9 w-9 text-primary"><Edit size={18} /></Button>
                                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
                                             </div>
                                         </CardContent>

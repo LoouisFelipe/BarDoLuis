@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -235,7 +236,7 @@ export function FinancialsTab() {
                 </div>
 
                 {activeView === 'fluxo' ? (
-                    <>
+                    <div className="space-y-6">
                         <div className="pt-4">
                             <h3 className="text-xl font-black uppercase tracking-widest text-foreground flex items-center gap-2">
                                 Transações de {formattedPeriodHeader}
@@ -304,7 +305,7 @@ export function FinancialsTab() {
                                 })
                             )}
                         </div>
-                    </>
+                    </div>
                 ) : (
                     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
                         <div className="flex items-center justify-between">
@@ -434,7 +435,7 @@ export function FinancialsTab() {
                                 </div>
 
                                 <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
-                                    <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-black uppercase text-xs">Cancelar</Button>
+                                    <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 font-bold uppercase text-xs">Cancelar</Button>
                                     <Button type="submit" disabled={processing} className="h-12 font-black uppercase text-sm shadow-lg bg-red-600 hover:bg-red-700 text-white flex-1">
                                         {processing ? <Spinner size="h-4 w-4" /> : "Gravar Saída"}
                                     </Button>
