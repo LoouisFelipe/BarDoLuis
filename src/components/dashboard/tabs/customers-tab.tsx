@@ -1,10 +1,9 @@
-
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, X } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
@@ -32,10 +31,6 @@ import { CustomerHistoryModal } from '@/components/customers/customer-history-mo
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-/**
- * @fileOverview Gestão de Clientes Mobile-Optimized.
- * CTO: Saneamento de importações (Badge) e estruturação tática.
- */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();
@@ -44,25 +39,23 @@ export const CustomersTab: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
-    const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
-        return alphabet.filter(l => initials.has(l)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    }, [customers, alphabet]);
+        return alphabet.filter(l => initials.has(l)).sort();
+    }, [customers]);
 
     const filteredCustomers = useMemo(() => {
         return customers
             .filter(c => {
                 const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesFilter = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
-                const matchesLetter = !selectedLetter || c.name.charAt(0).toUpperCase() === selectedLetter;
-                return matchesSearch && matchesFilter && matchesLetter;
+                return matchesSearch && matchesFilter;
             })
             .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-    }, [customers, searchTerm, filterType, selectedLetter]);
+    }, [customers, searchTerm, filterType]);
 
     const closeAllModals = useCallback(() => {
         setModalState({ form: false, payment: false, history: false, delete: false });
@@ -85,54 +78,6 @@ export const CustomersTab: React.FC = () => {
         if (selectedCustomer?.id) { await deleteCustomer(selectedCustomer.id); closeAllModals(); }
     };
 
-    const renderListView = () => (
-        <Accordion type="multiple" className="space-y-3 pb-24 pr-1">
-            {activeLetters.map(letter => {
-                const customersInLetter = filteredCustomers.filter(c => c.name.charAt(0).toUpperCase() === letter);
-                if (customersInLetter.length === 0) return null;
-
-                return (
-                    <AccordionItem key={letter} value={letter} className="bg-card border rounded-2xl overflow-hidden shadow-sm px-0 border-b-0">
-                        <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30 h-16 group">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary/20 transition-colors">
-                                    <span className="font-black text-xs">{letter}</span>
-                                </div>
-                                <span className="font-black uppercase text-xs tracking-widest">Iniciais com {letter}</span>
-                                <Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{customersInLetter.length} Fiéis</Badge>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="p-0 border-t border-border/10">
-                            <div className="flex flex-col gap-1 p-2">
-                                {customersInLetter.map(c => (
-                                    <div key={c.id} className="flex items-center justify-between p-4 bg-background/40 rounded-xl hover:bg-muted/20 transition-all active:scale-[0.98]">
-                                        <div className="flex items-center gap-4 min-w-0 pr-2">
-                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400 shrink-0">
-                                                <Users size={16} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-sm truncate uppercase tracking-tight">{c.name}</p>
-                                                <p className={cn("text-[9px] font-black uppercase tracking-widest", (c.balance || 0) > 0 ? "text-yellow-500" : "text-emerald-500")}>
-                                                    Saldo: R$ {(c.balance || 0).toFixed(2)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9 hover:bg-primary/10 hover:text-primary"><History size={18} /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary hover:bg-primary/10"><Edit size={18} /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                );
-            })}
-        </Accordion>
-    );
-
     return (
         <TooltipProvider>
             <div className="p-1 md:p-4 space-y-6">
@@ -140,36 +85,17 @@ export const CustomersTab: React.FC = () => {
                     <div className="flex items-center gap-3 w-full md:max-w-2xl">
                         <div className="relative flex-grow">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input 
-                                placeholder="Buscar fiel pelo nome..." 
-                                className="pl-11 h-12 bg-background border-none shadow-inner rounded-xl text-base font-bold"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                disabled={loading}
-                            />
+                            <Input placeholder="Buscar fiel pelo nome..." className="pl-11 h-12 bg-background border-none shadow-inner rounded-xl text-base font-bold" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} disabled={loading} />
                         </div>
                     </div>
-                    <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg shadow-primary/20" disabled={loading}>
-                        <UserPlus className="h-5 w-5" />
-                        Cadastrar Fiel
-                    </Button>
+                    <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}><UserPlus className="h-5 w-5" /> Cadastrar Fiel</Button>
                 </div>
 
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <Spinner size="h-12 w-12" />
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest animate-pulse">Sincronizando Banco de Fiéis...</p>
-                    </div>
-                ) : (
+                {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
                     <>
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
-                                {(selectedLetter || searchTerm) && (
-                                    <Button variant="ghost" size="sm" onClick={() => { setSelectedLetter(null); setSearchTerm(''); }} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full">
-                                        <X size={12} /> Limpar Filtros
-                                    </Button>
-                                )}
-                                {selectedLetter && <Badge className="text-[8px] font-black uppercase tracking-widest bg-primary text-white h-7 px-3 rounded-full">{selectedLetter}</Badge>}
+                                {(searchTerm) && <Button variant="ghost" size="sm" onClick={() => setSearchTerm('')} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full"><X size={12} /> Limpar</Button>}
                             </div>
                             <div className="flex gap-1 bg-muted/50 p-1 rounded-lg h-9">
                                 <Button variant={filterType === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('all')} className="text-[9px] font-black px-3 h-7 uppercase">Todos</Button>
@@ -177,28 +103,44 @@ export const CustomersTab: React.FC = () => {
                             </div>
                         </div>
 
-                        {renderListView()}
+                        <Accordion type="multiple" className="space-y-3 pb-24 pr-1">
+                            {activeLetters.map(letter => {
+                                const customersInLetter = filteredCustomers.filter(c => c.name.charAt(0).toUpperCase() === letter);
+                                if (customersInLetter.length === 0) return null;
+                                return (
+                                    <AccordionItem key={letter} value={letter} className="bg-card border rounded-2xl overflow-hidden shadow-sm border-b-0">
+                                        <AccordionTrigger className="px-6 hover:no-underline h-16 group">
+                                            <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 rounded-lg text-primary"><span className="font-black text-xs">{letter}</span></div><span className="font-black uppercase text-xs tracking-widest">Iniciais com {letter}</span><Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{customersInLetter.length} Fiéis</Badge></div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="p-0 border-t border-border/10">
+                                            <div className="flex flex-col gap-1 p-2">
+                                                {customersInLetter.map(c => (
+                                                    <div key={c.id} className="flex items-center justify-between p-4 bg-background/40 rounded-xl hover:bg-muted/20 transition-all">
+                                                        <div className="flex items-center gap-4 min-w-0 pr-2">
+                                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400"><Users size={16} /></div>
+                                                            <div className="min-w-0"><p className="font-bold text-sm truncate uppercase tracking-tight">{c.name}</p><p className={cn("text-[9px] font-black uppercase tracking-widest", (c.balance || 0) > 0 ? "text-yellow-500" : "text-emerald-500")}>Saldo: R$ {(c.balance || 0).toFixed(2)}</p></div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9 hover:bg-primary/10 hover:text-primary"><History size={18} /></Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary hover:bg-primary/10"><Edit size={18} /></Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                );
+                            })}
+                        </Accordion>
                     </>
                 )}
 
                 {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
                 {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
                 {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
-                
-                {selectedCustomer && modalState.delete && (
-                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
-                        <AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl">
-                            <AlertDialogHeader>
-                                <AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle>
-                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Deseja apagar permanentemente o registro de &quot;{selectedCustomer.name}&quot;? Esta ação é irreversível.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6">
-                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl border-border/40">Não, Manter</AlertDialogCancel>
-                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl shadow-lg shadow-destructive/20">Sim, Excluir</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
+                {selectedCustomer && modalState.delete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Deseja apagar permanentemente o registro de "{selectedCustomer.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6"><AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
             </div>
         </TooltipProvider>
     );
