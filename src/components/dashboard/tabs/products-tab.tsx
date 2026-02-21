@@ -25,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
+import { Package, PlusCircle, Edit, PackagePlus, Trash2, Search, ChevronRight, X, LayoutGrid, List, AlertTriangle } from 'lucide-react';
 import { ProductFormModal } from '@/components/products/product-form-modal';
 import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
@@ -33,7 +33,7 @@ import { Product } from '@/lib/schemas';
 
 /**
  * @fileOverview Gestão de Produtos com Hierarquia: Categoria > Subcategoria > Itens.
- * CTO: Implementação de Acordeão de dois níveis para organização profunda do estoque.
+ * CTO: Implementação de filtro de baixo estoque para gestão logística ágil.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
@@ -44,11 +44,16 @@ export const ProductsTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
     const barProducts = useMemo(() => {
         if (!products) return [];
         return products.filter(p => p.saleType !== 'game');
     }, [products]);
+
+    const lowStockCount = useMemo(() => {
+        return barProducts.filter(p => p.saleType !== 'service' && p.stock <= (p.lowStockThreshold || 0)).length;
+    }, [barProducts]);
 
     const categories = useMemo(() => {
         const uniqueCategories = new Set(barProducts.map(p => p.category).filter(Boolean));
@@ -61,9 +66,12 @@ export const ProductsTab: React.FC = () => {
             const matchesSearch = searchTerm === '' || 
                                 p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                 p.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesCategory && matchesSearch;
+            const isLowStock = p.saleType !== 'service' && p.stock <= (p.lowStockThreshold || 0);
+            const matchesLowStockFilter = !showLowStockOnly || isLowStock;
+            
+            return matchesCategory && matchesSearch && matchesLowStockFilter;
         }).sort((a, b) => a.name.localeCompare(b.name));
-    }, [barProducts, selectedCategory, searchTerm]);
+    }, [barProducts, selectedCategory, searchTerm, showLowStockOnly]);
 
     const closeAllModals = () => {
         setModalState({ form: false, stock: false, delete: false });
@@ -98,23 +106,33 @@ export const ProductsTab: React.FC = () => {
         }
     };
 
-    const renderGridView = () => (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-20">
-            {categories.map(cat => (
-                <Card 
-                    key={cat} 
-                    className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-all bg-card border-2 shadow-sm relative group overflow-hidden"
-                    onClick={() => setSelectedCategory(cat)}
-                >
-                    <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-all duration-300">
-                        <Package size={32} className="text-primary" />
+    const renderGridView = () => {
+        const gridCategories = categories.filter(cat => filteredProducts.some(p => p.category === cat));
+        
+        return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-20">
+                {gridCategories.map(cat => (
+                    <Card 
+                        key={cat} 
+                        className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-all bg-card border-2 shadow-sm relative group overflow-hidden"
+                        onClick={() => setSelectedCategory(cat)}
+                    >
+                        <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-all duration-300">
+                            <Package size={32} className="text-primary" />
+                        </div>
+                        <span className="font-black text-[10px] uppercase text-center px-2 tracking-widest text-foreground/90">{cat}</span>
+                        <ChevronRight className="absolute right-2 bottom-2 h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Card>
+                ))}
+                {gridCategories.length === 0 && showLowStockOnly && (
+                    <div className="col-span-full py-20 text-center opacity-50">
+                        <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-emerald-500" />
+                        <p className="text-sm font-black uppercase tracking-widest">Estoque 100% saudável!</p>
                     </div>
-                    <span className="font-black text-[10px] uppercase text-center px-2 tracking-widest text-foreground/90">{cat}</span>
-                    <ChevronRight className="absolute right-2 bottom-2 h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Card>
-            ))}
-        </div>
-    );
+                )}
+            </div>
+        );
+    };
 
     const renderListView = () => (
         <Accordion type="multiple" className="space-y-2 pb-20">
@@ -131,7 +149,7 @@ export const ProductsTab: React.FC = () => {
                 }, {} as Record<string, Product[]>);
 
                 return (
-                    <AccordionItem key={cat} value={cat} className="bg-card border rounded-xl overflow-hidden shadow-sm px-0">
+                    <AccordionItem key={cat} value={cat} className="bg-card border rounded-xl overflow-hidden shadow-sm px-0 border-b-0">
                         <AccordionTrigger className="px-6 hover:no-underline hover:bg-muted/30">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -144,8 +162,8 @@ export const ProductsTab: React.FC = () => {
                         <AccordionContent className="p-0 border-t">
                             <div className="flex flex-col">
                                 {Object.entries(subcategoriesMap).map(([sub, items]) => (
-                                    <div key={sub} className="border-b last:border-0">
-                                        <div className="bg-muted/30 px-6 py-2 border-b">
+                                    <div key={sub} className="border-b last:border-0 border-border/10">
+                                        <div className="bg-muted/30 px-6 py-2 border-b border-border/10">
                                             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{sub}</p>
                                         </div>
                                         {items.map(p => (
@@ -154,7 +172,10 @@ export const ProductsTab: React.FC = () => {
                                                 className="flex items-center justify-between p-4 border-b last:border-0 hover:bg-muted/20 transition-colors"
                                             >
                                                 <div className="flex items-center gap-4 min-w-0 pr-4">
-                                                    <div className="p-2 rounded-lg bg-slate-900 text-slate-400">
+                                                    <div className={cn(
+                                                        "p-2 rounded-lg",
+                                                        (p.stock || 0) <= (p.lowStockThreshold || 0) ? "bg-red-500/10 text-red-500" : "bg-slate-900 text-slate-400"
+                                                    )}>
                                                         <Package size={16} />
                                                     </div>
                                                     <div className="min-w-0">
@@ -214,6 +235,7 @@ export const ProductsTab: React.FC = () => {
                                 size="icon" 
                                 onClick={() => setViewMode('grid')}
                                 className="h-9 w-9"
+                                title="Visualização por Grid"
                             >
                                 <LayoutGrid size={18} />
                             </Button>
@@ -222,8 +244,26 @@ export const ProductsTab: React.FC = () => {
                                 size="icon" 
                                 onClick={() => setViewMode('list')}
                                 className="h-9 w-9"
+                                title="Visualização por Lista"
                             >
                                 <List size={18} />
+                            </Button>
+                            <Button 
+                                variant={showLowStockOnly ? 'destructive' : 'ghost'} 
+                                size="icon" 
+                                onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+                                className={cn(
+                                    "h-9 w-9 relative transition-all",
+                                    showLowStockOnly ? "bg-red-500/20 text-red-500 border border-red-500/50 hover:bg-red-500/30" : "hover:bg-muted"
+                                )}
+                                title="Filtrar Baixo Estoque"
+                            >
+                                <AlertTriangle size={18} />
+                                {lowStockCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white border border-card shadow-sm">
+                                        {lowStockCount}
+                                    </span>
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -246,27 +286,33 @@ export const ProductsTab: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        {selectedCategory && (
+                        {(selectedCategory || searchTerm || showLowStockOnly) && (
                             <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-left-2">
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
-                                    onClick={() => setSelectedCategory(null)}
+                                    onClick={() => { setSelectedCategory(null); setSearchTerm(''); setShowLowStockOnly(false); }}
                                     className="text-[10px] font-black uppercase text-primary gap-1"
                                 >
-                                    <X size={12} /> Voltar
+                                    <X size={12} /> Limpar Filtros
                                 </Button>
-                                <span className="text-[10px] font-black uppercase tracking-widest bg-primary text-white px-3 py-1 rounded-full">{selectedCategory}</span>
+                                {selectedCategory && <span className="text-[10px] font-black uppercase tracking-widest bg-primary text-white px-3 py-1 rounded-full">{selectedCategory}</span>}
+                                {showLowStockOnly && <span className="text-[10px] font-black uppercase tracking-widest bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-1"><AlertTriangle size={10}/> Baixo Estoque</span>}
                             </div>
                         )}
 
                         {searchTerm ? (
                             <div className="space-y-2 pb-20">
                                 {filteredProducts.map(p => (
-                                    <Card key={p.id} className="bg-card hover:bg-muted/50 transition-all">
+                                    <Card key={p.id} className="bg-card hover:bg-muted/50 transition-all border-l-4 border-l-transparent data-[alert=true]:border-l-red-500" data-alert={(p.stock || 0) <= (p.lowStockThreshold || 0)}>
                                         <CardContent className="p-4 flex items-center justify-between">
                                             <div className="flex items-center gap-4">
-                                                <div className="p-2 rounded-lg bg-muted text-muted-foreground"><Package size={20} /></div>
+                                                <div className={cn(
+                                                    "p-2 rounded-lg",
+                                                    (p.stock || 0) <= (p.lowStockThreshold || 0) ? "bg-red-500/10 text-red-500" : "bg-muted text-muted-foreground"
+                                                )}>
+                                                    <Package size={20} />
+                                                </div>
                                                 <div>
                                                     <p className="font-bold text-base">{p.name}</p>
                                                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">{p.category} {p.subcategory ? `• ${p.subcategory}` : ''}</p>
