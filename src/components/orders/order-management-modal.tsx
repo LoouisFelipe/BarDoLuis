@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useData } from '@/contexts/data-context';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck, Package, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import { Plus, Minus, Trash2, ShoppingCart, Save, Search, X, Receipt, ShoppingBasket, UserPlus, Users, AlertTriangle, Menu, Sparkles, Hash, Dices, UserCheck, Package, ChevronRight, LayoutGrid, List, Zap } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -48,6 +48,7 @@ interface OrderManagementModalProps {
 /**
  * @fileOverview Gestão de Comanda (PDV Alta Fidelidade).
  * CTO: UX Hierárquica para Listas Master (Categoria > Subcategoria > Itens).
+ * NOVO: Suporte a Lançamentos Avulsos (Valores Adicionais com Observação).
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -72,8 +73,8 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const [activeTab, setActiveTab] = useState<'menu' | 'cart'>('menu');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service', unitPrice?: number } | null>(null);
-  const [customData, setCustomItemData] = useState({ price: '', identifier: '' });
+  const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service' | 'manual', unitPrice?: number } | null>(null);
+  const [customData, setCustomItemData] = useState({ price: '', identifier: '', name: '' });
 
   const linkedCustomer = useMemo(() => 
     customers.find(c => c.id === existingOrder?.customerId),
@@ -140,11 +141,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     });
   };
   
-  const handleAddItem = useCallback((item: any, dose?: DoseOption, customPrice?: number, identifier?: string) => {
-     if (!item.id) return;
+  const handleAddItem = useCallback((item: any, dose?: DoseOption, customPrice?: number, identifier?: string, customName?: string) => {
      const newItem: OrderItem = {
-        productId: item.id,
-        name: item.name,
+        productId: item.id || `manual-${Date.now()}`,
+        name: customName || item.name,
         quantity: 1,
         unitPrice: customPrice !== undefined ? customPrice : (dose ? dose.price : (item.unitPrice || 0)),
         ...(dose?.name ? { doseName: dose.name } : {}),
@@ -152,6 +152,11 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         ...(identifier ? { identifier } : {}),
     };
     setCurrentItems(prevItems => {
+        // Se for lançamento manual (sem productId real), sempre adiciona como novo item
+        if (newItem.productId.startsWith('manual-')) {
+            return [...prevItems, newItem];
+        }
+
         const existingItemIndex = prevItems.findIndex(i => 
             i.productId === newItem.productId && 
             i.doseName === newItem.doseName &&
@@ -171,9 +176,9 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const handleCustomConfirm = () => {
     if (!itemToCustomize) return;
     const price = parseFloat(customData.price) || 0;
-    handleAddItem(itemToCustomize, undefined, price, customData.identifier);
+    handleAddItem(itemToCustomize, undefined, price, customData.identifier, customData.name || undefined);
     setItemToCustomize(null);
-    setCustomItemData({ price: '', identifier: '' });
+    setCustomItemData({ price: '', identifier: '', name: '' });
   };
 
   const handleSaveOrder = async () => {
@@ -227,10 +232,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       onClick={() => {
           if (item.saleType === 'game') {
               setItemToCustomize({ id: item.id!, name: item.name, type: 'game', unitPrice: item.unitPrice });
-              setCustomItemData({ price: String(item.unitPrice || ''), identifier: '' });
+              setCustomItemData({ price: String(item.unitPrice || ''), identifier: '', name: '' });
           } else if (item.saleType === 'service') {
               setItemToCustomize({ id: item.id!, name: item.name, type: 'service' });
-              setCustomItemData({ price: '', identifier: '' });
+              setCustomItemData({ price: '', identifier: '', name: '' });
           } else if (item.saleType !== 'dose') {
               handleAddItem(item);
           }
@@ -298,6 +303,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     size="icon" 
                     onClick={() => setViewMode('grid')}
                     className="h-12 w-12 rounded-lg"
+                    title="Modo Grade"
                 >
                     <LayoutGrid size={22} />
                 </Button>
@@ -306,8 +312,21 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     size="icon" 
                     onClick={() => setViewMode('list')}
                     className="h-12 w-12 rounded-lg"
+                    title="Modo Lista"
                 >
                     <List size={22} />
+                </Button>
+                <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => {
+                        setItemToCustomize({ id: '', name: 'LANÇAMENTO AVULSO', type: 'manual' });
+                        setCustomItemData({ price: '', identifier: '', name: '' });
+                    }}
+                    className="h-12 w-12 rounded-lg border-2 border-orange-500/40 text-orange-500 hover:bg-orange-500 hover:text-white"
+                    title="Lançamento Manual"
+                >
+                    <Zap size={22} fill="currentColor" />
                 </Button>
             </div>
         </div>
@@ -443,13 +462,13 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center bg-slate-950/50 rounded-2xl p-1.5 shadow-inner border border-slate-800">
-                    {!item.identifier ? (
+                    {(!item.identifier && !item.productId.startsWith('manual-')) ? (
                         <>
                             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-900 transition-all" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -1, item.identifier)}><Minus className="h-5 w-5" /></Button>
                             <span className="w-10 text-center text-lg font-black">{item.quantity}</span>
                             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-900 transition-all" onClick={() => handleUpdateQuantity(item.productId, item.doseName, 1, item.identifier)}><Plus className="h-5 w-5" /></Button>
                         </>
-                    ) : <span className="w-12 text-center text-sm font-black bg-primary/10 text-primary py-2.5 rounded-xl border border-primary/20">1x</span>}
+                    ) : <span className="w-12 text-center text-sm font-black bg-primary/10 text-primary py-2.5 rounded-xl border border-primary/20">{item.quantity}x</span>}
                     </div>
                     <Button variant="ghost" size="icon" className="h-12 w-12 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-colors" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -item.quantity, item.identifier)}><Trash2 size={22} /></Button>
                 </div>
@@ -574,11 +593,17 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
       <Dialog open={!!itemToCustomize} onOpenChange={(o) => !o && setItemToCustomize(null)}>
         <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 shadow-2xl rounded-3xl">
-            <DialogHeader><DialogTitle className="flex items-center gap-4 font-black uppercase tracking-tight text-white"><Dices className="text-orange-500 h-6 w-6" /> {itemToCustomize?.name}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-4 font-black uppercase tracking-tight text-white"><Zap className="text-orange-500 h-6 w-6" /> {itemToCustomize?.name}</DialogTitle></DialogHeader>
             <div className="space-y-8 py-8">
+                {itemToCustomize?.type === 'manual' && (
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Observação / Descrição do Lançamento</Label>
+                        <Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-16 font-black uppercase bg-slate-950 border-2 border-slate-800 rounded-2xl tracking-widest" placeholder="EX: TAXA DE SERVIÇO, COUVERT..." autoFocus />
+                    </div>
+                )}
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Valor do Registro (R$)</Label>
-                    <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className="h-20 text-4xl font-black text-primary bg-slate-950 border-none shadow-inner rounded-2xl" placeholder="0.00" autoFocus />
+                    <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className="h-20 text-4xl font-black text-primary bg-slate-950 border-none shadow-inner rounded-2xl" placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual'} />
                 </div>
                 {itemToCustomize?.type === 'game' && (
                     <div className="space-y-3">

@@ -4,7 +4,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -153,7 +153,7 @@ export const SuppliersTab: React.FC = () => {
     );
 
     return (
-        <>
+        <TooltipProvider>
             <div className="p-1 md:p-4 space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-4 rounded-xl border shadow-sm">
                     <h2 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center">
@@ -218,6 +218,6 @@ export const SuppliersTab: React.FC = () => {
                     </AlertDialog>
                 )}
             </div>
-        </>
+        </TooltipProvider>
     );
 };
