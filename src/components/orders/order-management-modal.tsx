@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -16,12 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/accordion-ui"; // Using a simple internal name or standard Accordion
 import { useOpenOrders } from '@/hooks/use-open-orders';
 import { useAuth } from '@/contexts/auth-context';
 import { Label } from '../ui/label';
@@ -36,8 +31,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
-
-// Import local components properly
 import { Accordion as ShadcnAccordion, AccordionContent as ShadcnAccordionContent, AccordionItem as ShadcnAccordionItem, AccordionTrigger as ShadcnAccordionTrigger } from '@/components/ui/accordion';
 
 interface OrderManagementModalProps {
@@ -50,7 +43,7 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda (PDV Alta Fidelidade - Mobile Optimized).
- * CTO: Ordem alfabética rigorosa em Categorias, Subcategorias e Itens.
+ * CTO: Implementação de Subcategorias Clicáveis e Ordem Alfabética Rigorosa.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -228,7 +221,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const renderItemRow = (item: any) => (
     <div 
-      key={item.id} 
+      key={`${item.id}-${item.saleType}`} 
       className="flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-900/60 transition-all cursor-pointer rounded-xl border border-border/10 group active:scale-[0.98]"
       onClick={() => {
           if (item.saleType === 'game') {
@@ -267,11 +260,11 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           {item.saleType === 'dose' ? (
             <Popover>
               <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}><Button size="icon" variant="outline" className="h-10 w-10 rounded-lg border-primary/20"><Plus className="h-5 w-5" /></Button></PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-2 bg-slate-900 border-slate-800 rounded-2xl">
+              <PopoverContent align="end" className="w-64 p-2 bg-slate-900 border-slate-800 rounded-2xl shadow-2xl">
                 <div className="flex flex-col gap-1">
                   <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1 px-2">Selecione Dose</p>
                   {item.doseOptions?.filter((d: any) => d.enabled).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((dose: any) => (
-                    <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-xs h-12 font-black uppercase hover:bg-primary/10 rounded-lg">
+                    <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-xs h-12 font-black uppercase hover:bg-primary/10 rounded-lg px-4">
                       <span>{dose.name}</span><span className="text-primary">R$ {dose.price.toFixed(2)}</span>
                     </Button>
                   ))}
@@ -295,7 +288,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input 
                     placeholder="Buscar item..." 
-                    className="pl-11 h-12 bg-slate-900/50 border-none text-base font-bold rounded-xl"
+                    className="pl-11 h-12 bg-slate-900/50 border-none text-base font-bold rounded-xl focus:ring-2 focus:ring-primary/50"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -305,7 +298,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
                     size="icon" 
                     onClick={() => setViewMode('grid')}
-                    className="h-10 w-10"
+                    className="h-10 w-10 rounded-lg"
                 >
                     <LayoutGrid size={18} />
                 </Button>
@@ -313,7 +306,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     variant={viewMode === 'list' ? 'secondary' : 'ghost'} 
                     size="icon" 
                     onClick={() => setViewMode('list')}
-                    className="h-10 w-10"
+                    className="h-10 w-10 rounded-lg"
                 >
                     <List size={18} />
                 </Button>
@@ -324,7 +317,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         setItemToCustomize({ id: '', name: 'LANÇAMENTO AVULSO', type: 'manual' });
                         setCustomItemData({ price: '', identifier: '', name: '' });
                     }}
-                    className="h-10 w-10 border-orange-500/40 text-orange-500"
+                    className="h-10 w-10 border-orange-500/40 text-orange-500 rounded-lg"
                 >
                     <Zap size={18} fill="currentColor" />
                 </Button>
@@ -332,17 +325,17 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         </div>
         
         {(selectedCategory || searchTerm) && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-[9px] font-black uppercase text-primary h-7 px-3 bg-primary/5 rounded-full"
+              className="text-[9px] font-black uppercase text-primary h-7 px-3 bg-primary/5 rounded-full hover:bg-primary/10"
               onClick={() => { setSelectedCategory(null); setSearchTerm(''); }}
             >
               <X size={12} className="mr-1" /> Voltar
             </Button>
             {selectedCategory && (
-              <Badge className="h-7 rounded-full px-3 font-black uppercase tracking-widest text-[8px] bg-primary text-white border-none">
+              <Badge className="h-7 rounded-full px-3 font-black uppercase tracking-widest text-[8px] bg-primary text-white border-none shadow-sm">
                 {selectedCategory}
               </Badge>
             )}
@@ -350,16 +343,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         )}
       </div>
 
-      <ScrollArea className="flex-grow">
+      <ScrollArea className="flex-grow scrollbar-hide">
         {dataLoading ? (
           <div className="flex justify-center p-8"><Spinner /></div>
         ) : !selectedCategory && !searchTerm ? (
           viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-20">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pb-24">
                 {categories.map(cat => (
                 <Card 
                     key={cat} 
-                    className="aspect-square flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 bg-slate-900/40 border border-slate-800 shadow-lg relative group"
+                    className="aspect-square flex flex-col items-center justify-center cursor-pointer transition-all active:scale-95 bg-slate-900/40 border border-slate-800 shadow-lg relative group hover:border-primary/40 overflow-hidden"
                     onClick={() => setSelectedCategory(cat)}
                 >
                     <div className="p-4 bg-primary/10 rounded-2xl mb-3 group-hover:bg-primary/20 transition-all">
@@ -371,13 +364,13 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 ))}
             </div>
           ) : (
-            <ShadcnAccordion type="multiple" className="space-y-2 pb-20">
+            <ShadcnAccordion type="multiple" className="space-y-2 pb-24">
                 {categories.map(cat => {
                     const itemsInCategory = allItems.filter(i => i.category.toUpperCase() === cat);
                     if (itemsInCategory.length === 0) return null;
 
                     const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
-                        const sub = i.subcategory || 'Diversos';
+                        const sub = (i.subcategory || 'Diversos').toUpperCase();
                         if (!acc[sub]) acc[sub] = [];
                         acc[sub].push(i);
                         return acc;
@@ -387,21 +380,21 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
                     return (
                         <ShadcnAccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
-                            <ShadcnAccordionTrigger className="px-5 hover:no-underline h-16">
+                            <ShadcnAccordionTrigger className="px-5 hover:no-underline h-16 group">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                    <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary/20 transition-colors">
                                         <Package size={18} />
                                     </div>
                                     <span className="font-black uppercase text-[11px] tracking-widest">{cat}</span>
-                                    <Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length}</Badge>
+                                    <Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length} Itens</Badge>
                                 </div>
                             </ShadcnAccordionTrigger>
                             <ShadcnAccordionContent className="p-0 border-t border-slate-800/50">
                                 <div className="flex flex-col">
                                     {sortedSubKeys.map(sub => (
                                         <div key={sub} className="border-b last:border-0 border-slate-800/30">
-                                            <div className="bg-slate-900/60 px-5 py-1.5 border-b border-slate-800/20">
-                                                <p className="text-[9px] font-black uppercase text-primary/60 tracking-widest">{sub}</p>
+                                            <div className="bg-slate-900/60 px-5 py-2.5 border-b border-slate-800/20 sticky top-0 z-10 backdrop-blur-sm">
+                                                <p className="text-[9px] font-black uppercase text-primary tracking-[0.2em]">{sub}</p>
                                             </div>
                                             <div className="flex flex-col gap-1 p-2">
                                                 {subcategoriesMap[sub].map(item => renderItemRow(item))}
@@ -416,12 +409,12 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             </ShadcnAccordion>
           )
         ) : (
-          <div className="flex flex-col gap-2 pb-20">
+          <div className="flex flex-col gap-2 pb-24">
             {filteredItems.map(item => renderItemRow(item))}
             {filteredItems.length === 0 && (
               <div className="py-20 text-center opacity-20 italic flex flex-col items-center gap-4">
                 <Search size={48} />
-                <p className="text-xs font-black uppercase tracking-widest">Nada encontrado</p>
+                <p className="text-xs font-black uppercase tracking-widest">Nada encontrado para &quot;{searchTerm}&quot;</p>
               </div>
             )}
           </div>
@@ -432,9 +425,9 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const cartContent = (
     <div className="w-full flex flex-col bg-slate-950/40 backdrop-blur-md h-full border-l border-slate-800/50">
-      <div className="p-5 border-b border-slate-800/50 flex justify-between items-center shrink-0 h-16">
+      <div className="p-5 border-b border-slate-800/50 flex justify-between items-center shrink-0 h-16 bg-slate-900/20">
         <h3 className="text-[10px] font-black flex items-center gap-3 uppercase tracking-widest"><ShoppingCart size={16} className="text-primary" /> SACOLA ({currentItems.length})</h3>
-        {isAdmin && (
+        {isAdmin && currentItems.length > 0 && (
           <Button 
             variant="ghost" 
             size="icon" 
@@ -446,14 +439,14 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         )}
       </div>
       <ScrollArea className="flex-grow">
-        <div className="p-4 space-y-3 pb-20">
+        <div className="p-4 space-y-3 pb-24">
           {currentItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-center gap-4 opacity-10">
               <ShoppingBasket size={64} /><p className="text-xs font-black uppercase tracking-widest">Sacola vazia</p>
             </div>
           ) : (
             currentItems.map((item, idx) => (
-              <div key={`${item.productId}-${item.doseName || idx}-${item.identifier || ''}`} className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-sm">
+              <div key={`${item.productId}-${item.doseName || idx}-${item.identifier || ''}`} className="flex items-center justify-between bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-sm animate-in zoom-in-95 duration-200">
                 <div className="flex-grow min-w-0 pr-2">
                   <p className="font-bold text-sm truncate uppercase tracking-tight text-foreground">{item.name}</p>
                   {item.doseName && <p className="text-[9px] text-primary font-black uppercase mt-0.5">{item.doseName}</p>}
@@ -465,27 +458,27 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     <div className="flex items-center bg-slate-950/50 rounded-xl p-1 border border-slate-800">
                     {(!item.identifier && !item.productId.startsWith('manual-')) ? (
                         <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -1, item.identifier)}><Minus size={14} /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary rounded-lg" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -1, item.identifier)}><Minus size={14} /></Button>
                             <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleUpdateQuantity(item.productId, item.doseName, 1, item.identifier)}><Plus size={14} /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary rounded-lg" onClick={() => handleUpdateQuantity(item.productId, item.doseName, 1, item.identifier)}><Plus size={14} /></Button>
                         </>
                     ) : <span className="w-10 text-center text-xs font-black bg-primary/10 text-primary py-1.5 rounded-lg border border-primary/20">{item.quantity}x</span>}
                     </div>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -item.quantity, item.identifier)}><Trash2 size={18} /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive rounded-lg" onClick={() => handleUpdateQuantity(item.productId, item.doseName, -item.quantity, item.identifier)}><Trash2 size={18} /></Button>
                 </div>
               </div>
             ))
           )}
         </div>
       </ScrollArea>
-      <div className="p-5 border-t border-slate-800/50 bg-slate-950 mt-auto space-y-4 shrink-0 rounded-t-[32px]">
+      <div className="p-5 border-t border-slate-800/50 bg-slate-950 mt-auto space-y-4 shrink-0 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         <div className="flex justify-between items-end px-2">
-          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total</span>
-          <span className="text-3xl font-black text-primary tracking-tighter">R$ {total.toFixed(2)}</span>
+          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Acumulado</span>
+          <span className="text-3xl font-black text-primary tracking-tighter shadow-primary/20 drop-shadow-md">R$ {total.toFixed(2)}</span>
         </div>
         <div className="grid grid-cols-2 gap-3 pb-2">
-          <Button variant="outline" className="font-black h-14 uppercase text-[10px] border-slate-800 tracking-widest rounded-xl" onClick={() => setIsPaymentModalOpen(true)} disabled={currentItems.length === 0}>💲 RECEBER</Button>
-          <Button onClick={handleSaveOrder} disabled={processing} className="bg-green-600 hover:bg-green-700 text-white font-black h-14 uppercase text-[10px] tracking-widest rounded-xl">
+          <Button variant="outline" className="font-black h-14 uppercase text-[10px] border-slate-800 tracking-widest rounded-xl hover:bg-slate-900" onClick={() => setIsPaymentModalOpen(true)} disabled={currentItems.length === 0}>💲 RECEBER</Button>
+          <Button onClick={handleSaveOrder} disabled={processing} className="bg-green-600 hover:bg-green-700 text-white font-black h-14 uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-green-900/20">
             {processing ? <Spinner size="h-4 w-4" /> : 'SALVAR'}
           </Button>
         </div>
@@ -500,7 +493,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             <DialogContent className="max-w-[100vw] sm:max-w-[1400px] h-full sm:h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl">
             <DialogHeader className="p-5 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-20 relative">
                 <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-lg shadow-primary/10">
                     <Receipt className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex flex-col">
@@ -512,7 +505,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         )}>
                             {linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}
                         </div>
-                        <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary" onClick={() => setIsLinkCustomerOpen(true)}>
+                        <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary hover:text-primary/80" onClick={() => setIsLinkCustomerOpen(true)}>
                             {linkedCustomer ? 'TROCAR' : 'VINCULAR'}
                         </Button>
                     </div>
@@ -520,8 +513,8 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 </div>
                 
                 <div className="text-right flex flex-col items-end gap-0.5 pr-6">
-                  <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total</p>
-                  <p className="text-2xl font-black text-primary tracking-tighter leading-none">R$ {total.toFixed(2)}</p>
+                  <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total Acumulado</p>
+                  <p className="text-2xl font-black text-primary tracking-tighter leading-none shadow-primary/10 drop-shadow-sm">R$ {total.toFixed(2)}</p>
                 </div>
 
                 <DialogDescription className="sr-only">Painel de Comanda Mobile Optimized</DialogDescription>
@@ -530,10 +523,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             <div className="flex-grow flex flex-col overflow-hidden">
                 <div className="flex flex-col h-full lg:hidden">
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0">
+                    <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0 shadow-lg z-10">
                         <TabsTrigger value="menu" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={18}/> CARDÁPIO</TabsTrigger>
                         <TabsTrigger value="cart" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all">
-                            <ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px]">{currentItems.length}</span>}
+                            <ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px] animate-in zoom-in-50">{currentItems.length}</span>}
                         </TabsTrigger>
                     </TabsList>
                     <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
@@ -594,12 +587,12 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             <div className="space-y-5 py-4">
                 {itemToCustomize?.type === 'manual' && (
                     <div className="space-y-2">
-                        <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label>
+                        <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição do Lançamento</Label>
                         <Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: COUVERT ARTÍSTICO" autoFocus />
                     </div>
                 )}
                 <div className="space-y-2">
-                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</Label>
+                    <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor do Item (R$)</Label>
                     <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className="h-16 text-3xl font-black text-primary bg-slate-950 border-none rounded-xl text-center" placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual'} />
                 </div>
                 {itemToCustomize?.type === 'game' && (
@@ -617,10 +610,10 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         <AlertDialogContent className="bg-slate-900 border-border/40 rounded-3xl p-8">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-3 text-destructive font-black uppercase tracking-tight text-lg">
-              <AlertTriangle size={24} /> EXCLUIR?
+              <AlertTriangle size={24} /> EXCLUIR COMANDA?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">
-              Apagar permanentemente a comanda <strong className="text-white">{existingOrder?.displayName}</strong>? Esta ação é irreversível.
+              Apagar permanentemente o atendimento <strong className="text-white">{existingOrder?.displayName}</strong>? Esta ação é irreversível e removerá todos os itens da conta.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2">
@@ -636,7 +629,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       </AlertDialog>
 
       {isPaymentModalOpen && (
-        <OrderPaymentModal open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen} order={{ id: existingOrder?.id || '', displayName: existingOrder?.displayName || '', items: currentItems, total, customerId: existingOrder?.customerId || null }} onDeleteOrder={onDeleteOrder} onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} />
+        <OrderPaymentModal open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen} order={{ id: existingOrder?.id || '', displayName: existingOrder?.displayName || '', items: currentItems, total, customerId: existingOrder?.customerId || null, createdAt: existingOrder?.createdAt }} onDeleteOrder={onDeleteOrder} onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} />
       )}
     </>
   );
