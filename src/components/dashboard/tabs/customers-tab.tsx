@@ -109,7 +109,13 @@ export const CustomersTab: React.FC = () => {
                                 return (
                                     <AccordionItem key={letter} value={letter} className="bg-card border rounded-2xl overflow-hidden shadow-sm border-b-0">
                                         <AccordionTrigger className="px-6 hover:no-underline h-16 group">
-                                            <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 rounded-lg text-primary"><span className="font-black text-xs">{letter}</span></div><span className="font-black uppercase text-xs tracking-widest">Iniciais com {letter}</span><Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{customersInLetter.length} Fiéis</Badge></div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                                    <span className="font-black text-xs">{letter}</span>
+                                                </div>
+                                                <span className="font-black uppercase text-xs tracking-widest">{letter}</span>
+                                                <Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{customersInLetter.length} Fiéis</Badge>
+                                            </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="p-0 border-t border-border/10">
                                             <div className="flex flex-col gap-1 p-2">
@@ -139,7 +145,22 @@ export const CustomersTab: React.FC = () => {
                 {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
                 {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
                 {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
-                {selectedCustomer && modalState.delete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Deseja apagar permanentemente o registro de &quot;{selectedCustomer.name}&quot;?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6"><AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+                {selectedCustomer && modalState.delete && (
+                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
+                        <AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">
+                                    Deseja apagar permanentemente o registro de &quot;{selectedCustomer.name}&quot;?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6">
+                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel>
+                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl">Sim, Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
         </TooltipProvider>
     );

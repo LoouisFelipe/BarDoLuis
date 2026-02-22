@@ -186,7 +186,22 @@ export const ProductsTab: React.FC = () => {
                 )}
                 {modalState.form && <ProductFormModal product={selectedProduct} allProducts={products || []} open={modalState.form} onOpenChange={closeAllModals} onSave={saveProduct} />}
                 {modalState.stock && selectedProduct && <StockModal product={selectedProduct} open={modalState.stock} onOpenChange={closeAllModals} suppliers={suppliers} onAddStock={addStock} />}
-                {productToDelete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40"><AlertDialogHeader><AlertDialogTitle className="font-black text-destructive uppercase tracking-tight text-lg">Excluir Produto?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Apagar &quot;{productToDelete.name}&quot; permanentemente?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6"><AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 h-12 font-black uppercase text-[10px] rounded-xl">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+                {productToDelete && (
+                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
+                        <AlertDialogContent className="rounded-3xl p-8 border-border/40">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="font-black text-destructive uppercase tracking-tight text-lg">Excluir Produto?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">
+                                    Apagar &quot;{productToDelete.name}&quot; permanentemente?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6">
+                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel>
+                                <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 h-12 font-black uppercase text-[10px] rounded-xl">Sim, Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
         </TooltipProvider>
     );

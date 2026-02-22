@@ -71,7 +71,22 @@ export const SuppliersTab: React.FC = () => {
                 {modalState.form && <SupplierFormModal supplier={selectedSupplier} open={modalState.form} onOpenChange={closeAllModals} onSave={saveSupplier} />}
                 {modalState.purchase && <PurchaseModal open={modalState.purchase} onOpenChange={closeAllModals} suppliers={suppliers} products={products} preselectedSupplier={selectedSupplier || undefined} onSavePurchase={recordPurchaseAndUpdateStock} onSaveProduct={saveProduct} />}
                 {modalState.history && selectedSupplier && <PurchaseHistoryModal supplier={selectedSupplier} open={modalState.history} onOpenChange={closeAllModals} />}
-                {selectedSupplier && modalState.delete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase text-destructive tracking-tight text-lg">Excluir Fornecedor?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground mt-2">Deseja remover &quot;{selectedSupplier.name}&quot;?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2"><AlertDialogCancel className="h-12">Não</AlertDialogCancel><AlertDialogAction onClick={async () => { await deleteSupplier(selectedSupplier.id!); closeAllModals(); }} className="bg-destructive text-white h-12 font-black">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+                {selectedSupplier && modalState.delete && (
+                    <AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}>
+                        <AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="font-black uppercase text-destructive tracking-tight text-lg">Excluir Fornecedor?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground mt-2">
+                                    Deseja remover &quot;{selectedSupplier.name}&quot;?
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2">
+                                <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel>
+                                <AlertDialogAction onClick={async () => { await deleteSupplier(selectedSupplier.id!); closeAllModals(); }} className="bg-destructive text-white h-12 font-black">Sim, Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
         </TooltipProvider>
     );
