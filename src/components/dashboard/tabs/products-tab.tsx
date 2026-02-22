@@ -174,7 +174,7 @@ export const ProductsTab: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}><PlusCircle className="h-5 w-5" /> Novo Produto</Button>
+                    <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}><PlusCircle size={18} /> Novo Produto</Button>
                 </div>
                 {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
                     <>
