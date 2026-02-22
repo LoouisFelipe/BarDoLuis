@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -22,6 +23,10 @@ import { SupplierFormModal } from '@/components/suppliers/supplier-form-modal';
 import { PurchaseModal } from '@/components/suppliers/purchase-modal';
 import { PurchaseHistoryModal } from '@/components/suppliers/purchase-history-modal';
 
+/**
+ * @fileOverview Aba de Fornecedores.
+ * CTO: Saneamento de build e correção de sintaxe no seletor de visualização.
+ */
 export const SuppliersTab: React.FC = () => {
     const { suppliers, products, loading, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, saveProduct } = useData();
     const [modalState, setModalState] = useState({ form: false, purchase: false, history: false, delete: false });
@@ -165,7 +170,7 @@ export const SuppliersTab: React.FC = () => {
                             </AlertDialogHeader>
                             <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2">
                                 <AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel>
-                                <AlertDialogAction onClick={async () => { await deleteSupplier(selectedSupplier.id!); closeAllModals(); }} className="bg-destructive text-white h-12 font-black">Sim, Excluir</AlertDialogAction>
+                                <AlertDialogAction onClick={async () => { if (selectedSupplier.id) await deleteSupplier(selectedSupplier.id); closeAllModals(); }} className="bg-destructive text-white h-12 font-black uppercase text-[10px] rounded-xl">Sim, Excluir</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

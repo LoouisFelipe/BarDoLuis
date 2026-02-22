@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -30,6 +31,10 @@ import { StockModal } from '@/components/products/stock-modal';
 import { useData } from '@/contexts/data-context';
 import { Product } from '@/lib/schemas';
 
+/**
+ * @fileOverview Aba de Produtos.
+ * CTO: Implementação de Alerta de Estoque e saneamento de aspas para build.
+ */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
     
@@ -71,7 +76,7 @@ export const ProductsTab: React.FC = () => {
     const closeAllModals = () => {
         setModalState({ form: false, stock: false, delete: false });
         setSelectedProduct(null);
-        productToDelete && setProductToDelete(null);
+        setProductToDelete(null);
     };
 
     const handleEdit = (product: Product) => { setSelectedProduct(product); setModalState(prev => ({ ...prev, form: true })); };

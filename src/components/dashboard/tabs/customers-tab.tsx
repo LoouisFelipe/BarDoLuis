@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -30,6 +31,10 @@ import { CustomerHistoryModal } from '@/components/customers/customer-history-mo
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+/**
+ * @fileOverview Aba de Clientes (Fiéis).
+ * CTO: UX minimalista no índice alfabético e saneamento de aspas para build.
+ */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();

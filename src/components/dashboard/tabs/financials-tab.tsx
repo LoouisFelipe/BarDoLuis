@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
-import { TrendingUp, TrendingDown, History, Scale, Users, PlusCircle, ArrowRightLeft, Trash2, Repeat, Info, ShoppingCart, HandCoins } from 'lucide-react';
+import { TrendingUp, TrendingDown, History, Scale, Users, PlusCircle, ArrowRightLeft, Trash2, Repeat, ShoppingCart } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useData } from '@/contexts/data-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -24,6 +25,10 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
 
+/**
+ * @fileOverview Aba Financeira Master.
+ * CTO: Saneamento total de build e correção de sintaxe JSX.
+ */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, deleteTransaction } = useData();
     const { isAdmin } = useAuth(); 
@@ -97,17 +102,79 @@ export function FinancialsTab() {
                 <div className="flex bg-card/50 p-1.5 rounded-2xl border w-full sm:w-fit"><Button variant="ghost" onClick={() => setActiveTab('fluxo')} className={cn("flex-1 text-[10px] font-black uppercase gap-2 px-6 h-10 rounded-xl", activeView === 'fluxo' ? "bg-primary/20 text-primary" : "text-muted-foreground")}><History size={14} /> Fluxo</Button><Button variant="ghost" onClick={() => setActiveTab('custos')} className={cn("flex-1 text-[10px] font-black uppercase gap-2 px-6 h-10 rounded-xl", activeView === 'custos' ? "bg-primary/20 text-primary" : "text-muted-foreground")}><ArrowRightLeft size={14} /> Custos</Button></div>
                 <div className="min-h-[400px]">
                     {activeView === 'fluxo' ? (
-                        <div className="space-y-4">{filteredTransactions.map((t: any) => {
-                            const dateVal = t.timestamp instanceof Date ? t.timestamp : t.timestamp?.toDate?.() || new Date();
-                            const isExpense = t.type === 'expense';
-                            return (<div key={t.id} className="group flex items-center p-4 rounded-xl bg-card border hover:border-primary/30 transition-all cursor-pointer" onClick={() => setSelectedTransaction(t)}><div className={cn("mr-4 p-2 rounded-lg", isExpense ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500')}>{t.type === 'sale' ? <ShoppingCart size={18} /> : <TrendingDown size={18} />}</div><div className="flex-grow pr-2"><p className="font-bold text-sm truncate uppercase text-slate-100">{t.description || t.tabName || 'Venda'}</p><p className="text-[9px] text-muted-foreground/60 font-bold uppercase">{format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}</p></div><div className="flex items-center gap-4"><span className={cn("font-black text-sm", isExpense ? 'text-red-500' : 'text-emerald-400')}>{isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}</span>{isAdmin && <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}}><Trash2 size={16} /></Button>}</div></div>);
-                        })}</div>
+                        <div className="space-y-4">
+                            {filteredTransactions.map((t: any) => {
+                                const dateVal = t.timestamp instanceof Date ? t.timestamp : t.timestamp?.toDate?.() || new Date();
+                                const isExpense = t.type === 'expense';
+                                return (
+                                    <div key={t.id} className="group flex items-center p-4 rounded-xl bg-card border hover:border-primary/30 transition-all cursor-pointer" onClick={() => setSelectedTransaction(t)}>
+                                        <div className={cn("mr-4 p-2 rounded-lg", isExpense ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500')}>{t.type === 'sale' ? <ShoppingCart size={18} /> : <TrendingDown size={18} />}</div>
+                                        <div className="flex-grow pr-2"><p className="font-bold text-sm truncate uppercase text-slate-100">{t.description || t.tabName || 'Venda'}</p><p className="text-[9px] text-muted-foreground/60 font-bold uppercase">{format(dateVal, 'HH:mm')} • {t.paymentMethod || t.expenseCategory || 'Geral'}</p></div>
+                                        <div className="flex items-center gap-4"><span className={cn("font-black text-sm", isExpense ? 'text-red-500' : 'text-emerald-400')}>{isExpense ? '-' : '+'} R$ {Number(t.total || 0).toFixed(2)}</span>{isAdmin && <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}}><Trash2 size={16} /></Button>}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     ) : (
-                        <div className="grid gap-3">{(recurringExpenses || []).map((exp) => (<div key={exp.id} className="p-5 rounded-2xl bg-card border border-dashed hover:border-primary/40 transition-colors"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><div className="p-2 bg-primary/5 rounded-lg text-primary"><Repeat size={18} /></div><div><h4 className="font-bold text-sm mb-1 uppercase">{exp.description}</h4><Badge variant="outline" className="text-[7px] font-black uppercase bg-muted/20">Dia {exp.dayOfMonth}</Badge></div></div><p className="text-base font-black text-red-500">- R$ {Number(exp.amount || 0).toFixed(2)}</p></div></div>))}</div>
+                        <div className="grid gap-3">
+                            {(recurringExpenses || []).map((exp) => (
+                                <div key={exp.id} className="p-5 rounded-2xl bg-card border border-dashed hover:border-primary/40 transition-colors">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-primary/5 rounded-lg text-primary"><Repeat size={18} /></div>
+                                            <div><h4 className="font-bold text-sm mb-1 uppercase">{exp.description}</h4><Badge variant="outline" className="text-[7px] font-black uppercase bg-muted/20">Dia {exp.dayOfMonth}</Badge></div>
+                                        </div>
+                                        <p className="text-base font-black text-red-500">- R$ {Number(exp.amount || 0).toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
-                {isExpenseModalOpen && (<Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}><DialogContent className="sm:max-w-md bg-card rounded-3xl p-6"><DialogHeader><DialogTitle className="font-black uppercase text-base">REGISTRAR SAÍDA</DialogTitle></DialogHeader><Form {...form}><form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4"><div className="space-y-4"><FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Tipo</Label><Select onValueChange={(v: any) => { setExpenseType(v); setValue('category', ''); }} value={expenseType}><FormControl><SelectTrigger className="h-12 bg-background rounded-xl font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="variable" className="font-bold text-[10px]">Variável (Única)</SelectItem><SelectItem value="fixed" className="font-bold text-[10px]">Fixa (Recorrente)</SelectItem></SelectContent></Select></FormItem><FormField control={control} name="description" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Descrição</Label><FormControl><Input placeholder="Ex: Gelo, Gás..." required {...field} className="h-12 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>)}/><FormField control={control} name="category" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Categoria</Label><FormControl><Combobox options={Object.entries(expenseType === 'fixed' ? fixedCategories : variableCategories).map(([v, l]) => ({ value: v, label: l }))} value={field.value} onChange={(v) => field.onChange(v)} placeholder="Escolha..." createLabel="Nova:" /></FormControl><FormMessage /></FormItem>)}/><div className="grid grid-cols-2 gap-3"><FormField control={control} name="amount" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Valor (R$)</Label><FormControl><Input type="number" step="0.01" required {...field} className="h-12 rounded-xl font-black text-red-500" /></FormControl><FormMessage /></FormItem>)}/><FormField control={control} name="expenseDate" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Data</Label><FormControl><Input type="date" required {...field} className="h-12 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>)} /></div>{expenseType === 'fixed' && (<div className="p-4 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/5 space-y-3"><FormField control={control} name="replicate" render={({ field }) => (<FormItem className="flex items-center justify-between"><Label className="text-[9px] font-black uppercase text-primary">Recorrência</Label><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />{isReplicating && (<FormField control={control} name="monthsToReplicate" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Meses</Label><FormControl><Input type="number" {...field} className="h-10 rounded-xl" /></FormControl></FormItem>)} />)}</div>)}</div><DialogFooter className="pt-6 border-t"><Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 flex-1">Cancelar</Button><Button type="submit" disabled={processing} className="h-12 bg-red-600 text-white rounded-xl flex-[2] font-black">{processing ? <Spinner size="h-4 w-4" /> : "Confirmar Saída"}</Button></DialogFooter></form></Form></DialogContent></Dialog>)}
-                {transactionToDelete && (<AlertDialog open={!!transactionToDelete} onOpenChange={() => setTransactionToDelete(null)}><AlertDialogContent className="rounded-3xl p-8"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase text-red-500">Anular Registro?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase leading-relaxed mt-2">Deseja remover este lançamento?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2"><AlertDialogCancel className="h-12">Não</AlertDialogCancel><AlertDialogAction onClick={handleDeleteTransaction} className="h-12 bg-red-600 text-white font-black">Sim, Anular</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+                {isExpenseModalOpen && (
+                    <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
+                        <DialogContent className="sm:max-w-md bg-card rounded-3xl p-6">
+                            <DialogHeader><DialogTitle className="font-black uppercase text-base">REGISTRAR SAÍDA</DialogTitle></DialogHeader>
+                            <Form {...form}>
+                                <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
+                                    <div className="space-y-4">
+                                        <FormItem>
+                                            <Label className="text-[9px] font-black uppercase text-muted-foreground">Tipo</Label>
+                                            <Select onValueChange={(v: any) => { setExpenseType(v); setValue('category', ''); }} value={expenseType}>
+                                                <FormControl><SelectTrigger className="h-12 bg-background rounded-xl font-bold"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent><SelectItem value="variable" className="font-bold text-[10px]">Variável (Única)</SelectItem><SelectItem value="fixed" className="font-bold text-[10px]">Fixa (Recorrente)</SelectItem></SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                        <FormField control={control} name="description" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Descrição</Label><FormControl><Input placeholder="Ex: Gelo, Gás..." required {...field} className="h-12 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>)}/>
+                                        <FormField control={control} name="category" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Categoria</Label><FormControl><Combobox options={Object.entries(expenseType === 'fixed' ? fixedCategories : variableCategories).map(([v, l]) => ({ value: v, label: l }))} value={field.value} onChange={(v) => field.onChange(v)} placeholder="Escolha..." createLabel="Nova:" /></FormControl><FormMessage /></FormItem>)}/>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <FormField control={control} name="amount" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Valor (R$)</Label><FormControl><Input type="number" step="0.01" required {...field} className="h-12 rounded-xl font-black text-red-500" /></FormControl><FormMessage /></FormItem>)}/>
+                                            <FormField control={control} name="expenseDate" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Data</Label><FormControl><Input type="date" required {...field} className="h-12 rounded-xl font-bold" /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                        {expenseType === 'fixed' && (
+                                            <div className="p-4 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/5 space-y-3">
+                                                <FormField control={control} name="replicate" render={({ field }) => (<FormItem className="flex items-center justify-between"><Label className="text-[9px] font-black uppercase text-primary">Recorrência</Label><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
+                                                {isReplicating && (<FormField control={control} name="monthsToReplicate" render={({ field }) => (<FormItem><Label className="text-[9px] font-black uppercase text-muted-foreground">Meses</Label><FormControl><Input type="number" {...field} className="h-10 rounded-xl" /></FormControl></FormItem>)} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <DialogFooter className="pt-6 border-t">
+                                        <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 flex-1">Cancelar</Button>
+                                        <Button type="submit" disabled={processing} className="h-12 bg-red-600 text-white rounded-xl flex-[2] font-black">{processing ? <Spinner size="h-4 w-4" /> : "Confirmar Saída"}</Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
+                )}
+                {transactionToDelete && (
+                    <AlertDialog open={!!transactionToDelete} onOpenChange={() => setTransactionToDelete(null)}>
+                        <AlertDialogContent className="rounded-3xl p-8">
+                            <AlertDialogHeader><AlertDialogTitle className="font-black uppercase text-red-500">Anular Registro?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase leading-relaxed mt-2">Deseja remover este lançamento?</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2"><AlertDialogCancel className="h-12">Não</AlertDialogCancel><AlertDialogAction onClick={handleDeleteTransaction} className="h-12 bg-red-600 text-white font-black">Sim, Anular</AlertDialogAction></AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
                 {selectedTransaction && (<TransactionDetailModal transaction={selectedTransaction} open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)} />)}
             </div>
         </TooltipProvider>

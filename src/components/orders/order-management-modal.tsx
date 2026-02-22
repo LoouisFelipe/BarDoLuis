@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -40,6 +41,10 @@ interface OrderManagementModalProps {
   onDeleteOrder: (orderId: string) => Promise<void>;
 }
 
+/**
+ * @fileOverview Gestão de Comanda Master.
+ * CTO: UX Mobile-First, Subcategorias Clicáveis e Motor de Crédito/Débito Avulso.
+ */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
   onOpenChange,
@@ -215,7 +220,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const renderItemRow = (item: any) => (
     <div 
-      key={`${item.id}-${item.saleType}`} 
+      key={`${item.id}-${item.saleType}-${item.name}`} 
       className="flex items-center justify-between p-4 bg-slate-900/40 hover:bg-slate-900/60 transition-all cursor-pointer rounded-xl border border-border/10 group active:scale-[0.98]"
       onClick={() => {
           if (item.saleType === 'game') {
