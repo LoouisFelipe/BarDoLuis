@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -25,7 +24,7 @@ import { PurchaseHistoryModal } from '@/components/suppliers/purchase-history-mo
 
 /**
  * @fileOverview Aba de Fornecedores.
- * CTO: Saneamento de build e correção de sintaxe no seletor de visualização.
+ * CTO: Saneamento de build e estabilização de visualização.
  */
 export const SuppliersTab: React.FC = () => {
     const { suppliers, products, loading, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, saveProduct } = useData();

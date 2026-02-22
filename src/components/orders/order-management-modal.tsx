@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -324,7 +323,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         acc[sub].push(i);
                         return acc;
                     }, {} as Record<string, any[]>);
-                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
                     return (
                         <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
                             <AccordionTrigger className="px-5 hover:no-underline h-16 group">
