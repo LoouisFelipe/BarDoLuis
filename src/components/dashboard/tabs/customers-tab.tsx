@@ -30,8 +30,6 @@ import { CustomerHistoryModal } from '@/components/customers/customer-history-mo
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();
@@ -41,10 +39,12 @@ export const CustomersTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
 
+    const alphabet = useMemo(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), []);
+
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
         return alphabet.filter(l => initials.has(l)).sort();
-    }, [customers]);
+    }, [customers, alphabet]);
 
     const filteredCustomers = useMemo(() => {
         return customers
