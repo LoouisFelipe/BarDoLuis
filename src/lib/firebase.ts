@@ -6,9 +6,8 @@ import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
 /**
- * @fileOverview Inicialização soberana do Firebase para o BarDoLuis.
+ * @fileOverview Inicialização Soberana do Firebase.
  * CTO: Conexão direta e exclusiva com a instância de banco 'bardoluis'.
- * SSR: Resiliência garantida para evitar crashes no servidor.
  */
 
 // 1. Inicialização do App (Singleton)

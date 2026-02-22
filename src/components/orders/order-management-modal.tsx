@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -42,8 +41,8 @@ interface OrderManagementModalProps {
 }
 
 /**
- * @fileOverview Gestão de Comanda Master.
- * CTO: Correção de localeCompare, UX Mobile-First e Motor de Crédito/Débito Avulso.
+ * @fileOverview Gestão de Comanda Master Mobile-First.
+ * CTO: Correção de localeCompare, UX de Subcategorias Clicáveis e Motor de Crédito/Débito.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -101,14 +100,14 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   }, [products, gameModalities]);
 
   const categories = useMemo(() => {
-    const cats = new Set(allItems.map(i => i.category.toUpperCase()));
+    const cats = new Set(allItems.map(i => (i.category || 'GERAL').toUpperCase()));
     return Array.from(cats).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [allItems]);
 
   const filteredItems = useMemo(() => {
     return allItems.filter(item => {
         const matchesSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || (item.category || '').toUpperCase() === selectedCategory.toUpperCase();
+        const matchesCategory = !selectedCategory || (item.category || 'GERAL').toUpperCase() === selectedCategory.toUpperCase();
         return matchesSearch && matchesCategory;
     });
   }, [allItems, searchTerm, selectedCategory]);
@@ -316,7 +315,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           ) : (
             <Accordion type="multiple" className="space-y-2 pb-24">
                 {categories.map(cat => {
-                    const itemsInCategory = allItems.filter(i => (i.category || '').toUpperCase() === cat);
+                    const itemsInCategory = allItems.filter(i => (i.category || 'GERAL').toUpperCase() === cat);
                     if (itemsInCategory.length === 0) return null;
                     const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
                         const sub = (i.subcategory || 'Diversos').toUpperCase();
@@ -478,7 +477,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 py-4">
-            {itemToCustomize?.type === 'manual' && (
+            {(itemToCustomize?.type === 'manual' || itemToCustomize?.type === 'service') && (
               <>
                 <div className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
                   <Button 
@@ -500,18 +499,18 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label>
-                  <Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: COUVERT" autoFocus />
+                  <Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: COUVERT, PRÊMIO BINGO..." autoFocus />
                 </div>
               </>
             )}
             <div className="space-y-2">
               <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</Label>
-              <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className={cn("h-16 text-3xl font-black bg-slate-950 border-none rounded-xl text-center", manualType === 'credit' ? "text-emerald-400" : "text-primary")} placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual'} />
+              <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className={cn("h-16 text-3xl font-black bg-slate-950 border-none rounded-xl text-center", manualType === 'credit' ? "text-emerald-400" : "text-primary")} placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual' && itemToCustomize?.type !== 'service'} />
             </div>
             {itemToCustomize?.type === 'game' && (
               <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Referência</Label>
-                <Input value={customData.identifier} onChange={(e) => setCustomItemData(p => ({ ...p, identifier: e.target.value }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: MILHAR 1234" />
+                <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Referência (Milhar/Máquina)</Label>
+                <Input value={customData.identifier} onChange={(e) => setCustomItemData(p => ({ ...p, identifier: e.target.value }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: 1234" />
               </div>
             )}
           </div>

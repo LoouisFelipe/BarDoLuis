@@ -33,7 +33,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    // CEO: Explicitamente apontando para a instância de banco 'bardoluis'
+    // CEO: Explicitamente apontando para a instância de banco 'bardoluis' conforme console
     firestore: getFirestore(firebaseApp, 'bardoluis')
   };
 }

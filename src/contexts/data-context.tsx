@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
@@ -302,13 +301,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // CTO: Blindagem de Sincronização. Só tentamos atualizar estoque de PRODUTOS REAIS.
+        // CTO: Blindagem de Sincronização. 
+        // IGNORA IDs manuais ou de banca para evitar crash de 'No document to update'
         order.items.forEach(item => {
-          const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
           const isManual = item.productId.startsWith('manual-');
+          const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
           const product = productsData?.find(p => p.id === item.productId);
 
-          if (!isGame && !isManual && product) {
+          if (!isManual && !isGame && product) {
             const dec = item.size ? item.size * item.quantity : item.quantity;
             t.update(doc(db, 'products', item.productId), { 
               stock: increment(-dec), 
