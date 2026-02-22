@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -44,7 +45,7 @@ export const SuppliersTab: React.FC = () => {
     
     if (loading) return <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div>;
 
-    const sortedSuppliers = [...suppliers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const sortedSuppliers = [...suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 
     return (
         <TooltipProvider>

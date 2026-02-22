@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -46,18 +47,18 @@ export const CustomersTab: React.FC = () => {
     const alphabet = useMemo(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), []);
 
     const activeLetters = useMemo(() => {
-        const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
+        const initials = new Set(customers.map(c => (c.name || '').charAt(0).toUpperCase()));
         return alphabet.filter(l => initials.has(l)).sort();
     }, [customers, alphabet]);
 
     const filteredCustomers = useMemo(() => {
         return customers
             .filter(c => {
-                const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesFilter = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
                 return matchesSearch && matchesFilter;
             })
-            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
     }, [customers, searchTerm, filterType]);
 
     const closeAllModals = useCallback(() => {
@@ -108,7 +109,7 @@ export const CustomersTab: React.FC = () => {
 
                         <Accordion type="multiple" className="space-y-3 pb-24 pr-1">
                             {activeLetters.map(letter => {
-                                const customersInLetter = filteredCustomers.filter(c => c.name.charAt(0).toUpperCase() === letter);
+                                const customersInLetter = filteredCustomers.filter(c => (c.name || '').charAt(0).toUpperCase() === letter);
                                 if (customersInLetter.length === 0) return null;
                                 return (
                                     <AccordionItem key={letter} value={letter} className="bg-card border rounded-2xl overflow-hidden shadow-sm border-b-0">

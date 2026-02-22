@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -96,7 +97,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const allItems = useMemo(() => {
     const p = products.map(prod => ({ ...prod, type: 'product' as const }));
     const g = gameModalities.map(game => ({ ...game, type: 'game' as const, saleType: 'game' as const, stock: null }));
-    return [...p, ...g].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return [...p, ...g].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
   }, [products, gameModalities]);
 
   const categories = useMemo(() => {
@@ -106,16 +107,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const filteredItems = useMemo(() => {
     return allItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = !selectedCategory || item.category.toUpperCase() === selectedCategory.toUpperCase();
+        const matchesSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = !selectedCategory || (item.category || '').toUpperCase() === selectedCategory.toUpperCase();
         return matchesSearch && matchesCategory;
     });
   }, [allItems, searchTerm, selectedCategory]);
 
   const filteredCustomersForLink = useMemo(() => {
     return customers.filter(c => 
-      c.name.toLowerCase().includes(customerSearch.toLowerCase())
-    ).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+      (c.name || '').toLowerCase().includes(customerSearch.toLowerCase())
+    ).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
   }, [customers, customerSearch]);
 
   const handleUpdateQuantity = (productId: string, doseName: string | undefined | null, change: number, identifier?: string) => {
@@ -259,7 +260,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               <PopoverContent align="end" className="w-64 p-2 bg-slate-900 border-slate-800 rounded-2xl shadow-2xl">
                 <div className="flex flex-col gap-1">
                   <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mb-1 px-2">Selecione Dose</p>
-                  {item.doseOptions?.filter((d: any) => d.enabled).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((dose: any) => (
+                  {item.doseOptions?.filter((d: any) => d.enabled).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((dose: any) => (
                     <Button key={dose.name} onClick={() => handleAddItem(item, dose)} variant="ghost" className="justify-between text-xs h-12 font-black uppercase hover:bg-primary/10 rounded-lg px-4">
                       <span>{dose.name}</span><span className="text-primary">R$ {dose.price.toFixed(2)}</span>
                     </Button>
@@ -268,7 +269,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               </PopoverContent>
             </Popover>
           ) : (
-            <div className="h-10 w-10 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center"><Plus className="h-5 w-5" /></div>
+            <div className="h-10 w-10 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/40 transition-all"><Plus className="h-5 w-5" /></div>
           )}
       </div>
     </div>
@@ -315,7 +316,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           ) : (
             <Accordion type="multiple" className="space-y-2 pb-24">
                 {categories.map(cat => {
-                    const itemsInCategory = allItems.filter(i => i.category.toUpperCase() === cat);
+                    const itemsInCategory = allItems.filter(i => (i.category || '').toUpperCase() === cat);
                     if (itemsInCategory.length === 0) return null;
                     const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
                         const sub = (i.subcategory || 'Diversos').toUpperCase();

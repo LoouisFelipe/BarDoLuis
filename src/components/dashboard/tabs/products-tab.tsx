@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
@@ -55,21 +56,21 @@ export const ProductsTab: React.FC = () => {
     }, [barProducts]);
 
     const categories = useMemo(() => {
-        const uniqueCategories = new Set(barProducts.map(p => p.category.toUpperCase()));
+        const uniqueCategories = new Set(barProducts.map(p => (p.category || '').toUpperCase()));
         return Array.from(uniqueCategories).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }, [barProducts]);
 
     const filteredProducts = useMemo(() => {
         return barProducts.filter(p => {
-            const matchesCategory = !selectedCategory || p.category.toUpperCase() === selectedCategory.toUpperCase();
+            const matchesCategory = !selectedCategory || (p.category || '').toUpperCase() === selectedCategory.toUpperCase();
             const matchesSearch = searchTerm === '' || 
-                                p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                p.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
+                                (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (p.subcategory || '').toLowerCase().includes(searchTerm.toLowerCase());
             const isLowStock = p.saleType !== 'service' && p.stock <= (p.lowStockThreshold || 0);
             const matchesLowStockFilter = !showLowStockOnly || isLowStock;
             
             return matchesCategory && matchesSearch && matchesLowStockFilter;
-        }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
     }, [barProducts, selectedCategory, searchTerm, showLowStockOnly]);
 
     const closeAllModals = () => {
@@ -90,7 +91,7 @@ export const ProductsTab: React.FC = () => {
     };
 
     const renderGridView = () => {
-        const gridCategories = categories.filter(cat => filteredProducts.some(p => p.category.toUpperCase() === cat));
+        const gridCategories = categories.filter(cat => filteredProducts.some(p => (p.category || '').toUpperCase() === cat));
         return (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-20 pr-1">
                 {gridCategories.map(cat => (
@@ -107,7 +108,7 @@ export const ProductsTab: React.FC = () => {
     const renderListView = () => (
         <Accordion type="multiple" className="space-y-3 pb-20 pr-1">
             {categories.map(cat => {
-                const itemsInCategory = filteredProducts.filter(p => p.category.toUpperCase() === cat);
+                const itemsInCategory = filteredProducts.filter(p => (p.category || '').toUpperCase() === cat);
                 if (itemsInCategory.length === 0) return null;
                 const subcategoriesMap = itemsInCategory.reduce((acc, p) => {
                     const sub = (p.subcategory || 'Diversos').toUpperCase();

@@ -7,7 +7,7 @@ import { UserProfile, useAuth } from './auth-context';
 import { useToast } from "@/hooks/use-toast"; 
 import { db } from '@/lib/firebase';
 import { useCollection } from '@/hooks/use-collection';
-import { addMonths, format, setDate as setDateOfMonth } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useMemoFirebase } from '@/hooks/use-memo-firebase';
@@ -302,11 +302,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
+        // CTO: Blindagem de Sincronização. Só tentamos atualizar estoque de PRODUTOS REAIS.
         order.items.forEach(item => {
           const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
-          if (!isGame) {
+          const isManual = item.productId.startsWith('manual-');
+          const product = productsData?.find(p => p.id === item.productId);
+
+          if (!isGame && !isManual && product) {
             const dec = item.size ? item.size * item.quantity : item.quantity;
-            t.update(doc(db, 'products', item.productId), { stock: increment(-dec), updatedAt: serverTimestamp() });
+            t.update(doc(db, 'products', item.productId), { 
+              stock: increment(-dec), 
+              updatedAt: serverTimestamp() 
+            });
           }
         });
 
@@ -352,7 +359,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const batch = writeBatch(db);
     const baseDate = new Date(dateString + 'T12:00:00');
     
-    // CEO: Se for recorrente, criamos o registro mestre para auditoria futura
     let recurringId: string | null = null;
     if (replicateMonths > 0) {
       const recurringRef = doc(collection(db, 'recurring_expenses'));
@@ -382,7 +388,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         expenseCategory: category, 
         items: [], 
         userId: user?.uid || null,
-        recurringExpenseId: recurringId // Vínculo para facilitar exclusão em lote se o plano for cancelado
+        recurringExpenseId: recurringId 
       }));
     }
     await batch.commit();
