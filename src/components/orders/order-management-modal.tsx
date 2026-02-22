@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Plus, Minus, Trash2, ShoppingCart, Search, X, Receipt, ShoppingBasket, Users, Menu, Dices, Package, ChevronRight, LayoutGrid, List, Zap, Hash, AlertTriangle } from 'lucide-react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { OrderPaymentModal } from './order-payment-modal';
@@ -65,6 +65,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
   const [itemToCustomize, setItemToCustomize] = useState<{ id: string, name: string, type: 'game' | 'service' | 'manual', unitPrice?: number } | null>(null);
   const [customData, setCustomItemData] = useState({ price: '', identifier: '', name: '' });
+  const [manualType, setManualType] = useState<'debit' | 'credit'>('debit');
 
   const linkedCustomer = useMemo(() => 
     customers.find(c => c.id === existingOrder?.customerId),
@@ -82,6 +83,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       setActiveTab('menu');
       setItemToCustomize(null);
       setSelectedCategory(null);
+      setManualType('debit');
     }
   }, [open, existingOrder]);
   
@@ -152,15 +154,24 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             return [...prevItems, newItem];
         }
     });
-    toast({ description: `${newItem.name} adicionado!`, duration: 800, className: "bg-primary text-primary-foreground font-bold" });
+    const desc = newItem.unitPrice < 0 ? 'Crédito adicionado!' : 'Item adicionado!';
+    toast({ description: desc, duration: 800, className: "bg-primary text-primary-foreground font-bold" });
   }, [toast]);
 
   const handleCustomConfirm = () => {
     if (!itemToCustomize) return;
-    const price = parseFloat(customData.price) || 0;
-    handleAddItem(itemToCustomize, undefined, price, customData.identifier, customData.name || undefined);
+    let price = parseFloat(customData.price) || 0;
+    
+    if (manualType === 'credit') {
+        price = -Math.abs(price);
+    } else {
+        price = Math.abs(price);
+    }
+
+    handleAddItem(itemToCustomize, undefined, price, customData.identifier, (customData.name || itemToCustomize.name).toUpperCase());
     setItemToCustomize(null);
     setCustomItemData({ price: '', identifier: '', name: '' });
+    setManualType('debit');
   };
 
   const handleSaveOrder = async () => {
@@ -362,7 +373,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                   <p className="font-bold text-sm truncate uppercase tracking-tight text-foreground">{item.name}</p>
                   {item.doseName && <p className="text-[9px] text-primary font-black uppercase mt-0.5">{item.doseName}</p>}
                   {item.identifier && <p className="text-[9px] text-orange-500 font-black uppercase flex items-center gap-1 mt-0.5"><Hash size={8}/> {item.identifier}</p>}
-                  <p className="text-[10px] font-bold text-muted-foreground mt-1 opacity-60">R$ {item.unitPrice.toFixed(2)}</p>
+                  <p className={cn("text-[10px] font-bold mt-1 opacity-60", item.unitPrice < 0 ? "text-emerald-400" : "text-muted-foreground")}>R$ {item.unitPrice.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center bg-slate-950/50 rounded-xl p-1 border border-slate-800">
@@ -426,8 +437,85 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
             </DialogContent>
         </Dialog>
       </TooltipProvider>
-      <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}><DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5"><DialogHeader><DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm"><Users className="text-primary h-5 w-5" /> VINCULAR FIEL</DialogTitle></DialogHeader><div className="space-y-4 py-4"><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar fiel..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} className="pl-10 h-12 bg-slate-950 border-slate-800 font-bold rounded-xl" autoFocus /></div><ScrollArea className="h-[300px] border border-slate-800 rounded-2xl bg-slate-950/50"><div className="p-2 space-y-1">{filteredCustomersForLink.map(c => (<Button key={c.id} variant="ghost" className="w-full justify-between h-12 font-bold uppercase text-[10px] hover:bg-primary/10 rounded-lg px-4" onClick={() => handleLinkCustomer(c)}><span className="truncate">{c.name}</span>{c.balance > 0 && <span className="text-[8px] text-yellow-500 font-black ml-2">R$ {c.balance.toFixed(2)}</span>}</Button>))}</div></ScrollArea></div><DialogFooter><Button variant="ghost" onClick={() => setIsLinkCustomerOpen(false)} className="h-12 font-black uppercase text-[10px] rounded-xl w-full">FECHAR</Button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={!!itemToCustomize} onOpenChange={(o) => !o && setItemToCustomize(null)}><DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5"><DialogHeader><DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm"><Zap className="text-orange-500 h-5 w-5" /> {itemToCustomize?.name}</DialogTitle></DialogHeader><div className="space-y-5 py-4">{itemToCustomize?.type === 'manual' && (<div className="space-y-2"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label><Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: COUVERT" autoFocus /></div>)}<div className="space-y-2"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</Label><Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className="h-16 text-3xl font-black text-primary bg-slate-950 border-none rounded-xl text-center" placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual'} /></div>{itemToCustomize?.type === 'game' && (<div className="space-y-2"><Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Referência</Label><Input value={customData.identifier} onChange={(e) => setCustomItemData(p => ({ ...p, identifier: e.target.value }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: MILHAR 1234" /></div>)}</div><DialogFooter className="grid grid-cols-2 gap-2"><Button variant="ghost" onClick={() => setItemToCustomize(null)} className="h-12 font-black uppercase text-[10px] rounded-xl">CANCELAR</Button><Button onClick={handleCustomConfirm} className="bg-primary text-white font-black uppercase h-12 rounded-xl text-[10px]">CONFIRMAR</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
+        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm">
+              <Users className="text-primary h-5 w-5" /> VINCULAR FIEL
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar fiel..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} className="pl-10 h-12 bg-slate-950 border-slate-800 font-bold rounded-xl" autoFocus />
+            </div>
+            <ScrollArea className="h-[300px] border border-slate-800 rounded-2xl bg-slate-950/50">
+              <div className="p-2 space-y-1">
+                {filteredCustomersForLink.map(c => (
+                  <Button key={c.id} variant="ghost" className="w-full justify-between h-12 font-bold uppercase text-[10px] hover:bg-primary/10 rounded-lg px-4" onClick={() => handleLinkCustomer(c)}>
+                    <span className="truncate">{c.name}</span>
+                    {c.balance > 0 && <span className="text-[8px] text-yellow-500 font-black ml-2">R$ {c.balance.toFixed(2)}</span>}
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsLinkCustomerOpen(false)} className="h-12 font-black uppercase text-[10px] rounded-xl w-full">FECHAR</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!itemToCustomize} onOpenChange={(o) => !o && setItemToCustomize(null)}>
+        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm">
+              <Zap className="text-orange-500 h-5 w-5" /> {itemToCustomize?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-4">
+            {itemToCustomize?.type === 'manual' && (
+              <>
+                <div className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                  <Button 
+                    type="button"
+                    variant={manualType === 'debit' ? 'default' : 'ghost'} 
+                    className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'debit' && "bg-primary text-white shadow-lg")}
+                    onClick={() => setManualType('debit')}
+                  >
+                    Débito (+)
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant={manualType === 'credit' ? 'default' : 'ghost'} 
+                    className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'credit' && "bg-emerald-600 text-white shadow-lg")}
+                    onClick={() => setManualType('credit')}
+                  >
+                    Crédito (-)
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label>
+                  <Input value={customData.name} onChange={(e) => setCustomItemData(p => ({ ...p, name: e.target.value.toUpperCase() }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: COUVERT" autoFocus />
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Valor (R$)</Label>
+              <Input type="number" step="0.01" value={customData.price} onChange={(e) => setCustomItemData(p => ({ ...p, price: e.target.value }))} className={cn("h-16 text-3xl font-black bg-slate-950 border-none rounded-xl text-center", manualType === 'credit' ? "text-emerald-400" : "text-primary")} placeholder="0.00" autoFocus={itemToCustomize?.type !== 'manual'} />
+            </div>
+            {itemToCustomize?.type === 'game' && (
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Referência</Label>
+                <Input value={customData.identifier} onChange={(e) => setCustomItemData(p => ({ ...p, identifier: e.target.value }))} className="h-12 font-black uppercase bg-slate-950 border-slate-800 rounded-xl" placeholder="EX: MILHAR 1234" />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="grid grid-cols-2 gap-2">
+            <Button variant="ghost" onClick={() => setItemToCustomize(null)} className="h-12 font-black uppercase text-[10px] rounded-xl">CANCELAR</Button>
+            <Button onClick={handleCustomConfirm} className={cn("text-white font-black uppercase h-12 rounded-xl text-[10px]", manualType === 'credit' ? "bg-emerald-600" : "bg-primary")}>CONFIRMAR</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent className="bg-slate-900 border-border/40 rounded-3xl p-8">
           <AlertDialogHeader>

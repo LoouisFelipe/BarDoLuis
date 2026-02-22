@@ -177,7 +177,7 @@ export const ProductsTab: React.FC = () => {
                         {(selectedCategory || searchTerm || showLowStockOnly) && (
                             <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-left-2">
                                 <Button variant="ghost" size="sm" onClick={() => { setSelectedCategory(null); setSearchTerm(''); setShowLowStockOnly(false); }} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full"><X size={12} /> Limpar</Button>
-                                {selectedCategory && <Badge className="text-[8px] font-black uppercase tracking-widest bg-primary text-white h-7 px-3 rounded-full">{selectedCategory}</Badge>}
+                                {selectedCategory && <Badge className="h-7 rounded-full px-3 font-black uppercase tracking-widest text-[8px] bg-primary text-white border-none">{selectedCategory}</Badge>}
                                 {showLowStockOnly && <Badge variant="destructive" className="text-[8px] font-black uppercase h-7 px-3 rounded-full flex items-center gap-1"><AlertTriangle size={10}/> Crítico</Badge>}
                             </div>
                         )}
