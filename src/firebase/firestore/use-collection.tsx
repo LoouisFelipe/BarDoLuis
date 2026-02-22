@@ -15,6 +15,12 @@ import { FirestorePermissionError } from '@/firebase/errors';
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
 
+/** Metadata about the snapshot source and state. */
+export interface SnapshotMetadata {
+  fromCache: boolean;
+  hasPendingWrites: boolean;
+}
+
 /**
  * Interface for the return value of the useCollection hook.
  * @template T Type of the document data.
@@ -23,6 +29,7 @@ export interface UseCollectionResult<T> {
   data: WithId<T>[] | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
+  snapshotMetadata: SnapshotMetadata | null; // Metadata about data source.
 }
 
 /* Internal implementation of Query:
@@ -60,12 +67,14 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [snapshotMetadata, setSnapshotMetadata] = useState<SnapshotMetadata | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
+      setSnapshotMetadata(null);
       return;
     }
 
@@ -81,13 +90,17 @@ export function useCollection<T = any>(
           results.push({ ...(doc.data() as T), id: doc.id });
         }
         setData(results);
+        setSnapshotMetadata({
+          fromCache: snapshot.metadata.fromCache,
+          hasPendingWrites: snapshot.metadata.hasPendingWrites,
+        });
         setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
         const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
+          (memoizedTargetRefOrQuery as any).type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
@@ -108,7 +121,7 @@ export function useCollection<T = any>(
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
+    throw new Error(`${memoizedTargetRefOrQuery} was not properly memoized using useMemoFirebase`);
   }
-  return { data, isLoading, error };
+  return { data, isLoading, error, snapshotMetadata };
 }

@@ -3,7 +3,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,6 +30,8 @@ import { CustomerHistoryModal } from '@/components/customers/customer-history-mo
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();
@@ -39,8 +40,6 @@ export const CustomersTab: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
-
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
     const activeLetters = useMemo(() => {
         const initials = new Set(customers.map(c => c.name.charAt(0).toUpperCase()));
@@ -140,7 +139,7 @@ export const CustomersTab: React.FC = () => {
                 {modalState.form && <CustomerFormModal customer={selectedCustomer} open={modalState.form} onOpenChange={closeAllModals} onSave={saveCustomer} />}
                 {modalState.payment && selectedCustomer && <CustomerPaymentModal customerForPayment={selectedCustomer} open={modalState.payment} onOpenChange={closeAllModals} onReceivePayment={receiveCustomerPayment} />}
                 {modalState.history && selectedCustomer && <CustomerHistoryModal customer={selectedCustomer} transactions={transactions} open={modalState.history} onOpenChange={closeAllModals} />}
-                {selectedCustomer && modalState.delete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Deseja apagar permanentemente o registro de "{selectedCustomer.name}"?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6"><AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
+                {selectedCustomer && modalState.delete && (<AlertDialog open={modalState.delete} onOpenChange={(isOpen) => !isOpen && closeAllModals()}><AlertDialogContent className="rounded-3xl p-8 border-border/40 bg-card shadow-2xl"><AlertDialogHeader><AlertDialogTitle className="text-destructive uppercase font-black tracking-tight text-lg">Excluir Perfil do Fiel?</AlertDialogTitle><AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Deseja apagar permanentemente o registro de &quot;{selectedCustomer.name}&quot;?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="grid grid-cols-2 gap-2 mt-6"><AlertDialogCancel className="h-12 font-black uppercase text-[10px] rounded-xl">Não</AlertDialogCancel><AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90 font-black uppercase text-[10px] h-12 rounded-xl">Sim, Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>)}
             </div>
         </TooltipProvider>
     );
