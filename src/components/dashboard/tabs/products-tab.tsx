@@ -32,7 +32,7 @@ import { Product } from '@/lib/schemas';
 
 /**
  * @fileOverview Aba de Produtos.
- * CTO: Implementação de Alerta de Estoque e saneamento de aspas para build.
+ * CTO: Implementação de Alerta de Estoque, Ordem Alfabética e saneamento de aspas.
  */
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();

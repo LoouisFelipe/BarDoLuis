@@ -24,7 +24,7 @@ import { PurchaseHistoryModal } from '@/components/suppliers/purchase-history-mo
 
 /**
  * @fileOverview Aba de Fornecedores.
- * CTO: Saneamento de build e estabilização de visualização.
+ * CTO: Saneamento de build, ordem alfabética e estabilização de visualização.
  */
 export const SuppliersTab: React.FC = () => {
     const { suppliers, products, loading, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, saveProduct } = useData();

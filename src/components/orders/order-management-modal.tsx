@@ -42,7 +42,7 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda Master.
- * CTO: UX Mobile-First, Subcategorias Clicáveis e Motor de Crédito/Débito Avulso.
+ * CTO: Correção de localeCompare, UX Mobile-First e Motor de Crédito/Débito Avulso.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -323,7 +323,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                         acc[sub].push(i);
                         return acc;
                     }, {} as Record<string, any[]>);
-                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
                     return (
                         <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
                             <AccordionTrigger className="px-5 hover:no-underline h-16 group">
