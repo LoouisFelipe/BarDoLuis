@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Order, OrderItem, Customer, GameModality } from '@/lib/schemas';
@@ -11,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import { User, CheckCircle2, TicketPercent, Calendar as CalendarIcon, Trophy } from 'lucide-react';
+import { User, CheckCircle2, TicketPercent, Calendar as CalendarIcon, Trophy, Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { DatePicker } from '@/components/ui/date-picker';
+import { cn } from '@/lib/utils';
 
 interface OrderPaymentModalProps {
   open: boolean;
@@ -30,6 +30,10 @@ interface OrderPaymentModalProps {
   onCloseAll: () => void;
 }
 
+/**
+ * @fileOverview Modal de Pagamento Adaptativo.
+ * CTO: Implementação de inteligência de crédito para totais negativos.
+ */
 export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   open,
   onOpenChange,
@@ -58,9 +62,11 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   }, [order.customerId]);
 
   const finalTotal = useMemo(() => 
-    Math.max(0, order.total - discount - gamePayoutAmount), 
+    order.total - discount - gamePayoutAmount, 
     [order.total, discount, gamePayoutAmount]
   );
+
+  const isGeneratingCredit = finalTotal < 0;
 
   const handleFinalize = async () => {
     if (paymentMethod === 'Fiado' && !selectedCustomerId) {
@@ -72,6 +78,15 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
       return;
     }
 
+    if (isGeneratingCredit && !selectedCustomerId) {
+        toast({
+            title: 'Atenção ao Crédito',
+            description: 'Para gerar crédito, você deve vincular esta comanda a um cliente fiel.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     setProcessing(true);
     try {
       const currentCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -79,7 +94,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
       const selectedGame = gameModalities.find(g => g.id === gamePayoutId);
 
       await finalizeOrder(
-        { items: order.items, total: order.total, displayName: finalDisplayName, createdAt: order.createdAt },
+        { items: order.items, total: finalTotal, displayName: finalDisplayName, createdAt: order.createdAt },
         selectedCustomerId,
         paymentMethod,
         discount,
@@ -103,22 +118,47 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[95vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[95vh] overflow-y-auto bg-background">
         <DialogHeader>
-          <DialogTitle>Finalizar: {order.displayName}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isGeneratingCredit ? <Wallet className="text-accent" /> : <CheckCircle2 className="text-primary" />}
+            Finalizar: {order.displayName}
+          </DialogTitle>
           <DialogDescription>
-            Confirme o meio de pagamento, abatimentos e o vínculo com o fiel.
+            {isGeneratingCredit 
+                ? "Esta comanda resultará em CRÉDITO para o fiel selecionado." 
+                : "Confirme o meio de pagamento e abatimentos."}
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4 space-y-6">
-          <div className="flex flex-col items-center justify-center bg-muted/30 p-4 rounded-xl border-2 border-dashed border-primary/20 relative">
-             <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
-                {discount > 0 && <span className="text-[10px] bg-destructive text-white px-2 py-0.5 rounded-full font-bold">Desc: -{discount.toFixed(2)}</span>}
-                {gamePayoutAmount > 0 && <span className="text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full font-bold">Prêmio: -{gamePayoutAmount.toFixed(2)}</span>}
+          <div className={cn(
+              "flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-dashed relative transition-all",
+              isGeneratingCredit 
+                ? "bg-accent/5 border-accent/40 shadow-[0_0_20px_rgba(20,184,166,0.1)]" 
+                : "bg-muted/30 border-primary/20"
+          )}>
+             <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                {discount > 0 && <span className="text-[9px] bg-destructive text-white px-2 py-0.5 rounded-full font-black uppercase">Desc: -{discount.toFixed(2)}</span>}
+                {gamePayoutAmount > 0 && <span className="text-[9px] bg-orange-500 text-white px-2 py-0.5 rounded-full font-black uppercase">Prêmio: -{gamePayoutAmount.toFixed(2)}</span>}
              </div>
-             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Total a Pagar</p>
-             <p className="text-4xl font-black text-primary">R$ {finalTotal.toFixed(2)}</p>
+             
+             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">
+                {isGeneratingCredit ? 'VALOR DO CRÉDITO' : 'TOTAL A RECEBER'}
+             </p>
+             
+             <p className={cn(
+                 "text-5xl font-black tracking-tighter",
+                 isGeneratingCredit ? "text-accent" : "text-primary"
+             )}>
+                R$ {Math.abs(finalTotal).toFixed(2)}
+             </p>
+             
+             {isGeneratingCredit && (
+                 <Badge variant="outline" className="mt-4 border-accent text-accent font-black uppercase text-[10px] tracking-widest bg-accent/10">
+                    Gerando Adiantamento
+                 </Badge>
+             )}
           </div>
 
           <div className="space-y-4">
@@ -128,7 +168,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
             </div>
 
             {isCaixaOrAdmin && (
-              <div className="space-y-3 p-3 bg-orange-500/5 border border-orange-500/20 rounded-lg">
+              <div className="space-y-3 p-3 bg-orange-500/5 border border-orange-500/20 rounded-xl">
                 <div className="flex items-center gap-2 mb-1"><Trophy size={14} className="text-orange-500" /><Label className="text-[10px] font-black uppercase text-orange-500 tracking-widest">Pagar com Prêmio de Jogo</Label></div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Select value={gamePayoutId} onValueChange={setGamePayoutId}>
@@ -138,7 +178,6 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
                       {gameModalities.map(g => <SelectItem key={g.id} value={g.id!} className="text-xs font-bold uppercase">{g.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {/* CTO: Removido Math.min para permitir prêmios maiores que a conta (pagamento de prêmio excedente) */}
                   <Input 
                     type="number" 
                     step="0.01" 
@@ -152,16 +191,25 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
               </div>
             )}
 
-            {isAdmin && (
-              <div className="space-y-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-1"><TicketPercent size={14} className="text-accent" /><Label className="text-[10px] font-black uppercase text-accent tracking-widest">Desconto Estratégico (Bar)</Label></div>
-                {/* Desconto de bar ainda é limitado ao valor total para evitar caixa negativo no bar */}
-                <Input type="number" step="0.01" value={discount || ''} onChange={(e) => setDiscount(Math.min(order.total, parseFloat(e.target.value) || 0))} className="h-10 bg-background border-accent/30 font-black text-accent" />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-muted-foreground">Vincular Fiel {isGeneratingCredit && <span className="text-accent">* OBRIGATÓRIO PARA CRÉDITO</span>}</Label>
+              <Select value={selectedCustomerId || 'avulso'} onValueChange={(v) => setSelectedCustomerId(v === 'avulso' ? null : v)}>
+                <SelectTrigger className={cn("h-12 bg-background border-2 font-bold", isGeneratingCredit && !selectedCustomerId && "border-accent animate-pulse")}>
+                    <SelectValue placeholder="Selecione o Cliente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="avulso">-- Sem Vínculo --</SelectItem>
+                  {customers.map((c: Customer) => (
+                      <SelectItem key={c.id} value={c.id!} className="text-xs font-medium">
+                        {c.name} {c.balance !== 0 && `(R$ ${c.balance.toFixed(2)})`}
+                      </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground">Forma de Pagamento</Label>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground">Forma de Pagamento Principal</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -169,18 +217,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
                   <SelectItem value="PIX">PIX</SelectItem>
                   <SelectItem value="Débito">Débito</SelectItem>
                   <SelectItem value="Crédito">Crédito</SelectItem>
-                  <SelectItem value="Fiado">Fiado (A Prazo)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground">Vincular Fiel</Label>
-              <Select value={selectedCustomerId || 'avulso'} onValueChange={(v) => setSelectedCustomerId(v === 'avulso' ? null : v)}>
-                <SelectTrigger className="h-12 bg-background border-2 font-bold"><SelectValue placeholder="Avulso" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="avulso">-- Sem Vínculo --</SelectItem>
-                  {customers.map((c: Customer) => <SelectItem key={c.id} value={c.id!} className="text-xs font-medium">{c.name}</SelectItem>)}
+                  {!isGeneratingCredit && <SelectItem value="Fiado">Fiado (A Prazo)</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -188,8 +225,13 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing}>Cancelar</Button>
-          <Button onClick={handleFinalize} disabled={processing} className="h-12 font-black uppercase bg-green-600 hover:bg-green-700 text-white shadow-lg">{processing ? <Spinner size="h-4 w-4" /> : `Confirmar Recebimento`}</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="h-12 font-bold uppercase text-[10px]">Cancelar</Button>
+          <Button onClick={handleFinalize} disabled={processing} className={cn(
+              "h-12 font-black uppercase text-xs shadow-lg flex-1",
+              isGeneratingCredit ? "bg-accent hover:bg-accent/80 text-white" : "bg-green-600 hover:bg-green-700 text-white"
+          )}>
+            {processing ? <Spinner size="h-4 w-4" /> : isGeneratingCredit ? `Confirmar e Gerar Crédito` : `Confirmar Recebimento`}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

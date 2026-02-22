@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, TrendingUp, Clock } from 'lucide-react';
+import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, TrendingUp, Clock, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CustomerHistoryModalProps {
@@ -20,7 +20,7 @@ interface CustomerHistoryModalProps {
 
 /**
  * @fileOverview Modal de Extrato Premium do Cliente.
- * UX: Agrupamento por datas, ranking de consumo e resumo financeiro.
+ * UX: Agrupamento por datas, ranking de consumo e inteligência de crédito/dívida.
  */
 export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChange }: CustomerHistoryModalProps) => {
   
@@ -89,6 +89,9 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
     return format(date, "dd 'de' MMMM", { locale: ptBR });
   };
 
+  const balance = customer.balance || 0;
+  const isCredit = balance < 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[95vh] md:h-[85vh] flex flex-col p-0 overflow-hidden bg-background border-border/40">
@@ -99,16 +102,19 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                     <User size={24} />
                 </div>
                 <div>
-                    <DialogTitle className="text-xl font-bold">Extrato: {customer.name}</DialogTitle>
+                    <DialogTitle className="text-xl font-bold truncate max-w-[200px] sm:max-w-none">{customer.name}</DialogTitle>
                     <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter flex items-center gap-1">
                         <Clock size={10} /> Histórico de consumo e pagamentos
                     </DialogDescription>
                 </div>
             </div>
             <div className="text-right">
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Saldo Devedor</p>
-                <p className={cn("text-2xl font-black", (customer.balance || 0) > 0 ? "text-yellow-400" : "text-accent")}>
-                    R$ {(customer.balance || 0).toFixed(2)}
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center justify-end gap-1">
+                    {isCredit ? <Wallet size={10} className="text-accent" /> : null} 
+                    {isCredit ? 'Saldo em Crédito' : 'Saldo Devedor'}
+                </p>
+                <p className={cn("text-2xl font-black", isCredit ? "text-accent" : balance > 0 ? "text-yellow-400" : "text-muted-foreground/20")}>
+                    R$ {Math.abs(balance).toFixed(2)}
                 </p>
             </div>
           </div>
@@ -208,21 +214,26 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
 
                                     {isSale && transaction.items && transaction.items.length > 0 && (
                                         <div className="mt-3 pt-3 border-t border-border/10 space-y-1.5">
-                                            {transaction.items.map((item, idx) => (
-                                                <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center text-[11px]">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-black text-primary min-w-[20px]">
-                                                            {item.quantity}x
-                                                        </span>
-                                                        <span className="font-medium text-muted-foreground">
-                                                            {item.name} {('doseName' in item && item.doseName) ? `(${item.doseName})` : ''}
+                                            {transaction.items.map((item, idx) => {
+                                                const itemPrice = ('unitPrice' in item ? item.unitPrice : 0);
+                                                const isItemCredit = itemPrice < 0;
+                                                
+                                                return (
+                                                    <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center text-[11px]">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-black text-primary min-w-[20px]">
+                                                                {item.quantity}x
+                                                            </span>
+                                                            <span className={cn("font-medium", isItemCredit ? "text-accent" : "text-muted-foreground")}>
+                                                                {item.name} {('doseName' in item && item.doseName) ? `(${item.doseName})` : ''}
+                                                            </span>
+                                                        </div>
+                                                        <span className={cn("font-bold opacity-60", isItemCredit ? "text-accent" : "text-muted-foreground/60")}>
+                                                            R$ {(itemPrice * item.quantity).toFixed(2)}
                                                         </span>
                                                     </div>
-                                                    <span className="font-bold text-muted-foreground/60">
-                                                        R$ {('unitPrice' in item ? item.unitPrice * item.quantity : 0).toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                     

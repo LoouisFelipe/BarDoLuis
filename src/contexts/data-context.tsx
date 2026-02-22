@@ -317,8 +317,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           }
         });
 
-        if (paymentMethod === 'Fiado' && customerId) {
-          t.update(doc(db, 'customers', customerId), { balance: increment(finalTotal), updatedAt: serverTimestamp() });
+        // CTO: Inteligência de Crédito/Dívida
+        // Se tem cliente e o total é negativo (pagamento excedente), SEMPRE ajusta o saldo
+        // Se é 'Fiado', também ajusta o saldo (dívida)
+        if (customerId) {
+          if (paymentMethod === 'Fiado' || order.total < 0) {
+            t.update(doc(db, 'customers', customerId), { 
+              balance: increment(order.total), 
+              updatedAt: serverTimestamp() 
+            });
+          }
         }
 
         const finalItems = [...order.items];
@@ -347,7 +355,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           userId: user?.uid || null 
         }));
       });
-      toast({ title: 'Finalizado', description: 'Venda enviada para o BI Cockpit.' });
+      toast({ title: 'Finalizado', description: 'Venda processada com sucesso.' });
       return "success";
     } catch (e) {
       console.error("Finalize error", e);

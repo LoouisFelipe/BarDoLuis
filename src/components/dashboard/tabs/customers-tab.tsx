@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, X } from 'lucide-react';
+import { Users, UserPlus, History, DollarSign, Edit, Trash2, Search, X, TrendingDown, TrendingUp } from 'lucide-react';
 import { Customer } from '@/lib/schemas';
 import { useData } from '@/contexts/data-context';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Aba de Clientes (Fiéis).
- * CTO: UX minimalista no índice alfabético e saneamento de aspas para build.
+ * CTO: UX minimalista no índice alfabético e gestão de créditos (saldos negativos).
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -41,7 +41,7 @@ export const CustomersTab: React.FC = () => {
     const [modalState, setModalState] = useState({ form: false, payment: false, history: false, delete: false });
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState<'all' | 'debtors'>('all');
+    const [filterType, setFilterType] = useState<'all' | 'debtors' | 'credits'>('all');
 
     const alphabet = useMemo(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), []);
 
@@ -54,7 +54,9 @@ export const CustomersTab: React.FC = () => {
         return customers
             .filter(c => {
                 const matchesSearch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesFilter = filterType === 'debtors' ? (c.balance || 0) > 0 : true;
+                let matchesFilter = true;
+                if (filterType === 'debtors') matchesFilter = (c.balance || 0) > 0;
+                if (filterType === 'credits') matchesFilter = (c.balance || 0) < 0;
                 return matchesSearch && matchesFilter;
             })
             .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
@@ -96,13 +98,14 @@ export const CustomersTab: React.FC = () => {
 
                 {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
                     <>
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                             <div className="flex items-center gap-2">
-                                {(searchTerm) && <Button variant="ghost" size="sm" onClick={() => setSearchTerm('')} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full"><X size={12} /> Limpar</Button>}
+                                {(searchTerm || filterType !== 'all') && <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(''); setFilterType('all'); }} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full"><X size={12} /> Limpar Filtros</Button>}
                             </div>
-                            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg h-9">
-                                <Button variant={filterType === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('all')} className="text-[9px] font-black px-3 h-7 uppercase">Todos</Button>
-                                <Button variant={filterType === 'debtors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('debtors')} className={cn("text-[9px] font-black px-3 h-7 uppercase", filterType === 'debtors' && "text-yellow-400")}>Com Dívida</Button>
+                            <div className="flex gap-1 bg-muted/50 p-1 rounded-xl h-10 w-full sm:w-auto">
+                                <Button variant={filterType === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('all')} className="flex-1 sm:flex-none text-[9px] font-black px-4 h-8 uppercase">Todos</Button>
+                                <Button variant={filterType === 'debtors' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('debtors')} className={cn("flex-1 sm:flex-none text-[9px] font-black px-4 h-8 uppercase gap-1.5", filterType === 'debtors' && "text-yellow-400")}><TrendingUp size={12}/> Dívida</Button>
+                                <Button variant={filterType === 'credits' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilterType('credits')} className={cn("flex-1 sm:flex-none text-[9px] font-black px-4 h-8 uppercase gap-1.5", filterType === 'credits' && "text-accent")}><TrendingDown size={12}/> Crédito</Button>
                             </div>
                         </div>
 
@@ -123,20 +126,34 @@ export const CustomersTab: React.FC = () => {
                                         </AccordionTrigger>
                                         <AccordionContent className="p-0 border-t border-border/10">
                                             <div className="flex flex-col gap-1 p-2">
-                                                {customersInLetter.map(c => (
-                                                    <div key={c.id} className="flex items-center justify-between p-4 bg-background/40 rounded-xl hover:bg-muted/20 transition-all">
-                                                        <div className="flex items-center gap-4 min-w-0 pr-2">
-                                                            <div className="p-2 rounded-lg bg-slate-900 text-slate-400"><Users size={16} /></div>
-                                                            <div className="min-w-0"><p className="font-bold text-sm truncate uppercase tracking-tight">{c.name}</p><p className={cn("text-[9px] font-black uppercase tracking-widest", (c.balance || 0) > 0 ? "text-yellow-500" : "text-emerald-500")}>Saldo: R$ {(c.balance || 0).toFixed(2)}</p></div>
+                                                {customersInLetter.map(c => {
+                                                    const balance = c.balance || 0;
+                                                    const isCredit = balance < 0;
+                                                    const isDebt = balance > 0;
+                                                    
+                                                    return (
+                                                        <div key={c.id} className="flex items-center justify-between p-4 bg-background/40 rounded-xl hover:bg-muted/20 transition-all">
+                                                            <div className="flex items-center gap-4 min-w-0 pr-2">
+                                                                <div className="p-2 rounded-lg bg-slate-900 text-slate-400"><Users size={16} /></div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-sm truncate uppercase tracking-tight">{c.name}</p>
+                                                                    <p className={cn(
+                                                                        "text-[9px] font-black uppercase tracking-widest",
+                                                                        isCredit ? "text-accent" : isDebt ? "text-yellow-500" : "text-muted-foreground/40"
+                                                                    )}>
+                                                                        {isCredit ? 'Crédito: ' : 'Saldo: '} R$ {Math.abs(balance).toFixed(2)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9 hover:bg-primary/10 hover:text-primary"><History size={18} /></Button>
+                                                                <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent hover:bg-accent/10" disabled={balance <= 0}><DollarSign size={18} /></Button>
+                                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary hover:bg-primary/10"><Edit size={18} /></Button>
+                                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive hover:bg-destructive/10" disabled={balance > 0}><Trash2 size={18} /></Button>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Button variant="ghost" size="icon" onClick={() => handleHistory(c)} className="h-9 w-9 hover:bg-primary/10 hover:text-primary"><History size={18} /></Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => handlePayment(c)} className="h-9 w-9 text-accent hover:bg-accent/10" disabled={!c.balance || c.balance <= 0}><DollarSign size={18} /></Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(c)} className="h-9 w-9 text-primary hover:bg-primary/10"><Edit size={18} /></Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)} className="h-9 w-9 text-destructive hover:bg-destructive/10" disabled={(c.balance || 0) > 0}><Trash2 size={18} /></Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
