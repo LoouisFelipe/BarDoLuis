@@ -33,7 +33,7 @@ interface ComboboxProps {
   createLabel: string;
   disabled?: boolean;
   id?: string;
-  icon?: React.ReactElement; // CPO/CTO: Add optional icon prop
+  icon?: React.ReactElement; 
 }
 
 export function Combobox({ options, value, onChange, placeholder, createLabel, disabled = false, id, icon }: ComboboxProps) {
@@ -48,13 +48,14 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
         if (onChange) onChange(newValue, false);
     }
     setOpen(false);
+    setInputValue(""); // Limpa a busca após selecionar
   };
 
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(inputValue.toLowerCase())
   );
 
-  const showCreateOption = inputValue && !options.some(option => option.label.toLowerCase() === inputValue.toLowerCase());
+  const showCreateOption = inputValue.trim() !== "" && !options.some(option => option.label.toLowerCase() === inputValue.toLowerCase());
   
   const displayValue = value ? options.find((option) => option.value === value)?.label || value : placeholder;
   
@@ -66,7 +67,7 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between h-12 bg-background border-2 font-bold rounded-xl"
           disabled={disabled}
         >
           <span className="flex items-center truncate">
@@ -76,25 +77,29 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover border-2 rounded-xl shadow-2xl z-[100]">
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder="Pesquisar ou criar..." 
             value={inputValue}
             onValueChange={setInputValue}
+            className="h-12 font-bold"
           />
-          <CommandList>
-            <CommandEmpty>Nenhum resultado.</CommandEmpty>
+          <CommandList className="max-h-64 scrollbar-hide">
+            {filteredOptions.length === 0 && !showCreateOption && (
+                <CommandEmpty className="py-6 text-center text-xs font-bold uppercase text-muted-foreground">Nenhum resultado.</CommandEmpty>
+            )}
             <CommandGroup>
               {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
-                  onSelect={() => handleSelect(option.value)}
+                  value={option.value}
+                  onSelect={(currentValue) => handleSelect(currentValue)}
+                  className="h-11 font-bold uppercase text-[10px] cursor-pointer"
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 text-primary",
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
@@ -106,10 +111,10 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
                   key={`__create__${inputValue}`}
                   value={`__create__${inputValue}`}
                   onSelect={() => handleSelect(inputValue, true)} 
-                  className="text-primary"
+                  className="h-12 font-black uppercase text-[10px] text-accent hover:bg-accent/10 cursor-pointer border-t border-border/10 mt-1"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  {createLabel} &quot;{inputValue}&quot;
+                  {createLabel} "{inputValue}"
                 </CommandItem>
               )}
             </CommandGroup>
