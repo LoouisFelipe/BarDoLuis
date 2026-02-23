@@ -294,15 +294,15 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     gamePayout?: { productId: string, name: string, amount: number }
   ) => {
     const payoutAmount = gamePayout?.amount || 0;
-    const finalTotal = Math.max(0, order.total - discount - payoutAmount);
+    // CTO: Permitimos totais negativos para geração de crédito/troco guardado
+    const finalTotal = order.total - discount - payoutAmount;
     const saleDate = customDate || new Date();
     
     try {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // CTO: Blindagem de Sincronização. 
-        // IGNORA IDs manuais ou de banca para evitar crash de 'No document to update'
+        // Blindagem de Sincronização de Estoque
         order.items.forEach(item => {
           const isManual = item.productId.startsWith('manual-');
           const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
@@ -317,13 +317,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           }
         });
 
-        // CTO: Inteligência de Crédito/Dívida
-        // Se tem cliente e o total é negativo (pagamento excedente), SEMPRE ajusta o saldo
-        // Se é 'Fiado', também ajusta o saldo (dívida)
+        // Motor de Saldo Inteligente (Crédito ou Dívida)
         if (customerId) {
-          if (paymentMethod === 'Fiado' || order.total < 0) {
+          // Se é Fiado ou se o total é negativo (crédito gerado por pagamento excedente)
+          if (paymentMethod === 'Fiado' || finalTotal < 0) {
             t.update(doc(db, 'customers', customerId), { 
-              balance: increment(order.total), 
+              balance: increment(finalTotal), 
               updatedAt: serverTimestamp() 
             });
           }
@@ -355,7 +354,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           userId: user?.uid || null 
         }));
       });
-      toast({ title: 'Finalizado', description: 'Venda processada com sucesso.' });
+      toast({ title: 'Finalizado', description: finalTotal < 0 ? 'Crédito gerado com sucesso.' : 'Venda processada com sucesso.' });
       return "success";
     } catch (e) {
       console.error("Finalize error", e);
