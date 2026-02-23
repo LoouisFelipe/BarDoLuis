@@ -18,38 +18,38 @@ import { SalesVolumeReportModal } from '@/components/financials/sales-volume-rep
 import { PurchasesReportModal } from '@/components/financials/purchases-report-modal';
 import { GoalReportModal } from '@/components/financials/goal-report-modal';
 import { useReportData } from '@/hooks/use-report-data';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AIBusinessAnalyst } from '../ai-business-analyst';
 import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Aba de Cockpit BI.
- * CTO: Consolidação do Skeleton localmente para reduzir fragmentação de arquivos.
+ 
  */
 
-const CockpitSkeleton: React.FC = () => {
+const CockpitTabSkeleton = () => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full animate-pulse">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
       {/* Card de Vendas por Hora */}
       <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
-        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
-        <div className="h-48 bg-muted rounded"></div>
+        <Skeleton className="h-6 w-3/4 mb-4" variant="shimmer" />
+        <Skeleton className="h-48" variant="shimmer" />
       </div>
       {/* Card de Lucro por Produto */}
       <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
-        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
-        <div className="h-48 bg-muted rounded"></div>
+        <Skeleton className="h-6 w-3/4 mb-4" variant="shimmer" />
+        <Skeleton className="h-48" variant="shimmer" />
       </div>
       {/* Card de Top Produtos */}
       <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
-        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
-        <div className="h-48 bg-muted rounded"></div>
+        <Skeleton className="h-6 w-3/4 mb-4" variant="shimmer" />
+        <Skeleton className="h-48" variant="shimmer" />
       </div>
     </div>
   );
 };
 
-const ChartSkeleton = () => <div className="h-[350px] w-full flex items-center justify-center bg-muted/50 rounded-lg"><Spinner/></div>;
+const ChartSkeleton = () => <Skeleton className="h-[350px] w-full rounded-lg" variant="shimmer" />;
 const TopProductsChart = dynamic(() => import('../charts/top-products-chart').then(mod => mod.TopProductsChart), { ssr: false, loading: ChartSkeleton });
 const ProfitByProductChart = dynamic(() => import('../charts/profit-by-product-chart').then(mod => mod.ProfitByProductChart), { ssr: false, loading: ChartSkeleton });
 const SalesByPaymentMethodChart = dynamic(() => import('../charts/sales-by-payment-method-chart').then(mod => mod.SalesByPaymentMethodChart), { ssr: false, loading: ChartSkeleton });
@@ -111,7 +111,7 @@ export const CockpitTab: React.FC = () => {
     }, [dateRange]);
 
     if (loading || !reportData) {
-        return <CockpitSkeleton />;
+        return <CockpitTabSkeleton />;
     }
     
     return (

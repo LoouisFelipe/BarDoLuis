@@ -1,7 +1,7 @@
 
 'use client';
 import React, { useState, useMemo } from 'react';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -35,6 +35,14 @@ import { Product } from '@/lib/schemas';
  * @fileOverview Aba de Produtos.
  * CTO: Implementação de Alerta de Estoque, Ordem Alfabética e saneamento de aspas.
  */
+const ProductsTabSkeleton = () => (
+    <div className="space-y-3 pb-20 pr-1">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-2xl" variant="shimmer" />
+      ))}
+    </div>
+  );
+  
 export const ProductsTab: React.FC = () => {
     const { products, suppliers, loading, saveProduct, deleteProduct, addStock } = useData();
     
@@ -177,7 +185,7 @@ export const ProductsTab: React.FC = () => {
                     </div>
                     <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}><PlusCircle size={18} /> Novo Produto</Button>
                 </div>
-                {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
+                {loading ? <ProductsTabSkeleton /> : (
                     <>
                         {(selectedCategory || searchTerm || showLowStockOnly) && (
                             <div className="flex items-center gap-2 mb-4 animate-in fade-in slide-in-from-left-2">

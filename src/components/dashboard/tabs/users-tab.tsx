@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { UserProfile } from '@/contexts/auth-context';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +20,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+const UsersTabSkeleton = () => (
+  <div className="p-1 md:p-4 space-y-6">
+    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="space-y-2 w-full md:w-auto">
+        <Skeleton className="h-10 w-64" variant="shimmer" />
+        <Skeleton className="h-4 w-48" variant="shimmer" />
+      </div>
+      <Skeleton className="h-12 w-full md:w-40 rounded-md" variant="shimmer" />
+    </div>
+    <div className="bg-card rounded-xl border overflow-hidden">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full border-b last:border-0" variant="shimmer" />
+      ))}
+    </div>
+  </div>
+);
 
 export const UsersTab: React.FC = () => {
     const { users, loading, saveUserRole, deleteUserProfile } = useData(); 
@@ -56,7 +73,7 @@ export const UsersTab: React.FC = () => {
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+        return <UsersTabSkeleton />;
     }
 
     return (

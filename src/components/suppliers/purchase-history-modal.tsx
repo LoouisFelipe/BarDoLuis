@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -15,7 +14,6 @@ import { ptBR } from 'date-fns/locale';
 import { Package, Calendar, Receipt, TrendingUp, ShoppingCart, Clock, ArrowUpRight, Boxes, Star, Repeat, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { cn } from '@/lib/utils';
 
 interface PurchaseHistoryModalProps {
     supplier: Supplier;
@@ -77,7 +75,7 @@ export const PurchaseHistoryModal: React.FC<PurchaseHistoryModalProps> = ({ supp
     }, [purchases]);
 
     const groupedPurchases = useMemo(() => {
-        const groups: Record<string, Purchase[]> = {};
+        const groups: Record<string, (Purchase & { createdAt: Date })[]> = {};
         purchases.forEach(p => {
             const dateKey = format(startOfDay(p.createdAt), 'yyyy-MM-dd');
             if (!groups[dateKey]) groups[dateKey] = [];

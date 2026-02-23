@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -22,6 +22,26 @@ import { SupplierFormModal } from '@/components/suppliers/supplier-form-modal';
 import { PurchaseModal } from '@/components/suppliers/purchase-modal';
 import { PurchaseHistoryModal } from '@/components/suppliers/purchase-history-modal';
 
+const SuppliersTabSkeleton = () => (
+  <div className="p-1 md:p-4 space-y-6">
+    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-4 rounded-xl border">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-10 w-10 rounded-lg" variant="shimmer" />
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-32" variant="shimmer" />
+          <Skeleton className="h-3 w-24" variant="shimmer" />
+        </div>
+      </div>
+      <Skeleton className="h-11 w-full md:w-44 rounded-md" variant="shimmer" />
+    </div>
+    <div className="space-y-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-xl" variant="shimmer" />
+      ))}
+    </div>
+  </div>
+);
+
 /**
  * @fileOverview Aba de Fornecedores.
  * CTO: Saneamento de build, ordem alfabética e estabilização de visualização.
@@ -42,7 +62,7 @@ export const SuppliersTab: React.FC = () => {
         setModalState(prev => ({ ...prev, [modal]: true })); 
     };
     
-    if (loading) return <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div>;
+    if (loading) return <SuppliersTabSkeleton />;
 
     const sortedSuppliers = [...suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pt-BR'));
 

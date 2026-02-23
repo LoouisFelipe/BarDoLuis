@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Aba de Controle Diário com Opções de Lista/Cards.
- * CTO: Implementação do ViewMode para flexibilidade no balcão. Refatorado import de skeleton.
  */
+
 export const DailyControlTab: React.FC = () => {
     const { openOrders, loading, error, updateOrder, deleteOrder } = useOpenOrders();
     

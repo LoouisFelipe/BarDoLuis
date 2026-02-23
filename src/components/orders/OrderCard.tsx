@@ -4,17 +4,13 @@ import React from 'react';
 import { Order } from '@/lib/schemas';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingBasket, Clock } from 'lucide-react';
 
 interface OrderCardProps {
   order?: Order;
   displayName: string;
   onClick: () => void;
-}
-
-// Primitivo local para eliminar arquivo ui/skeleton (Limpeza Total do CEO)
-function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
 }
 
 /**
@@ -82,16 +78,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, displayName, onClic
  */
 export const OrderCardSkeleton = () => {
   return (
-    <Card className="flex flex-col justify-between animate-pulse border-2 border-muted bg-card">
+    <Card className="flex flex-col justify-between border-2 border-muted bg-card">
       <CardHeader className="p-3 pb-2">
-        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-5 w-3/4" variant="shimmer" />
       </CardHeader>
       <CardContent className="p-3 pt-0">
-        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-8 w-1/2" variant="shimmer" />
       </CardContent>
       <CardFooter className="p-3 pt-0 flex justify-between">
-        <Skeleton className="h-3 w-1/3" />
-        <Skeleton className="h-3 w-1/4" />
+        <Skeleton className="h-3 w-1/3" variant="shimmer" />
+        <Skeleton className="h-3 w-1/4" variant="shimmer" />
       </CardFooter>
     </Card>
   );

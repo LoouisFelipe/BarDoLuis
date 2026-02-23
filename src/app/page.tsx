@@ -6,33 +6,27 @@ import { DataProvider } from '@/contexts/data-context';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Página raiz do BarDoLuis.
- * CTO: Refatorado para consolidar o DashboardSkeleton e eliminar dependência do ui/skeleton.
  */
-
-// Primitivo local para evitar arquivos extras (Mantra do CEO: Minimalismo)
-function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
-}
 
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col min-h-screen bg-background p-4">
       <div className="flex items-center justify-between h-16 border-b pb-4 mb-4">
-        <Skeleton className="h-8 w-48" /> {/* Placeholder para o título/logo */}
+        <Skeleton className="h-8 w-48" variant="shimmer" /> {/* Placeholder para o título/logo */}
         <div className="flex items-center space-x-2">
-          <Skeleton className="h-8 w-24 rounded-full" /> {/* Placeholder para o nome do usuário */}
-          <Skeleton className="h-8 w-8 rounded-full" /> {/* Placeholder para o avatar/botão de logout */}
+          <Skeleton className="h-8 w-24 rounded-full" variant="shimmer" /> {/* Placeholder para o nome do usuário */}
+          <Skeleton className="h-8 w-8 rounded-full" variant="shimmer" /> {/* Placeholder para o avatar/botão de logout */}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow">
-        <Skeleton className="h-48 col-span-1" /> {/* Placeholder para um card */}
-        <Skeleton className="h-48 col-span-2" /> {/* Placeholder para um gráfico/tabela */}
-        <Skeleton className="h-64 col-span-3" /> {/* Placeholder para o layout principal */}
+        <Skeleton className="h-48 col-span-1" variant="shimmer" /> {/* Placeholder para um card */}
+        <Skeleton className="h-48 col-span-2" variant="shimmer" /> {/* Placeholder para um gráfico/tabela */}
+        <Skeleton className="h-64 col-span-3" variant="shimmer" /> {/* Placeholder para o layout principal */}
       </div>
     </div>
   );

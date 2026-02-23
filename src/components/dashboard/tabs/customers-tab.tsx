@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useCallback, useMemo } from 'react';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,24 @@ import { cn } from '@/lib/utils';
  * CTO: UX minimalista no índice alfabético e gestão de créditos (saldos negativos).
  * CEO: Filtros táticos para devedores e clientes com crédito.
  */
+const CustomersTabSkeleton = () => (
+  <div className="p-1 md:p-4 space-y-6">
+    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-4 rounded-2xl border">
+      <Skeleton className="h-12 flex-grow rounded-xl" variant="shimmer" />
+      <Skeleton className="h-12 w-full md:w-44 rounded-md" variant="shimmer" />
+    </div>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Skeleton className="h-7 w-32 rounded-full" variant="shimmer" />
+      <Skeleton className="h-10 w-full sm:w-64 rounded-xl" variant="shimmer" />
+    </div>
+    <div className="space-y-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-2xl" variant="shimmer" />
+      ))}
+    </div>
+  </div>
+);
+
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
     const { toast } = useToast();
@@ -97,7 +115,7 @@ export const CustomersTab: React.FC = () => {
                     <Button onClick={() => setModalState(p => ({...p, form: true}))} className="w-full md:w-auto font-black gap-2 h-12 uppercase text-xs tracking-widest shadow-lg" disabled={loading}><UserPlus className="h-5 w-5" /> Cadastrar Fiel</Button>
                 </div>
 
-                {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
+                {loading ? <CustomersTabSkeleton /> : (
                     <>
                         {/* Filtros Táticos */}
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">

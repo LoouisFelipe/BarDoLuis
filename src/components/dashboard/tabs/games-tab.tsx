@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dices, Hash, History, TrendingUp, Sparkles, Search, Info, Settings, PlusCircle, Edit, Trash2, Zap, Trophy } from 'lucide-react';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Transaction, GameModality } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+const GamesTabSkeleton = () => (
+  <div className="p-1 md:p-4 space-y-6">
+    <div className="bg-card p-6 rounded-2xl border flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-14 w-14 rounded-xl" variant="shimmer" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" variant="shimmer" />
+          <Skeleton className="h-3 w-32" variant="shimmer" />
+        </div>
+      </div>
+      <Skeleton className="h-10 w-64 rounded-md" variant="shimmer" />
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Skeleton className="h-32 rounded-xl" variant="shimmer" />
+      <Skeleton className="h-32 rounded-xl" variant="shimmer" />
+    </div>
+    <Skeleton className="h-16 w-full rounded-2xl" variant="shimmer" />
+    <Skeleton className="h-40 w-full rounded-2xl" variant="shimmer" />
+  </div>
+);
 
 /**
  * @fileOverview Aba de Banca de Jogos (Totalmente Desacoplada).
@@ -117,7 +138,7 @@ export const GamesTab: React.FC = () => {
         setIsFormModalOpen(true);
     };
 
-    if (loading) return <div className="flex justify-center items-center h-[60vh]"><Spinner size="h-12 w-12" /></div>;
+    if (loading) return <GamesTabSkeleton />;
 
     return (
         <div className="p-1 md:p-4 space-y-6 pb-24">

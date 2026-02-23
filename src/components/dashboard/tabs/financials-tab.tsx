@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner'; 
 import { Combobox } from '@/components/ui/combobox';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal'; 
@@ -32,6 +33,37 @@ import { Transaction } from '@/lib/schemas';
  * CTO: Implementação de Status 'Pendente' e Motor de Liquidação Instantânea.
  * CEO: Card 'A Pagar' agora é clicável e permite editar lançamentos.
  */
+
+const FinancialsTabSkeleton = () => (
+  <div className="p-1 md:p-4 space-y-6 pb-24">
+    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-5 rounded-2xl border">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-12 w-12 rounded-xl" variant="shimmer" />
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-32" variant="shimmer" />
+          <Skeleton className="h-3 w-24" variant="shimmer" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <Skeleton className="h-12 w-24 rounded-xl" variant="shimmer" />
+        <Skeleton className="h-12 flex-grow md:w-64 rounded-xl" variant="shimmer" />
+        <Skeleton className="h-12 w-32 rounded-xl" variant="shimmer" />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-24 rounded-2xl" variant="shimmer" />
+      ))}
+    </div>
+    <Skeleton className="h-12 w-full sm:w-64 rounded-2xl" variant="shimmer" />
+    <div className="space-y-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-20 w-full rounded-xl" variant="shimmer" />
+      ))}
+    </div>
+  </div>
+);
+
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, updateExpense, markTransactionAsPaid, deleteTransaction } = useData();
     const { isAdmin } = useAuth(); 
@@ -178,6 +210,10 @@ export function FinancialsTab() {
         setIsPayablesModalOpen(false);
         setIsExpenseModalOpen(true);
     };
+
+    if (loading) {
+        return <FinancialsTabSkeleton />;
+    }
 
     return (
         <TooltipProvider>

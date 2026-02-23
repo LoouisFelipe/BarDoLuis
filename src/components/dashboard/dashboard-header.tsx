@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LogOut, User as UserIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DashboardHeaderProps {
   user: FirebaseUser | null;
@@ -17,16 +18,8 @@ interface DashboardHeaderProps {
 }
 
 /**
- * Primitivo local de Skeleton para eliminar dependência de arquivo externo.
- * CTO: Minimalismo para performance de build.
- */
-function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
-}
-
-/**
  * @fileOverview Cabeçalho do Dashboard.
- * CTO: Saneamento de entidades JSX e correção de erro de import de skeleton.
+
  */
 export function DashboardHeader({
   user,
@@ -54,8 +47,8 @@ export function DashboardHeader({
       <div className="flex items-center space-x-4">
         {isLoadingProfile ? (
           <div className="flex items-center space-x-2">
-            <Skeleton className="h-8 w-24 rounded-full" />
-            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-24 rounded-full" variant="shimmer" />
+            <Skeleton className="h-8 w-8 rounded-full" variant="shimmer" />
           </div>
         ) : profileError ? (
           <span className="text-[10px] font-bold text-red-500 uppercase" title={profileError.message}>
