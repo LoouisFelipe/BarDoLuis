@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 /**
  * @fileOverview Aba de Clientes (Fiéis).
  * CTO: UX minimalista no índice alfabético e gestão de créditos (saldos negativos).
+ * CEO: Filtros táticos para devedores e clientes com crédito.
  */
 export const CustomersTab: React.FC = () => {
     const { customers, transactions, loading, saveCustomer, deleteCustomer, receiveCustomerPayment } = useData();
@@ -98,6 +99,7 @@ export const CustomersTab: React.FC = () => {
 
                 {loading ? <div className="flex justify-center py-20"><Spinner size="h-12 w-12" /></div> : (
                     <>
+                        {/* Filtros Táticos */}
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
                             <div className="flex items-center gap-2">
                                 {(searchTerm || filterType !== 'all') && <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(''); setFilterType('all'); }} className="text-[9px] font-black uppercase text-primary gap-1 h-7 px-3 bg-primary/5 rounded-full"><X size={12} /> Limpar Filtros</Button>}

@@ -34,6 +34,7 @@ interface OrderPaymentModalProps {
 /**
  * @fileOverview Modal de Pagamento Adaptativo com Inteligência de Crédito.
  * CTO: Implementação de campos de ajuste dinâmico para geração de adiantamentos.
+ * CEO: Agora suporta troco guardado como crédito para o cliente.
  */
 export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   open,
@@ -49,7 +50,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(order.customerId);
   const [discount, setDiscount] = useState<number>(0);
-  const [adjustment, setAdjustment] = useState<number>(0); // Novo campo para ajuste manual (+/-)
+  const [adjustment, setAdjustment] = useState<number>(0); 
   const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
   const [processing, setProcessing] = useState(false);
 
@@ -63,7 +64,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
     }
   }, [order.customerId]);
 
-  // CEO: Lógica de cálculo final incluindo descontos, prêmios e ajustes manuais
+  // Cálculo final dinâmico
   const finalTotal = useMemo(() => 
     order.total - discount + adjustment - gamePayoutAmount, 
     [order.total, discount, adjustment, gamePayoutAmount]
@@ -96,7 +97,6 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
       const finalDisplayName = currentCustomer ? currentCustomer.name : order.displayName;
       const selectedGame = gameModalities.find(g => g.id === gamePayoutId);
 
-      // CTO: Passamos o valor de ajuste incorporado no processamento final
       await finalizeOrder(
         { items: order.items, total: order.total + adjustment, displayName: finalDisplayName, createdAt: order.createdAt },
         selectedCustomerId,
@@ -161,7 +161,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
              
              {isGeneratingCredit && (
                  <Badge variant="outline" className="mt-6 border-accent text-accent font-black uppercase text-[10px] tracking-widest bg-accent/10 animate-pulse">
-                    Troco/Crédito para o Cliente
+                    Gerando Adiantamento
                  </Badge>
              )}
           </div>
@@ -197,33 +197,9 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
               <DatePicker date={saleDate} setDate={setSaleDate} className="w-full h-12" />
             </div>
 
-            {isCaixaOrAdmin && (
-              <div className="space-y-3 p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl">
-                <div className="flex items-center gap-2 mb-1"><Trophy size={14} className="text-orange-500" /><Label className="text-[9px] font-black uppercase text-orange-500 tracking-widest">Abater com Prêmio de Jogo</Label></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Select value={gamePayoutId} onValueChange={setGamePayoutId}>
-                    <SelectTrigger className="h-10 bg-background border-orange-500/30 text-[10px] font-black uppercase"><SelectValue placeholder="Jogo" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none" className="text-[10px] font-bold">-- SEM PRÊMIO --</SelectItem>
-                      {gameModalities.map(g => <SelectItem key={g.id} value={g.id!} className="text-[10px] font-bold uppercase">{g.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    placeholder="Valor R$" 
-                    value={gamePayoutAmount || ''} 
-                    onChange={(e) => setGamePayoutAmount(parseFloat(e.target.value) || 0)} 
-                    className="h-10 bg-background border-orange-500/30 font-black text-orange-500 text-sm" 
-                    disabled={gamePayoutId === 'none'} 
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label className="text-[9px] font-black uppercase text-muted-foreground flex items-center justify-between">
-                <span>Vincular Cliente Fiel</span>
+                <span>Vincular Fiel</span>
                 {isGeneratingCredit && <span className="text-accent font-black animate-pulse">* OBRIGATÓRIO</span>}
               </Label>
               <Select value={selectedCustomerId || 'avulso'} onValueChange={(v) => setSelectedCustomerId(v === 'avulso' ? null : v)}>
