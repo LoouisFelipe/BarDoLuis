@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -48,7 +47,7 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
         if (onChange) onChange(newValue, false);
     }
     setOpen(false);
-    setInputValue(""); // Limpa a busca após selecionar
+    setInputValue("");
   };
 
   const filteredOptions = options.filter(option =>

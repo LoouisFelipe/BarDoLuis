@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,8 +8,7 @@ import { DateRange } from 'react-day-picker';
 /**
  * @fileOverview Hook de inteligência para processamento de KPIs.
  * CTO: Refatorado para garantir granularidade de subcategorias/doses nos gráficos.
- * CFO: Filtra despesas pagas vs pendentes para precisão do caixa real.
- * CEO: Agrupamento Nome + Detalhe (Subcategoria/Dose) para diferenciar itens como Original 600ml de 300ml.
+ * CEO: Agrupamento Nome + Detalhe para diferenciar variantes (ex: Original 600ml vs 300ml).
  */
 
 interface UseReportDataProps {
@@ -37,13 +35,11 @@ export const useReportData = ({
     const to = endOfDay(date.to || date.from);
     const interval = { start: from, end: to };
 
-    // 1. Filtragem das transações do período selecionado
     const filteredTransactions = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return timestamp && isWithinInterval(timestamp, interval);
     });
 
-    // 2. Lógica de Meta Estratégica (Rateio de Despesas Mensais)
     const monthStart = startOfMonth(from);
     const monthEnd = endOfMonth(from);
     const daysInMonth = Math.max(getDaysInMonth(from), 1);
@@ -89,7 +85,6 @@ export const useReportData = ({
           if (t.items) {
             t.items.forEach((item: any) => {
               const isGame = (gameModalities || []).some(gm => gm.id === item.productId) || !!item.identifier;
-              
               if (isGame) {
                 gameRevenue += (item.unitPrice * item.quantity);
               }
@@ -109,21 +104,18 @@ export const useReportData = ({
         } else if (t.type === 'expense') {
           if (isPaid) {
             expenses += (t.total || 0);
-            if (t.expenseCategory === 'Insumos') {
-              insumos += (t.total || 0);
-            }
+            if (t.expenseCategory === 'Insumos') insumos += (t.total || 0);
           } else {
             pendingExpenses += (t.total || 0);
           }
         }
       });
 
-      const barRevenue = revenue - gameRevenue;
       const grossProfit = revenue - cogs;
       const netProfit = grossProfit - expenses; 
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
-      return { revenue, gameRevenue, barRevenue, cashInflow, expenses, pendingExpenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
+      return { revenue, gameRevenue, cashInflow, expenses, pendingExpenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
     };
 
     const currentMetrics = calculateMetrics(filteredTransactions);
@@ -150,26 +142,17 @@ export const useReportData = ({
       const isPaid = t.status !== 'pending';
 
       if (t.type === 'sale') {
-        const startTimestamp = (t.orderCreatedAt as any)?.toDate ? (t.orderCreatedAt as any).toDate() : (t.orderCreatedAt || endTimestamp);
+        const hourLabel = `${String(endTimestamp.getHours()).padStart(2, '0')}:00`;
+        salesByHourMap.set(hourLabel, (salesByHourMap.get(hourLabel) || 0) + 1);
         
-        let hourRunner = new Date(startTimestamp);
-        hourRunner.setMinutes(0, 0, 0);
-        const limit = new Date(endTimestamp);
-        limit.setMinutes(0, 0, 0);
+        const day = endTimestamp.getDay();
+        const hour = endTimestamp.getHours();
+        const heatmapKey = `${day}-${hour}`;
+        heatmapMap.set(heatmapKey, (heatmapMap.get(heatmapKey) || 0) + 1);
 
-        while (hourRunner <= limit) {
-            const day = hourRunner.getDay();
-            const hour = hourRunner.getHours();
-            const heatmapKey = `${day}-${hour}`;
-            heatmapMap.set(heatmapKey, (heatmapMap.get(heatmapKey) || 0) + 1);
-            hourRunner = addHours(hourRunner, 1);
-        }
-
-        const closeHourKey = `${String(endTimestamp.getHours()).padStart(2, '0')}:00`;
-        salesByHourMap.set(closeHourKey, (salesByHourMap.get(closeHourKey) || 0) + 1);
-        
         const method = t.paymentMethod || 'Outros';
         salesByPaymentMethodMap.set(method, (salesByPaymentMethodMap.get(method) || 0) + (t.total || 0));
+        
         if (method !== 'Fiado') {
           cashInflowByMethodMap.set(method, (cashInflowByMethodMap.get(method) || 0) + (t.total || 0) - (t.creditApplied || 0));
         }
@@ -177,9 +160,8 @@ export const useReportData = ({
         if (t.items) {
           t.items.forEach((item: any) => {
             const product = (products || []).find((p) => p.id === item.productId);
-            // CEO: Inteligência de nomenclatura composta para diferenciar variações (ex: Original 600ml vs 300ml)
-            const subDetail = item.doseName || item.subcategory || product?.subcategory;
-            const displayName = subDetail ? `${item.name} (${subDetail})` : item.name;
+            const detail = item.doseName || item.subcategory || product?.subcategory;
+            const displayName = detail ? `${item.name} (${detail})` : item.name;
 
             topProductsMap.set(displayName, (topProductsMap.get(displayName) || 0) + (item.quantity || 1));
             
@@ -199,7 +181,6 @@ export const useReportData = ({
       } else if (t.type === 'expense' && isPaid) {
         const cat = t.expenseCategory || 'Geral';
         expensesByCategoryMap.set(cat, (expensesByCategoryMap.get(cat) || 0) + (t.total || 0));
-        
         if (cat === 'Insumos') {
             const supplier = t.description?.replace('Compra: ', '') || 'Outros';
             purchasesBySupplierMap.set(supplier, (purchasesBySupplierMap.get(supplier) || 0) + (t.total || 0));
@@ -207,15 +188,8 @@ export const useReportData = ({
       }
     });
 
-    const topProducts = Array.from(topProductsMap.entries())
-      .map(([name, quantity]) => ({ name, quantity }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10);
-
-    const profitByProduct = Array.from(profitByProductMap.entries())
-      .map(([name, profit]) => ({ name, profit }))
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 10);
+    const finalGoal = periodGoal > 0 ? periodGoal : dynamicCostGoal;
+    const goalProgress = finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : (currentMetrics.revenue > 0 ? 100 : 0);
 
     const salesHeatmapData = [];
     for (let day = 0; day < 7; day++) {
@@ -224,18 +198,8 @@ export const useReportData = ({
       }
     }
 
-    const salesByHourForChart = Array.from({ length: 24 }, (_, i) => {
-        const hourLabel = `${String(i).padStart(2, '0')}:00`;
-        return { hour: hourLabel, vendas: salesByHourMap.get(hourLabel) || 0 };
-    });
-
-    const finalGoal = periodGoal > 0 ? periodGoal : dynamicCostGoal;
-    const goalProgress = finalGoal > 0 ? (currentMetrics.revenue / finalGoal) * 100 : (currentMetrics.revenue > 0 ? 100 : 0);
-
     return {
       totalSalesRevenue: currentMetrics.revenue || 0,
-      totalGameRevenue: currentMetrics.gameRevenue || 0,
-      totalBarRevenue: currentMetrics.barRevenue || 0,
       totalCashInflow: currentMetrics.cashInflow || 0,
       totalExpenses: currentMetrics.expenses || 0,
       totalPendingExpenses: currentMetrics.pendingExpenses || 0,
@@ -259,10 +223,10 @@ export const useReportData = ({
         salesCount: calculateDelta(currentMetrics.salesCount, prevMetrics.salesCount),
         avgTicket: calculateDelta(currentMetrics.avgTicket, prevMetrics.avgTicket),
       },
-      topProducts,
-      profitByProduct,
+      topProducts: Array.from(topProductsMap.entries()).map(([name, quantity]) => ({ name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 10),
+      profitByProduct: Array.from(profitByProductMap.entries()).map(([name, profit]) => ({ name, profit })).sort((a, b) => b.profit - a.profit).slice(0, 10),
       salesHeatmapData,
-      salesByHourForChart,
+      salesByHourForChart: Array.from({ length: 24 }, (_, i) => ({ hour: `${String(i).padStart(2, '0')}:00`, vendas: salesByHourMap.get(`${String(i).padStart(2, '0')}:00`) || 0 })),
       salesTransactions: filteredTransactions.filter(t => t.type === 'sale'),
       expenseTransactions: filteredTransactions.filter(t => t.type === 'expense'),
       purchaseTransactions: filteredTransactions.filter(t => t.type === 'expense' && t.expenseCategory === 'Insumos'),

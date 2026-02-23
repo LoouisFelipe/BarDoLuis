@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -41,11 +40,6 @@ interface OrderManagementModalProps {
   onDeleteOrder: (orderId: string) => Promise<void>;
 }
 
-/**
- * @fileOverview Gestão de Comanda Master Mobile-First.
- * CTO: Correção de sintaxe e estabilização de build.
- * CEO: Subcategoria gravada no ato da venda para BI granular.
- */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
   onOpenChange,
@@ -152,17 +146,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
     };
     setCurrentItems(prevItems => {
         if (newItem.productId.startsWith('manual-')) return [...prevItems, newItem];
-        const existingItemIndex = prevItems.findIndex(i => i.productId === newItem.productId && i.doseName === newItem.doseName && i.identifier === newItem.identifier);
-        if (existingItemIndex > -1 && !newItem.identifier) {
+        const idx = prevItems.findIndex(i => i.productId === newItem.productId && i.doseName === newItem.doseName && i.identifier === newItem.identifier);
+        if (idx > -1 && !newItem.identifier) {
             const updated = [...prevItems];
-            updated[existingItemIndex].quantity += 1;
+            updated[idx].quantity += 1;
             return updated;
         } else {
             return [...prevItems, newItem];
         }
     });
-    const desc = newItem.unitPrice < 0 ? 'Crédito adicionado!' : 'Item adicionado!';
-    toast({ description: desc, duration: 800, className: "bg-primary text-primary-foreground font-bold" });
+    toast({ description: 'Item adicionado!', duration: 800, className: "bg-primary text-primary-foreground font-bold" });
   }, [toast]);
 
   const handleCustomConfirm = () => {
@@ -395,47 +388,52 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       </ScrollArea>
       <div className="p-5 border-t border-slate-800/50 bg-slate-950 mt-auto space-y-4 shrink-0 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         <div className="flex justify-between items-end px-2"><span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Acumulado</span><span className="text-3xl font-black text-primary tracking-tighter shadow-primary/20 drop-shadow-md">R$ {total.toFixed(2)}</span></div>
-        <div className="grid grid-cols-2 gap-3 pb-2"><Button variant="outline" className="font-black h-14 uppercase text-[10px] border-slate-800 tracking-widest rounded-xl hover:bg-slate-900" onClick={() => setIsPaymentModalOpen(true)} disabled={currentItems.length === 0}>💲 RECEBER</Button><Button onClick={handleSaveOrder} disabled={processing} className="bg-green-600 hover:bg-green-700 text-white font-black h-14 uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-green-900/20">{processing ? <Spinner size="h-4 w-4" /> : 'SALVAR'}</Button></div>
+        <div className="grid grid-cols-2 gap-3 pb-2">
+          <Button variant="outline" className="font-black h-14 uppercase text-[10px] border-slate-800 tracking-widest rounded-xl hover:bg-slate-900" onClick={() => setIsPaymentModalOpen(true)} disabled={currentItems.length === 0}>💲 RECEBER</Button>
+          <Button onClick={handleSaveOrder} disabled={processing} className="bg-green-600 hover:bg-green-700 text-white font-black h-14 uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-green-900/20">{processing ? <Spinner size="h-4 w-4" /> : 'SALVAR'}</Button>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <TooltipProvider>
-      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[100vw] sm:max-w-[1400px] h-full sm:h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl">
-          <DialogHeader className="p-5 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-20 relative">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-lg shadow-primary/10"><Receipt className="h-6 w-6 text-primary" /></div>
-              <div className="flex flex-col">
-                <DialogTitle className="text-lg font-black uppercase tracking-tight text-white truncate max-w-[150px]">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground")}>{linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}</div>
-                  <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary hover:text-primary/80" onClick={() => setIsLinkCustomerOpen(true)}>{linkedCustomer ? 'TROCAR' : 'VINCULAR'}</Button>
+    <>
+      <TooltipProvider>
+        <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-[100vw] sm:max-w-[1400px] h-full sm:h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl">
+            <DialogHeader className="p-5 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-20 relative">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-lg shadow-primary/10"><Receipt className="h-6 w-6 text-primary" /></div>
+                <div className="flex flex-col">
+                  <DialogTitle className="text-lg font-black uppercase tracking-tight text-white truncate max-w-[150px]">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground")}>{linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}</div>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary hover:text-primary/80" onClick={() => setIsLinkCustomerOpen(true)}>{linkedCustomer ? 'TROCAR' : 'VINCULAR'}</Button>
+                  </div>
                 </div>
               </div>
+              <div className="text-right flex flex-col items-end gap-0.5 pr-6"><p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total Acumulado</p><p className="text-2xl font-black text-primary tracking-tighter leading-none shadow-primary/10 drop-shadow-sm">R$ {total.toFixed(2)}</p></div>
+              <DialogDescription className="sr-only">Painel de Comanda Mobile Optimized</DialogDescription>
+            </DialogHeader>
+            <div className="flex-grow flex flex-col overflow-hidden">
+              <div className="flex flex-col h-full lg:hidden">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0 shadow-lg z-10">
+                    <TabsTrigger value="menu" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={18}/> CARDÁPIO</TabsTrigger>
+                    <TabsTrigger value="cart" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px]">{currentItems.length}</span>}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
+                  <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
+                </Tabs>
+              </div>
+              <div className="hidden lg:flex h-full overflow-hidden">
+                <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
+                <div className="w-[450px] shrink-0">{cartContent}</div>
+              </div>
             </div>
-            <div className="text-right flex flex-col items-end gap-0.5 pr-6"><p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total Acumulado</p><p className="text-2xl font-black text-primary tracking-tighter leading-none shadow-primary/10 drop-shadow-sm">R$ {total.toFixed(2)}</p></div>
-            <DialogDescription className="sr-only">Painel de Comanda Mobile Optimized</DialogDescription>
-          </DialogHeader>
-          <div className="flex-grow flex flex-col overflow-hidden">
-            <div className="flex flex-col h-full lg:hidden">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0 shadow-lg z-10">
-                  <TabsTrigger value="menu" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={18}/> CARDÁPIO</TabsTrigger>
-                  <TabsTrigger value="cart" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px]">{currentItems.length}</span>}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
-                <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
-              </Tabs>
-            </div>
-            <div className="hidden lg:flex h-full overflow-hidden">
-              <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
-              <div className="w-[450px] shrink-0">{cartContent}</div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
 
       <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
         <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5">
@@ -523,6 +521,6 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} 
         />
       )}
-    </TooltipProvider>
+    </>
   );
 };
