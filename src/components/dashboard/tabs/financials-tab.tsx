@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval, isToday } from 'date-fns';
-import { TrendingUp, TrendingDown, History, Scale, Users, PlusCircle, ArrowRightLeft, Trash2, Repeat, ShoppingCart, CheckCircle2, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, History, Scale, Users, PlusCircle, ArrowRightLeft, Trash2, Repeat, ShoppingCart, CheckCircle2, Clock, Edit } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useData } from '@/contexts/data-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -25,20 +25,22 @@ import { PayablesReportModal } from '@/components/financials/payables-report-mod
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
+import { Transaction } from '@/lib/schemas';
 
 /**
  * @fileOverview Aba Financeira Master com Suporte a Contas a Pagar.
  * CTO: Implementação de Status 'Pendente' e Motor de Liquidação Instantânea.
- * CEO: Card 'A Pagar' agora é clicável e mostra o passivo total global.
+ * CEO: Card 'A Pagar' agora é clicável e permite editar lançamentos.
  */
 export function FinancialsTab() {
-    const { transactions, customers, recurringExpenses, loading, addExpense, markTransactionAsPaid, deleteTransaction } = useData();
+    const { transactions, customers, recurringExpenses, loading, addExpense, updateExpense, markTransactionAsPaid, deleteTransaction } = useData();
     const { isAdmin } = useAuth(); 
     
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [isPayablesModalOpen, setIsPayablesModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
+    const [expenseToEdit, setExpenseToEdit] = useState<Transaction | null>(null);
     const [processing, setProcessing] = useState(false);
     const [activeView, setActiveTab] = useState<'fluxo' | 'custos'>('fluxo');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({ from: subDays(new Date(), 6), to: new Date() }));
@@ -47,10 +49,37 @@ export function FinancialsTab() {
     const variableCategories = { 'fornecedor': 'Fornecedor Bebidas', 'manutencao': 'Manutenção', 'limpeza': 'Limpeza', 'extra': 'Extra/Outros' };
 
     const form = useForm({ defaultValues: { description: '', amount: '', category: '', expenseDate: new Date().toISOString().split('T')[0], replicate: false, monthsToReplicate: '11', isPaid: true } });
-    const { control, handleSubmit, setValue, watch } = form;
+    const { control, handleSubmit, setValue, watch, reset } = form;
     const isReplicating = watch('replicate');
     const isPaidNow = watch('isPaid');
     const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
+
+    useEffect(() => {
+        if (expenseToEdit) {
+            const date = expenseToEdit.timestamp instanceof Date ? expenseToEdit.timestamp : (expenseToEdit.timestamp as any)?.toDate?.() || new Date();
+            reset({
+                description: expenseToEdit.description || '',
+                amount: String(expenseToEdit.total),
+                category: expenseToEdit.expenseCategory || '',
+                expenseDate: format(date, 'yyyy-MM-dd'),
+                replicate: false,
+                monthsToReplicate: '0',
+                isPaid: expenseToEdit.status !== 'pending'
+            });
+            setExpenseType(expenseToEdit.recurringExpenseId ? 'fixed' : 'variable');
+        } else {
+            reset({
+                description: '',
+                amount: '',
+                category: '',
+                expenseDate: new Date().toISOString().split('T')[0],
+                replicate: false,
+                monthsToReplicate: '11',
+                isPaid: true
+            });
+            setExpenseType('variable');
+        }
+    }, [expenseToEdit, reset]);
 
     const handleSetToday = () => {
         const today = new Date();
@@ -77,7 +106,6 @@ export function FinancialsTab() {
     const stats = useMemo(() => {
         let income = 0, expense = 0;
         
-        // Métricas do Período (Apenas o que já foi pago ou recebido)
         filteredTransactions.forEach(t => {
             const val = Number(t.total) || 0;
             const isPaid = t.status !== 'pending';
@@ -89,7 +117,6 @@ export function FinancialsTab() {
             }
         });
 
-        // CFO: Cálculo Global do Passivo (Independente de data para não esquecer boletos)
         const globalPayable = (transactions || [])
             .filter(t => t.type === 'expense' && t.status === 'pending')
             .reduce((acc, t) => acc + (t.total || 0), 0);
@@ -110,9 +137,22 @@ export function FinancialsTab() {
         try {
             const amountVal = parseFloat(data.amount);
             const status = data.isPaid ? 'paid' : 'pending';
-            const replicateCount = (expenseType === 'fixed' && data.replicate) ? parseInt(data.monthsToReplicate) : 0;
-            await addExpense(data.description, amountVal, data.category || 'Geral', data.expenseDate, replicateCount, status);
+            
+            if (expenseToEdit?.id) {
+                await updateExpense(expenseToEdit.id, {
+                    description: data.description,
+                    total: amountVal,
+                    expenseCategory: data.category,
+                    timestamp: new Date(data.expenseDate + 'T12:00:00'),
+                    status: status
+                });
+            } else {
+                const replicateCount = (expenseType === 'fixed' && data.replicate) ? parseInt(data.monthsToReplicate) : 0;
+                await addExpense(data.description, amountVal, data.category || 'Geral', data.expenseDate, replicateCount, status);
+            }
+            
             setIsExpenseModalOpen(false);
+            setExpenseToEdit(null);
             form.reset();
         } finally { setProcessing(false); }
     };
@@ -131,6 +171,12 @@ export function FinancialsTab() {
         if (!transactionToDelete?.id) return;
         setProcessing(true);
         try { await deleteTransaction(transactionToDelete.id); setTransactionToDelete(null); } finally { setProcessing(false); }
+    };
+
+    const handleEditTransaction = (t: Transaction) => {
+        setExpenseToEdit(t);
+        setIsPayablesModalOpen(false);
+        setIsExpenseModalOpen(true);
     };
 
     return (
@@ -156,7 +202,7 @@ export function FinancialsTab() {
                             </Button>
                         </div>
                         <DateRangePicker date={dateRange} onDateChange={setDateRange} className="flex-grow h-12 rounded-xl" />
-                        <Button onClick={() => setIsExpenseModalOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-[10px] gap-2 px-4 rounded-xl"><PlusCircle size={16} /> Nova Saída</Button>
+                        <Button onClick={() => { setExpenseToEdit(null); setIsExpenseModalOpen(true); }} className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-[10px] gap-2 px-4 rounded-xl"><PlusCircle size={16} /> Nova Saída</Button>
                     </div>
                 </div>
                 
@@ -226,7 +272,34 @@ export function FinancialsTab() {
                                                     <CheckCircle2 size={18} />
                                                 </Button>
                                             )}
-                                            {isAdmin && <Button variant="ghost" size="icon" onClick={(e) => {e.stopPropagation(); setTransactionToDelete(t)}} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></Button>}
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {isExpense && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEditTransaction(t);
+                                                        }} 
+                                                        className="h-8 w-8 text-primary hover:bg-primary/10"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </Button>
+                                                )}
+                                                {isAdmin && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); 
+                                                            setTransactionToDelete(t)
+                                                        }} 
+                                                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -253,15 +326,15 @@ export function FinancialsTab() {
                 </div>
 
                 {isExpenseModalOpen && (
-                    <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
+                    <Dialog open={isExpenseModalOpen} onOpenChange={(o) => { if(!o) setExpenseToEdit(null); setIsExpenseModalOpen(o); }}>
                         <DialogContent className="sm:max-w-md bg-card rounded-3xl p-6">
-                            <DialogHeader><DialogTitle className="font-black uppercase text-base">REGISTRAR SAÍDA</DialogTitle></DialogHeader>
+                            <DialogHeader><DialogTitle className="font-black uppercase text-base">{expenseToEdit ? 'EDITAR SAÍDA' : 'REGISTRAR SAÍDA'}</DialogTitle></DialogHeader>
                             <Form {...form}>
                                 <form onSubmit={handleSubmit(handleAddExpense)} className="space-y-4 py-4">
                                     <div className="space-y-4">
                                         <FormItem>
                                             <Label className="text-[9px] font-black uppercase text-muted-foreground">Tipo</Label>
-                                            <Select onValueChange={(v: any) => { setExpenseType(v); setValue('category', ''); }} value={expenseType}>
+                                            <Select onValueChange={(v: any) => { setExpenseType(v); setValue('category', ''); }} value={expenseType} disabled={!!expenseToEdit}>
                                                 <FormControl><SelectTrigger className="h-12 bg-background rounded-xl font-bold"><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent><SelectItem value="variable" className="font-bold text-[10px]">Variável (Única)</SelectItem><SelectItem value="fixed" className="font-bold text-[10px]">Fixa (Recorrente)</SelectItem></SelectContent>
                                             </Select>
@@ -292,7 +365,7 @@ export function FinancialsTab() {
                                             )} />
                                         </div>
 
-                                        {expenseType === 'fixed' && (
+                                        {expenseType === 'fixed' && !expenseToEdit && (
                                             <div className="p-4 border-2 border-dashed border-primary/20 rounded-2xl bg-primary/5 space-y-3">
                                                 <FormField control={control} name="replicate" render={({ field }) => (
                                                     <FormItem className="flex items-center justify-between">
@@ -305,9 +378,9 @@ export function FinancialsTab() {
                                         )}
                                     </div>
                                     <DialogFooter className="pt-6 border-t">
-                                        <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} className="h-12 flex-1">Cancelar</Button>
+                                        <Button type="button" variant="ghost" onClick={() => { setIsExpenseModalOpen(false); setExpenseToEdit(null); }} className="h-12 flex-1">Cancelar</Button>
                                         <Button type="submit" disabled={processing} className={cn("h-12 text-white rounded-xl flex-[2] font-black shadow-lg transition-all", isPaidNow ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700")}>
-                                            {processing ? <Spinner size="h-4 w-4" /> : isPaidNow ? "Confirmar Saída" : "Agendar Pagamento"}
+                                            {processing ? <Spinner size="h-4 w-4" /> : expenseToEdit ? "Salvar Alterações" : isPaidNow ? "Confirmar Saída" : "Agendar Pagamento"}
                                         </Button>
                                     </DialogFooter>
                                 </form>
@@ -331,6 +404,7 @@ export function FinancialsTab() {
                     onOpenChange={setIsPayablesModalOpen} 
                     transactions={transactions} 
                     onMarkAsPaid={markTransactionAsPaid}
+                    onEdit={handleEditTransaction}
                 />
             </div>
         </TooltipProvider>

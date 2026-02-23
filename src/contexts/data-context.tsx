@@ -66,6 +66,7 @@ interface DataContextType {
     creditApplied?: number
   ) => Promise<string>;
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number, status?: 'paid' | 'pending') => Promise<void>;
+  updateExpense: (id: string, data: Partial<Transaction>) => Promise<void>;
   markTransactionAsPaid: (transactionId: string) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
@@ -310,7 +311,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     creditApplied: number = 0
   ) => {
     const payoutAmount = gamePayout?.amount || 0;
-    // CTO: O total da venda reflete o consumo real menos o desconto e o prêmio da banca
     const finalTotal = order.total - discount - payoutAmount;
     const saleDate = customDate || new Date();
     
@@ -318,7 +318,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // 1. Controle de Estoque Blindado
         order.items.forEach(item => {
           const isManual = item.productId.startsWith('manual-');
           const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
@@ -333,12 +332,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           }
         });
 
-        // 2. Motor de Saldo Inteligente (Crédito ou Dívida)
         if (customerId) {
-          // Saldo muda se:
-          // - For Fiado (pendura o valor restante)
-          // - Se houver resgate de crédito (aumenta o saldo / reduz o crédito atual)
-          // - Se o total for negativo (pagou a mais, gerando novo crédito)
           const balanceChange = (paymentMethod === 'Fiado' ? (finalTotal - creditApplied) : (finalTotal < 0 ? finalTotal : 0)) + creditApplied;
           
           if (balanceChange !== 0) {
@@ -360,7 +354,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           });
         }
 
-        // 3. Registro da Transação
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
           timestamp: saleDate,
@@ -370,7 +363,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 
           discount: discount,
-          creditApplied: creditApplied, // Auditoria de resgate
+          creditApplied: creditApplied, 
           items: finalItems, 
           paymentMethod, 
           customerId, 
@@ -427,6 +420,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Sucesso', description: replicateMonths > 0 ? 'Plano de custo fixo registrado.' : status === 'pending' ? 'Agendamento registrado.' : 'Despesa registrada.' });
   };
 
+  const updateExpense = async (id: string, data: Partial<Transaction>) => {
+    const docRef = doc(db, 'transactions', id);
+    const payload = sanitizeData({
+        ...data,
+        updatedAt: serverTimestamp(),
+    });
+    await updateDoc(docRef, payload);
+    toast({ title: 'Atualizado', description: 'Registro de saída alterado.' });
+  };
+
   const markTransactionAsPaid = async (transactionId: string) => {
     const docRef = doc(db, 'transactions', transactionId);
     await updateDoc(docRef, { status: 'paid', updatedAt: serverTimestamp() });
@@ -455,7 +458,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     users: usersData || [], products: productsData || [], gameModalities: gameModalitiesData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [], recurringExpenses: recurringData || [],
-    loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, markTransactionAsPaid, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
+    loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, updateExpense, markTransactionAsPaid, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

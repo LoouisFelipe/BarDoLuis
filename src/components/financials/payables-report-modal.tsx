@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, History, AlertCircle, TrendingDown, LayoutList } from 'lucide-react';
+import { Clock, CheckCircle2, History, AlertCircle, TrendingDown, LayoutList, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { Transaction } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
@@ -19,17 +19,20 @@ interface PayablesReportModalProps {
     onOpenChange: (open: boolean) => void;
     transactions: Transaction[];
     onMarkAsPaid: (id: string) => Promise<void>;
+    onEdit?: (transaction: Transaction) => void;
 }
 
 /**
  * @fileOverview Relatório de Contas a Pagar Global.
  * CTO: Auditoria de passivos sem trava temporal para segurança financeira.
+ * CEO: Agora com ação de editar para correções de última hora.
  */
 export const PayablesReportModal: React.FC<PayablesReportModalProps> = ({
     open,
     onOpenChange,
     transactions,
-    onMarkAsPaid
+    onMarkAsPaid,
+    onEdit
 }) => {
     const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -115,7 +118,7 @@ export const PayablesReportModal: React.FC<PayablesReportModalProps> = ({
                                                     <TableHead className="text-[9px] font-black uppercase px-6">Descrição</TableHead>
                                                     <TableHead className="text-[9px] font-black uppercase px-6">Categoria</TableHead>
                                                     <TableHead className="text-right text-[9px] font-black uppercase px-6">Valor</TableHead>
-                                                    <TableHead className="w-[100px] text-center text-[9px] font-black uppercase px-6">Ação</TableHead>
+                                                    <TableHead className="w-[120px] text-center text-[9px] font-black uppercase px-6">Ações</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -139,15 +142,27 @@ export const PayablesReportModal: React.FC<PayablesReportModalProps> = ({
                                                                     R$ {t.total.toFixed(2)}
                                                                 </TableCell>
                                                                 <TableCell className="text-center px-6">
-                                                                    <Button 
-                                                                        size="icon" 
-                                                                        variant="ghost" 
-                                                                        className="h-8 w-8 text-emerald-500 hover:bg-emerald-500/10 rounded-lg"
-                                                                        onClick={() => handleLiquidar(t.id!)}
-                                                                        disabled={processingId === t.id}
-                                                                    >
-                                                                        {processingId === t.id ? <Spinner size="h-4 w-4" /> : <CheckCircle2 size={18} />}
-                                                                    </Button>
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        <Button 
+                                                                            size="icon" 
+                                                                            variant="ghost" 
+                                                                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-lg"
+                                                                            onClick={() => {
+                                                                                if (onEdit) onEdit(t);
+                                                                            }}
+                                                                        >
+                                                                            <Edit size={16} />
+                                                                        </Button>
+                                                                        <Button 
+                                                                            size="icon" 
+                                                                            variant="ghost" 
+                                                                            className="h-8 w-8 text-emerald-500 hover:bg-emerald-500/10 rounded-lg"
+                                                                            onClick={() => handleLiquidar(t.id!)}
+                                                                            disabled={processingId === t.id}
+                                                                        >
+                                                                            {processingId === t.id ? <Spinner size="h-4 w-4" /> : <CheckCircle2 size={18} />}
+                                                                        </Button>
+                                                                    </div>
                                                                 </TableCell>
                                                             </TableRow>
                                                         );
