@@ -3,7 +3,6 @@
 import React from 'react';
 import { Order } from '@/lib/schemas';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ShoppingBasket, Clock } from 'lucide-react';
 
@@ -11,6 +10,11 @@ interface OrderCardProps {
   order?: Order;
   displayName: string;
   onClick: () => void;
+}
+
+// Primitivo local para eliminar arquivo ui/skeleton (Limpeza Total do CEO)
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
 }
 
 /**

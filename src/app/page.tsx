@@ -6,13 +6,18 @@ import { DataProvider } from '@/contexts/data-context';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { Spinner } from '@/components/ui/spinner';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Página raiz do BarDoLuis.
- * CTO: Refatorado para consolidar o DashboardSkeleton e eliminar arquivos redundantes.
+ * CTO: Refatorado para consolidar o DashboardSkeleton e eliminar dependência do ui/skeleton.
  */
+
+// Primitivo local para evitar arquivos extras (Mantra do CEO: Minimalismo)
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
+}
 
 function DashboardSkeleton() {
   return (
@@ -44,7 +49,6 @@ export default function RootPage() {
     }
   }, [isAuthReady, user, router, isLoadingAuth, authError]);
 
-  // CEO: Feedback visual rico durante o carregamento inicial (agora consolidado)
   if (isLoadingAuth || !isAuthReady) {
     return <DashboardSkeleton />;
   }
