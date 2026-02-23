@@ -113,7 +113,7 @@ export function Combobox({ options, value, onChange, placeholder, createLabel, d
                   className="h-12 font-black uppercase text-[10px] text-accent hover:bg-accent/10 cursor-pointer border-t border-border/10 mt-1"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  {createLabel} "{inputValue}"
+                  {createLabel} &quot;{inputValue}&quot;
                 </CommandItem>
               )}
             </CommandGroup>
