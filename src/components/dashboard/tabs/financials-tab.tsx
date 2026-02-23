@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, isWithinInterval, isToday } from 'date-fns';
 import { TrendingUp, TrendingDown, History, Scale, Users, PlusCircle, ArrowRightLeft, Trash2, Repeat, ShoppingCart, CheckCircle2, Clock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useData } from '@/contexts/data-context';
@@ -48,6 +48,18 @@ export function FinancialsTab() {
     const isReplicating = watch('replicate');
     const isPaidNow = watch('isPaid');
     const [expenseType, setExpenseType] = useState<'variable' | 'fixed'>('variable');
+
+    const handleSetToday = () => {
+        const today = new Date();
+        setDateRange({ from: today, to: today });
+    };
+
+    const isTodayActive = useMemo(() => {
+        if (!dateRange?.from) return false;
+        const from = dateRange.from;
+        const to = dateRange.to || from;
+        return isToday(from) && isToday(to);
+    }, [dateRange]);
 
     const filteredTransactions = useMemo(() => {
         if (!dateRange?.from || !transactions) return [];
@@ -115,7 +127,26 @@ export function FinancialsTab() {
             <div className="p-1 md:p-4 space-y-6 pb-24">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card p-5 rounded-2xl border">
                     <div className="flex items-center gap-4"><div className="p-3 bg-primary/10 rounded-xl text-primary"><History size={24} /></div><div><h2 className="text-2xl font-black uppercase tracking-tight">Financeiro</h2><p className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Fluxo & Custos</p></div></div>
-                    <div className="flex items-center gap-2 w-full md:w-auto"><DateRangePicker date={dateRange} onDateChange={setDateRange} className="flex-grow h-12 rounded-xl" /><Button onClick={() => setIsExpenseModalOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-[10px] gap-2 px-4 rounded-xl"><PlusCircle size={16} /> Nova Saída</Button></div>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="flex bg-card/50 p-1 rounded-xl border border-border/40 shrink-0">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn(
+                                    "h-10 px-4 text-[10px] font-black uppercase tracking-tight rounded-lg transition-all gap-2",
+                                    isTodayActive 
+                                        ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(59,130,246,0.2)]" 
+                                        : "text-muted-foreground hover:bg-muted/20"
+                                )}
+                                onClick={handleSetToday}
+                            >
+                                <Clock size={12} />
+                                Hoje
+                            </Button>
+                        </div>
+                        <DateRangePicker date={dateRange} onDateChange={setDateRange} className="flex-grow h-12 rounded-xl" />
+                        <Button onClick={() => setIsExpenseModalOpen(true)} className="bg-red-600 hover:bg-red-700 text-white font-black h-12 uppercase text-[10px] gap-2 px-4 rounded-xl"><PlusCircle size={16} /> Nova Saída</Button>
+                    </div>
                 </div>
                 
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
