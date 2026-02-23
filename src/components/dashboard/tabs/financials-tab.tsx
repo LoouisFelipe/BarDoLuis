@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/ui/spinner'; 
 import { Combobox } from '@/components/ui/combobox';
 import { TransactionDetailModal } from '@/components/financials/transaction-detail-modal'; 
+import { PayablesReportModal } from '@/components/financials/payables-report-modal';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
@@ -28,12 +29,14 @@ import { Card } from '@/components/ui/card';
 /**
  * @fileOverview Aba Financeira Master com Suporte a Contas a Pagar.
  * CTO: Implementação de Status 'Pendente' e Motor de Liquidação Instantânea.
+ * CEO: Card 'A Pagar' agora é clicável e mostra o passivo total global.
  */
 export function FinancialsTab() {
     const { transactions, customers, recurringExpenses, loading, addExpense, markTransactionAsPaid, deleteTransaction } = useData();
     const { isAdmin } = useAuth(); 
     
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [isPayablesModalOpen, setIsPayablesModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
     const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
     const [processing, setProcessing] = useState(false);
@@ -72,27 +75,35 @@ export function FinancialsTab() {
     }, [transactions, dateRange]);
 
     const stats = useMemo(() => {
-        let income = 0, expense = 0, payable = 0;
+        let income = 0, expense = 0;
+        
+        // Métricas do Período (Apenas o que já foi pago ou recebido)
         filteredTransactions.forEach(t => {
             const val = Number(t.total) || 0;
             const isPaid = t.status !== 'pending';
 
             if (t.type === 'sale' || t.type === 'payment') {
                 income += val;
-            } else if (t.type === 'expense') {
-                if (isPaid) expense += val;
-                else payable += val;
+            } else if (t.type === 'expense' && isPaid) {
+                expense += val;
             }
         });
+
+        // CFO: Cálculo Global do Passivo (Independente de data para não esquecer boletos)
+        const globalPayable = (transactions || [])
+            .filter(t => t.type === 'expense' && t.status === 'pending')
+            .reduce((acc, t) => acc + (t.total || 0), 0);
+
         const accountsReceivable = (customers || []).reduce((acc, c) => acc + (c.balance || 0), 0);
+        
         return { 
             income, 
             expense, 
-            payable,
+            payable: globalPayable,
             balance: income - expense, 
             receivable: accountsReceivable 
         };
-    }, [filteredTransactions, customers]);
+    }, [filteredTransactions, transactions, customers]);
 
     const handleAddExpense = async (data: any) => {
         setProcessing(true);
@@ -152,7 +163,18 @@ export function FinancialsTab() {
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <Card className="bg-emerald-500/5 border-emerald-500/20 p-4 rounded-2xl"><div className="flex items-center gap-2 mb-1"><TrendingUp size={14} className="text-emerald-500" /><span className="text-[9px] font-black uppercase text-muted-foreground">Entradas</span></div><div className="text-xl font-black text-emerald-400">R$ {stats.income.toFixed(2)}</div></Card>
                     <Card className="bg-red-500/5 border-red-500/20 p-4 rounded-2xl"><div className="flex items-center gap-2 mb-1"><TrendingDown size={14} className="text-red-500" /><span className="text-[9px] font-black uppercase text-muted-foreground">Saídas Pagas</span></div><div className="text-xl font-black text-red-500">R$ {stats.expense.toFixed(2)}</div></Card>
-                    <Card className="bg-orange-500/5 border-orange-500/20 p-4 rounded-2xl"><div className="flex items-center gap-2 mb-1"><Clock size={14} className="text-orange-500" /><span className="text-[9px] font-black uppercase text-muted-foreground">A Pagar</span></div><div className="text-xl font-black text-orange-400">R$ {stats.payable.toFixed(2)}</div></Card>
+                    
+                    <Card 
+                        className="bg-orange-500/5 border-orange-500/20 p-4 rounded-2xl cursor-pointer hover:bg-orange-500/10 transition-all group"
+                        onClick={() => setIsPayablesModalOpen(true)}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                            <Clock size={14} className="text-orange-500 group-hover:scale-110 transition-transform" />
+                            <span className="text-[9px] font-black uppercase text-muted-foreground">A Pagar (Total)</span>
+                        </div>
+                        <div className="text-xl font-black text-orange-400">R$ {stats.payable.toFixed(2)}</div>
+                    </Card>
+
                     <Card className="bg-primary/5 border-primary/20 p-4 rounded-2xl"><div className="flex items-center gap-2 mb-1"><Scale size={14} className="text-primary" /><span className="text-[9px] font-black uppercase text-muted-foreground">Líquido Atual</span></div><div className="text-xl font-black text-primary">R$ {stats.balance.toFixed(2)}</div></Card>
                     <Card className="bg-yellow-500/5 border-yellow-500/20 p-4 rounded-2xl col-span-2 lg:col-span-1"><div className="flex items-center gap-2 mb-1"><Users size={14} className="text-yellow-500" /><span className="text-[9px] font-black uppercase text-muted-foreground">A Receber</span></div><div className="text-xl font-black text-yellow-400">R$ {stats.receivable.toFixed(2)}</div></Card>
                 </div>
@@ -303,6 +325,13 @@ export function FinancialsTab() {
                     </AlertDialog>
                 )}
                 {selectedTransaction && (<TransactionDetailModal transaction={selectedTransaction} open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)} />)}
+                
+                <PayablesReportModal 
+                    open={isPayablesModalOpen} 
+                    onOpenChange={setIsPayablesModalOpen} 
+                    transactions={transactions} 
+                    onMarkAsPaid={markTransactionAsPaid}
+                />
             </div>
         </TooltipProvider>
     );
