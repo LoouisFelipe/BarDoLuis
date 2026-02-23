@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
-import { User, CheckCircle2, TicketPercent, Calendar as CalendarIcon, Trophy, Wallet, Plus, Minus, HandCoins } from 'lucide-react';
+import { User, CheckCircle2, TicketPercent, Calendar as CalendarIcon, Trophy, Wallet, Plus, Minus, HandCoins, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 interface OrderPaymentModalProps {
@@ -33,9 +34,9 @@ interface OrderPaymentModalProps {
 }
 
 /**
- * @fileOverview Modal de Pagamento Adaptativo com Inteligência de Crédito.
- * CTO: Implementação de campos de ajuste dinâmico para geração de adiantamentos.
- * CEO: Agora suporta resgate de crédito acumulado para abater na conta.
+ * @fileOverview Modal de Pagamento Adaptativo com Inteligência de Crédito Seletivo.
+ * CEO: Agora permite ativar/desativar o resgate de crédito via Switch.
+ * CTO: Implementado suporte a pagamento integral via Saldo Interno ou Híbrido.
  */
 export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   open,
@@ -53,6 +54,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   const [discount, setDiscount] = useState<number>(0);
   const [adjustment, setAdjustment] = useState<number>(0); 
   const [creditApplied, setCreditApplied] = useState<number>(0);
+  const [isRedeeming, setIsRedeeming] = useState(false); // Chave de ativação do resgate
   const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
   const [processing, setProcessing] = useState(false);
 
@@ -77,22 +79,40 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
   }, [linkedCustomer]);
 
   // Cálculo final dinâmico
-  // total + ajuste - desconto - premio - crédito resgatado
   const finalTotal = useMemo(() => 
     order.total - discount + adjustment - gamePayoutAmount, 
     [order.total, discount, adjustment, gamePayoutAmount]
   );
 
+  // Se o resgate estiver desligado, creditApplied é forçado a 0
+  const effectiveCreditApplied = isRedeeming ? creditApplied : 0;
+
   const amountToPayNow = useMemo(() => 
-    Math.max(0, finalTotal - creditApplied),
-    [finalTotal, creditApplied]
+    Math.max(0, finalTotal - effectiveCreditApplied),
+    [finalTotal, effectiveCreditApplied]
   );
 
   const isGeneratingCredit = finalTotal < 0;
+  const isFullyCoveredByCredit = isRedeeming && amountToPayNow === 0 && finalTotal > 0;
+
+  // Ajusta forma de pagamento se estiver totalmente coberto por crédito
+  useEffect(() => {
+    if (isFullyCoveredByCredit) {
+        setPaymentMethod('SALDO INTERNO');
+    } else if (paymentMethod === 'SALDO INTERNO') {
+        setPaymentMethod('Dinheiro');
+    }
+  }, [isFullyCoveredByCredit, paymentMethod]);
 
   const handleApplyAllCredit = () => {
     const amount = Math.min(finalTotal, availableCredit);
     setCreditApplied(amount > 0 ? amount : 0);
+  };
+
+  const handleToggleRedemption = (val: boolean) => {
+    setIsRedeeming(val);
+    if (!val) setCreditApplied(0);
+    else handleApplyAllCredit(); // Sugere tudo ao ativar
   };
 
   const handleFinalize = async () => {
@@ -131,7 +151,7 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
           name: selectedGame?.name || 'Jogo',
           amount: gamePayoutAmount
         } : undefined,
-        creditApplied
+        effectiveCreditApplied
       );
 
       await onDeleteOrder(order.id);
@@ -171,11 +191,11 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
                 {discount > 0 && <Badge variant="destructive" className="text-[8px] font-black uppercase">Desc: -{discount.toFixed(2)}</Badge>}
                 {adjustment !== 0 && <Badge className={cn("text-[8px] font-black uppercase", adjustment > 0 ? "bg-primary" : "bg-accent")}>{adjustment > 0 ? 'Extra: +' : 'Abate: '}{adjustment.toFixed(2)}</Badge>}
                 {gamePayoutAmount > 0 && <Badge className="text-[8px] font-black uppercase bg-orange-500">Prêmio: -{gamePayoutAmount.toFixed(2)}</Badge>}
-                {creditApplied > 0 && <Badge className="text-[8px] font-black uppercase bg-accent">Resgate: -{creditApplied.toFixed(2)}</Badge>}
+                {effectiveCreditApplied > 0 && <Badge className="text-[8px] font-black uppercase bg-accent">Resgate: -{effectiveCreditApplied.toFixed(2)}</Badge>}
              </div>
              
              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-2 opacity-60">
-                {isGeneratingCredit ? 'CRÉDITO A GERAR' : (creditApplied > 0 ? 'RESTANTE A PAGAR' : 'TOTAL FINAL')}
+                {isGeneratingCredit ? 'CRÉDITO A GERAR' : (effectiveCreditApplied > 0 ? 'RESTANTE A PAGAR' : 'TOTAL FINAL')}
              </p>
              
              <p className={cn(
@@ -192,40 +212,53 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
              )}
           </div>
 
-          {/* Seção de Crédito do Fiel */}
+          {/* Módulo de Resgate de Crédito Seletivo */}
           {availableCredit > 0 && (
-            <div className="p-4 bg-accent/5 border border-accent/20 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className={cn(
+                "p-4 border-2 rounded-2xl space-y-4 transition-all duration-300",
+                isRedeeming ? "bg-accent/10 border-accent shadow-[0_0_20px_rgba(20,184,166,0.1)] pulse-subtle" : "bg-muted/20 border-dashed border-border/40"
+            )}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <HandCoins size={16} className="text-accent" />
-                        <span className="text-[10px] font-black uppercase text-accent tracking-widest">Resgatar Crédito</span>
+                        <HandCoins size={18} className={cn(isRedeeming ? "text-accent" : "text-muted-foreground")} />
+                        <div>
+                            <span className={cn("text-[10px] font-black uppercase tracking-widest block", isRedeeming ? "text-accent" : "text-muted-foreground")}>Usar Crédito Acumulado</span>
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase">Saldo disponível: R$ {availableCredit.toFixed(2)}</span>
+                        </div>
                     </div>
-                    <Badge variant="outline" className="border-accent text-accent text-[9px] font-black uppercase">Saldo: R$ {availableCredit.toFixed(2)}</Badge>
-                </div>
-                <div className="flex gap-2">
-                    <Input 
-                        type="number" 
-                        step="0.01" 
-                        max={availableCredit}
-                        placeholder="Valor a resgatar..." 
-                        value={creditApplied || ''} 
-                        onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            setCreditApplied(Math.min(val, availableCredit, finalTotal > 0 ? finalTotal : 0));
-                        }}
-                        className="h-11 bg-background border-2 font-bold text-accent focus-visible:ring-accent/20"
+                    <Switch 
+                        checked={isRedeeming} 
+                        onCheckedChange={handleToggleRedemption} 
+                        className="data-[state=checked]:bg-accent"
                     />
-                    <Button 
-                        variant="outline" 
-                        onClick={handleApplyAllCredit}
-                        className="h-11 border-accent text-accent font-black uppercase text-[9px] px-4 hover:bg-accent/10"
-                    >
-                        Tudo
-                    </Button>
                 </div>
-                <p className="text-[9px] text-muted-foreground italic px-1 leading-tight">
-                    * Abata o troco guardado deste cliente do valor desta comanda.
-                </p>
+
+                {isRedeeming && (
+                    <div className="flex gap-2 animate-in slide-in-from-top-2">
+                        <div className="relative flex-grow">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-accent/60">R$</span>
+                            <Input 
+                                type="number" 
+                                step="0.01" 
+                                max={Math.min(availableCredit, finalTotal > 0 ? finalTotal : 0)}
+                                placeholder="Valor..." 
+                                value={creditApplied || ''} 
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setCreditApplied(Math.min(val, availableCredit, finalTotal > 0 ? finalTotal : 0));
+                                }}
+                                className="h-12 pl-9 bg-background border-2 font-black text-accent focus-visible:ring-accent/20 border-accent/20"
+                            />
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            onClick={handleApplyAllCredit}
+                            className="h-12 border-accent text-accent font-black uppercase text-[10px] px-6 hover:bg-accent/10 active:scale-95 transition-all"
+                        >
+                            Tudo
+                        </Button>
+                    </div>
+                )}
             </div>
           )}
 
@@ -267,7 +300,8 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
               </Label>
               <Select value={selectedCustomerId || 'avulso'} onValueChange={(v) => {
                   setSelectedCustomerId(v === 'avulso' ? null : v);
-                  setCreditApplied(0); // Reseta resgate ao trocar cliente
+                  setIsRedeeming(false);
+                  setCreditApplied(0);
               }}>
                 <SelectTrigger className={cn("h-14 bg-background border-2 font-black transition-all", isGeneratingCredit && !selectedCustomerId ? "border-accent ring-2 ring-accent/20" : "")}>
                     <SelectValue placeholder="Selecione o Cliente..." />
@@ -286,13 +320,24 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
             <div className="space-y-2">
               <Label className="text-[9px] font-black uppercase text-muted-foreground">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="h-14 bg-background border-2 font-black"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={cn("h-14 bg-background border-2 font-black", paymentMethod === 'SALDO INTERNO' && "border-accent text-accent")}>
+                    <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Dinheiro" className="font-bold">DINHEIRO</SelectItem>
-                  <SelectItem value="PIX" className="font-bold">PIX</SelectItem>
-                  <SelectItem value="Débito" className="font-bold">DÉBITO</SelectItem>
-                  <SelectItem value="Crédito" className="font-bold">CRÉDITO (CARTÃO)</SelectItem>
-                  {!isGeneratingCredit && creditApplied < finalTotal && <SelectItem value="Fiado" className="font-black text-yellow-500">PENDURAR (FIADO)</SelectItem>}
+                  {isFullyCoveredByCredit ? (
+                      <SelectItem value="SALDO INTERNO" className="font-black text-accent">SALDO INTERNO (TOTAL)</SelectItem>
+                  ) : (
+                      <>
+                        <SelectItem value="Dinheiro" className="font-bold">DINHEIRO</SelectItem>
+                        <SelectItem value="PIX" className="font-bold">PIX</SelectItem>
+                        <SelectItem value="Débito" className="font-bold">DÉBITO</SelectItem>
+                        <SelectItem value="Crédito" className="font-bold">CRÉDITO (CARTÃO)</SelectItem>
+                        {isRedeeming && effectiveCreditApplied > 0 && (
+                            <SelectItem value="MISTO (SALDO + OUTRO)" className="font-black text-accent">MISTO (SALDO + OUTRO)</SelectItem>
+                        )}
+                        {!isGeneratingCredit && effectiveCreditApplied < finalTotal && <SelectItem value="Fiado" className="font-black text-yellow-500">PENDURAR (FIADO)</SelectItem>}
+                      </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -303,9 +348,9 @@ export const OrderPaymentModal: React.FC<OrderPaymentModalProps> = ({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={processing} className="h-14 font-black uppercase text-[10px] tracking-widest">Cancelar</Button>
           <Button onClick={handleFinalize} disabled={processing} className={cn(
               "h-14 font-black uppercase text-xs shadow-xl flex-1 tracking-[0.1em] transition-all active:scale-95",
-              isGeneratingCredit ? "bg-accent hover:bg-accent/80 text-white" : "bg-green-600 hover:bg-green-700 text-white"
+              isGeneratingCredit || isFullyCoveredByCredit ? "bg-accent hover:bg-accent/80 text-white" : "bg-green-600 hover:bg-green-700 text-white"
           )}>
-            {processing ? <Spinner size="h-4 w-4" /> : isGeneratingCredit ? `Confirmar Crédito` : `Finalizar Recebimento`}
+            {processing ? <Spinner size="h-4 w-4" /> : isGeneratingCredit ? `Confirmar Crédito` : isFullyCoveredByCredit ? 'Liquidar via Saldo' : `Finalizar Recebimento`}
           </Button>
         </DialogFooter>
       </DialogContent>
