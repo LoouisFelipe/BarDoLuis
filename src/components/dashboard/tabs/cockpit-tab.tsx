@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -6,7 +5,7 @@ import { useData } from '@/contexts/data-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { DateRange } from 'react-day-picker';
-import { subDays, isToday, startOfDay, endOfDay } from 'date-fns'; 
+import { subDays, isToday } from 'date-fns'; 
 import { BarChart2, TrendingDown, TrendingUp, ReceiptText, Target, HandCoins, Edit, ArrowUpRight, ArrowDownRight, Minus, Scale, ShoppingCart, Info, Clock } from 'lucide-react'; 
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
@@ -19,10 +18,36 @@ import { SalesVolumeReportModal } from '@/components/financials/sales-volume-rep
 import { PurchasesReportModal } from '@/components/financials/purchases-report-modal';
 import { GoalReportModal } from '@/components/financials/goal-report-modal';
 import { useReportData } from '@/hooks/use-report-data';
-import { CockpitSkeleton } from '../CockpitSkeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { AIBusinessAnalyst } from '../ai-business-analyst';
 import { cn } from '@/lib/utils';
+
+/**
+ * @fileOverview Aba de Cockpit BI.
+ * CTO: Consolidação do Skeleton localmente para reduzir fragmentação de arquivos.
+ */
+
+const CockpitSkeleton: React.FC = () => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full animate-pulse">
+      {/* Card de Vendas por Hora */}
+      <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
+        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
+        <div className="h-48 bg-muted rounded"></div>
+      </div>
+      {/* Card de Lucro por Produto */}
+      <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
+        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
+        <div className="h-48 bg-muted rounded"></div>
+      </div>
+      {/* Card de Top Produtos */}
+      <div className="bg-card p-4 rounded-lg shadow-sm h-[300px] flex flex-col justify-between">
+        <div className="h-6 w-3/4 bg-muted mb-4 rounded"></div>
+        <div className="h-48 bg-muted rounded"></div>
+      </div>
+    </div>
+  );
+};
 
 const ChartSkeleton = () => <div className="h-[350px] w-full flex items-center justify-center bg-muted/50 rounded-lg"><Spinner/></div>;
 const TopProductsChart = dynamic(() => import('../charts/top-products-chart').then(mod => mod.TopProductsChart), { ssr: false, loading: ChartSkeleton });
@@ -80,7 +105,6 @@ export const CockpitTab: React.FC = () => {
 
     const isTodayActive = useMemo(() => {
         if (!dateRange?.from) return false;
-        // Se 'to' não existe, react-day-picker entende como o mesmo dia selecionado
         const from = dateRange.from;
         const to = dateRange.to || from;
         return isToday(from) && isToday(to);
