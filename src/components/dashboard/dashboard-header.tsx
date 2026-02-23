@@ -4,8 +4,8 @@ import React from 'react';
 import { FirebaseUser, UserProfile } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { LogOut, User as UserIcon, ShieldCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DashboardHeaderProps {
   user: FirebaseUser | null;
@@ -17,8 +17,16 @@ interface DashboardHeaderProps {
 }
 
 /**
+ * Primitivo local de Skeleton para eliminar dependência de arquivo externo.
+ * CTO: Minimalismo para performance de build.
+ */
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-muted", className)} />;
+}
+
+/**
  * @fileOverview Cabeçalho do Dashboard.
- * CTO: Saneamento de entidades JSX.
+ * CTO: Saneamento de entidades JSX e correção de erro de import de skeleton.
  */
 export function DashboardHeader({
   user,
