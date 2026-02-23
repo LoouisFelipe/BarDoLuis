@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useMemo, useCallback, useContext, ReactNode } from 'react';
@@ -61,7 +62,8 @@ interface DataContextType {
     paymentMethod: string, 
     discount?: number, 
     customDate?: Date,
-    gamePayout?: { productId: string, name: string, amount: number }
+    gamePayout?: { productId: string, name: string, amount: number },
+    creditApplied?: number
   ) => Promise<string>;
   addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
@@ -291,10 +293,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     paymentMethod: string, 
     discount: number = 0, 
     customDate?: Date,
-    gamePayout?: { productId: string, name: string, amount: number }
+    gamePayout?: { productId: string, name: string, amount: number },
+    creditApplied: number = 0
   ) => {
     const payoutAmount = gamePayout?.amount || 0;
-    // CTO: Permitimos totais negativos para geração de crédito/troco guardado
+    // CTO: O total da venda reflete o consumo real menos o desconto e o prêmio da banca
     const finalTotal = order.total - discount - payoutAmount;
     const saleDate = customDate || new Date();
     
@@ -302,7 +305,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       await runTransaction(db, async (t) => {
         const saleRef = doc(collection(db, 'transactions'));
         
-        // Blindagem de Sincronização de Estoque
+        // 1. Controle de Estoque Blindado
         order.items.forEach(item => {
           const isManual = item.productId.startsWith('manual-');
           const isGame = gameModalitiesData?.some(gm => gm.id === item.productId);
@@ -317,12 +320,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           }
         });
 
-        // Motor de Saldo Inteligente (Crédito ou Dívida)
+        // 2. Motor de Saldo Inteligente (Crédito ou Dívida)
         if (customerId) {
-          // Se é Fiado ou se o total é negativo (crédito gerado por pagamento excedente)
-          if (paymentMethod === 'Fiado' || finalTotal < 0) {
+          // Saldo muda se:
+          // - For Fiado (pendura o valor restante)
+          // - Se houver resgate de crédito (aumenta o saldo / reduz o crédito atual)
+          // - Se o total for negativo (pagou a mais, gerando novo crédito)
+          const balanceChange = (paymentMethod === 'Fiado' ? (finalTotal - creditApplied) : (finalTotal < 0 ? finalTotal : 0)) + creditApplied;
+          
+          if (balanceChange !== 0) {
             t.update(doc(db, 'customers', customerId), { 
-              balance: increment(finalTotal), 
+              balance: increment(balanceChange), 
               updatedAt: serverTimestamp() 
             });
           }
@@ -339,6 +347,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           });
         }
 
+        // 3. Registro da Transação
         t.set(saleRef, sanitizeData({ 
           id: saleRef.id, 
           timestamp: saleDate,
@@ -347,6 +356,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 
           discount: discount,
+          creditApplied: creditApplied, // Auditoria de resgate
           items: finalItems, 
           paymentMethod, 
           customerId, 
@@ -354,7 +364,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           userId: user?.uid || null 
         }));
       });
-      toast({ title: 'Finalizado', description: finalTotal < 0 ? 'Crédito gerado com sucesso.' : 'Venda processada com sucesso.' });
+      toast({ title: 'Finalizado', description: 'Venda processada com sucesso.' });
       return "success";
     } catch (e) {
       console.error("Finalize error", e);

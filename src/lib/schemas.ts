@@ -100,6 +100,7 @@ export interface Transaction {
   type: 'sale' | 'expense' | 'payment';
   total: number;
   discount?: number;
+  creditApplied?: number; // Valor resgatado do saldo de crédito do cliente
   timestamp: FieldValue | Date;
   orderCreatedAt?: FieldValue | Date | null; 
   description?: string;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -84,7 +85,8 @@ export const useReportData = ({
           revenue += (t.total || 0);
           salesCount++;
           if (t.paymentMethod !== 'Fiado') {
-            cashInflow += (t.total || 0);
+            // CTO: A entrada real de caixa é o total menos o crédito que foi resgatado (dinheiro que já estava na casa)
+            cashInflow += (t.total || 0) - (t.creditApplied || 0);
           }
           if (t.items) {
             t.items.forEach((item: any) => {
@@ -165,7 +167,8 @@ export const useReportData = ({
         const method = t.paymentMethod || 'Outros';
         salesByPaymentMethodMap.set(method, (salesByPaymentMethodMap.get(method) || 0) + (t.total || 0));
         if (method !== 'Fiado') {
-          cashInflowByMethodMap.set(method, (cashInflowByMethodMap.get(method) || 0) + (t.total || 0));
+          // CTO: Ajuste de entrada de caixa real
+          cashInflowByMethodMap.set(method, (cashInflowByMethodMap.get(method) || 0) + (t.total || 0) - (t.creditApplied || 0));
         }
 
         if (t.items) {
