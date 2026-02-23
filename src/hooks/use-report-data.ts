@@ -8,8 +8,8 @@ import { DateRange } from 'react-day-picker';
 
 /**
  * @fileOverview Hook de inteligência para processamento de KPIs.
- * CTO: Refatorado para implementar a lógica de meta baseada em rateio de despesas mensais.
- * CFO: Consolida Fixos + Insumos para o cálculo do ponto de equilíbrio real.
+ * CTO: Refatorado para implementar suporte a Contas Pendentes (Payables).
+ * CFO: Filtra despesas pagas vs pendentes para precisão do caixa real.
  */
 
 interface UseReportDataProps {
@@ -49,6 +49,8 @@ export const useReportData = ({
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
     // CFO: Auditoria de TODAS as despesas do mês corrente (Fixo + Variável + Insumos)
+    // Filtramos apenas as despesas JÁ PAGAS para compor o custo real, ou todas se for para meta de sobrevivência?
+    // CEO decidiu: Meta de Sobrevivência usa todas as despesas (pagas ou não) do mês.
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
@@ -76,11 +78,14 @@ export const useReportData = ({
       let gameRevenue = 0;
       let cashInflow = 0;
       let expenses = 0;
+      let pendingExpenses = 0;
       let insumos = 0;
       let salesCount = 0;
       let cogs = 0;
 
       txs.forEach((t) => {
+        const isPaid = t.status !== 'pending';
+
         if (t.type === 'sale') {
           revenue += (t.total || 0);
           salesCount++;
@@ -109,19 +114,23 @@ export const useReportData = ({
         } else if (t.type === 'payment') {
           cashInflow += (t.total || 0);
         } else if (t.type === 'expense') {
-          expenses += (t.total || 0);
-          if (t.expenseCategory === 'Insumos') {
-            insumos += (t.total || 0);
+          if (isPaid) {
+            expenses += (t.total || 0);
+            if (t.expenseCategory === 'Insumos') {
+              insumos += (t.total || 0);
+            }
+          } else {
+            pendingExpenses += (t.total || 0);
           }
         }
       });
 
       const barRevenue = revenue - gameRevenue;
       const grossProfit = revenue - cogs;
-      const netProfit = grossProfit - expenses;
+      const netProfit = grossProfit - expenses; // Lucro líquido real (contas pagas)
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
-      return { revenue, gameRevenue, barRevenue, cashInflow, expenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
+      return { revenue, gameRevenue, barRevenue, cashInflow, expenses, pendingExpenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
     };
 
     const currentMetrics = calculateMetrics(filteredTransactions);
@@ -145,6 +154,8 @@ export const useReportData = ({
       const endTimestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       if (!endTimestamp) return;
       
+      const isPaid = t.status !== 'pending';
+
       if (t.type === 'sale') {
         const startTimestamp = (t.orderCreatedAt as any)?.toDate ? (t.orderCreatedAt as any).toDate() : (t.orderCreatedAt || endTimestamp);
         
@@ -189,7 +200,7 @@ export const useReportData = ({
       } else if (t.type === 'payment') {
         const method = t.paymentMethod || 'Dinheiro';
         cashInflowByMethodMap.set(method, (cashInflowByMethodMap.get(method) || 0) + (t.total || 0));
-      } else if (t.type === 'expense') {
+      } else if (t.type === 'expense' && isPaid) {
         const cat = t.expenseCategory || 'Geral';
         expensesByCategoryMap.set(cat, (expensesByCategoryMap.get(cat) || 0) + (t.total || 0));
         
@@ -231,6 +242,7 @@ export const useReportData = ({
       totalBarRevenue: currentMetrics.barRevenue || 0,
       totalCashInflow: currentMetrics.cashInflow || 0,
       totalExpenses: currentMetrics.expenses || 0,
+      totalPendingExpenses: currentMetrics.pendingExpenses || 0,
       totalInsumos: currentMetrics.insumos || 0,
       grossProfit: currentMetrics.grossProfit || 0,
       netProfit: currentMetrics.netProfit || 0,

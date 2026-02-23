@@ -98,6 +98,7 @@ export interface Purchase {
 export interface Transaction {
   id?: string;
   type: 'sale' | 'expense' | 'payment';
+  status?: 'paid' | 'pending'; // Status para contas a pagar/pagas
   total: number;
   discount?: number;
   creditApplied?: number; // Valor resgatado do saldo de crédito do cliente

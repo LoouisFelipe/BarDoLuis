@@ -65,7 +65,8 @@ interface DataContextType {
     gamePayout?: { productId: string, name: string, amount: number },
     creditApplied?: number
   ) => Promise<string>;
-  addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number) => Promise<void>;
+  addExpense: (description: string, amount: number, category: string, dateString: string, replicateMonths?: number, status?: 'paid' | 'pending') => Promise<void>;
+  markTransactionAsPaid: (transactionId: string) => Promise<void>;
   deleteTransaction: (transactionId: string) => Promise<void>;
   saveUserRole: (uid: string, role: 'admin' | 'cashier' | 'waiter') => Promise<void>;
   updateUserProfile: (uid: string, data: { name?: string; role?: 'admin' | 'cashier' | 'waiter' }) => Promise<void>;
@@ -235,6 +236,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           id: paymentRef.id,
           timestamp: serverTimestamp(),
           type: 'payment',
+          status: 'paid',
           description: `Recebimento: ${customer.name}`,
           total: amount,
           paymentMethod,
@@ -273,7 +275,18 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const expenseRef = doc(collection(db, 'transactions'));
     
     batch.set(purchaseRef, sanitizeData({ id: purchaseRef.id, supplierId, supplierName, items, totalCost, createdAt: serverTimestamp() }));
-    batch.set(expenseRef, sanitizeData({ id: expenseRef.id, timestamp: serverTimestamp(), type: 'expense', description: `Compra: ${supplierName}`, total: totalCost, expenseCategory: 'Insumos', items, supplierId, userId: user?.uid || null }));
+    batch.set(expenseRef, sanitizeData({ 
+      id: expenseRef.id, 
+      timestamp: serverTimestamp(), 
+      type: 'expense', 
+      status: 'paid',
+      description: `Compra: ${supplierName}`, 
+      total: totalCost, 
+      expenseCategory: 'Insumos', 
+      items, 
+      supplierId, 
+      userId: user?.uid || null 
+    }));
     
     items.forEach(item => {
       batch.update(doc(db, 'products', item.productId), { 
@@ -353,6 +366,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           timestamp: saleDate,
           orderCreatedAt: order.createdAt || null, 
           type: 'sale', 
+          status: 'paid',
           description: `Venda ${order.displayName}`, 
           total: finalTotal, 
           discount: discount,
@@ -372,7 +386,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const addExpense = async (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0) => {
+  const addExpense = async (description: string, amount: number, category: string, dateString: string, replicateMonths: number = 0, status: 'paid' | 'pending' = 'paid') => {
     const batch = writeBatch(db);
     const baseDate = new Date(dateString + 'T12:00:00');
     
@@ -400,6 +414,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         id: expenseRef.id, 
         timestamp: currentDate, 
         type: 'expense', 
+        status: status,
         description: i === 0 ? description : `${description} - ${format(currentDate, 'MM/yy')}`, 
         total: amount, 
         expenseCategory: category, 
@@ -409,7 +424,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       }));
     }
     await batch.commit();
-    toast({ title: 'Sucesso', description: replicateMonths > 0 ? 'Plano de custo fixo registrado.' : 'Despesa registrada.' });
+    toast({ title: 'Sucesso', description: replicateMonths > 0 ? 'Plano de custo fixo registrado.' : status === 'pending' ? 'Agendamento registrado.' : 'Despesa registrada.' });
+  };
+
+  const markTransactionAsPaid = async (transactionId: string) => {
+    const docRef = doc(db, 'transactions', transactionId);
+    await updateDoc(docRef, { status: 'paid', updatedAt: serverTimestamp() });
+    toast({ title: 'Sucesso', description: 'Conta marcada como paga!' });
   };
 
   const deleteTransaction = async (id: string) => {
@@ -434,7 +455,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     users: usersData || [], products: productsData || [], gameModalities: gameModalitiesData || [], customers: customersData || [], suppliers: suppliersData || [], transactions: transactionsData || [], recurringExpenses: recurringData || [],
-    loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
+    loading, saveProduct, deleteProduct, saveGameModality, deleteGameModality, addStock, saveCustomer, deleteCustomer, receiveCustomerPayment, saveSupplier, deleteSupplier, recordPurchaseAndUpdateStock, finalizeOrder, addExpense, markTransactionAsPaid, deleteTransaction, saveUserRole, updateUserProfile, deleteUserProfile
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
