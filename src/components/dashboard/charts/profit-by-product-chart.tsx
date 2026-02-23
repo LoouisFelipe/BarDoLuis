@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
@@ -37,12 +38,12 @@ export const ProfitByProductChart: React.FC<ProfitByProductChartProps> = ({ data
   }
 
   return (
-    <div className="w-full h-full min-w-[200px] min-h-[200px]"> {/* Garante um tamanho mínimo para o contêiner */}
+    <div className="w-full h-full min-w-[200px] min-h-[200px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          margin={{ top: 5, right: 60, left: 20, bottom: 5 }}
         >
           <XAxis type="number" hide />
           <YAxis
@@ -51,9 +52,9 @@ export const ProfitByProductChart: React.FC<ProfitByProductChartProps> = ({ data
             tickLine={false}
             axisLine={false}
             stroke="hsl(var(--muted-foreground))"
-            fontSize={12}
-            width={100}
-            tickFormatter={(value) => truncateText(value, 15)}
+            fontSize={11}
+            width={150} 
+            tickFormatter={(value) => truncateText(value, 25)} 
           />
           <Tooltip
             cursor={{ fill: 'hsl(var(--card))' }}
@@ -65,7 +66,7 @@ export const ProfitByProductChart: React.FC<ProfitByProductChartProps> = ({ data
             formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Lucro']}
           />
           <Bar dataKey="profit" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]}>
-              <LabelList dataKey="profit" position="right" formatter={(value: number) => `R$ ${value.toFixed(2)}`} className="fill-foreground font-semibold" />
+              <LabelList dataKey="profit" position="right" formatter={(value: number) => `R$ ${value.toFixed(2)}`} className="fill-foreground font-semibold text-[10px]" />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

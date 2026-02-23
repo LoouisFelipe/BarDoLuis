@@ -8,8 +8,9 @@ import { DateRange } from 'react-day-picker';
 
 /**
  * @fileOverview Hook de inteligência para processamento de KPIs.
- * CTO: Refatorado para implementar suporte a Contas Pendentes (Payables).
+ * CTO: Refatorado para garantir granularidade de subcategorias/doses nos gráficos.
  * CFO: Filtra despesas pagas vs pendentes para precisão do caixa real.
+ * CEO: Agrupamento Nome + Detalhe (Subcategoria/Dose) para diferenciar itens como Original 600ml de 300ml.
  */
 
 interface UseReportDataProps {
@@ -48,21 +49,14 @@ export const useReportData = ({
     const daysInMonth = Math.max(getDaysInMonth(from), 1);
     const daysInPeriod = Math.max(differenceInDays(to, from) + 1, 1);
 
-    // CFO: Auditoria de TODAS as despesas do mês corrente (Fixo + Variável + Insumos)
-    // Filtramos apenas as despesas JÁ PAGAS para compor o custo real, ou todas se for para meta de sobrevivência?
-    // CEO decidiu: Meta de Sobrevivência usa todas as despesas (pagas ou não) do mês.
     const totalMonthlyExpenses = (transactions || []).filter((t) => {
       const timestamp = (t.timestamp as any)?.toDate ? (t.timestamp as any).toDate() : t.timestamp;
       return t.type === 'expense' && timestamp && isWithinInterval(timestamp, { start: monthStart, end: monthEnd });
     }).reduce((acc, t) => acc + (t.total || 0), 0);
 
-    // Rateio diário: o custo de existência diário do BarDoLuis
     const dailyExpenseRate = totalMonthlyExpenses / daysInMonth;
-    
-    // Meta dinâmica: custo rateado proporcional ao número de dias do filtro do Cockpit
     const dynamicCostGoal = dailyExpenseRate * daysInPeriod;
 
-    // Comparação com período anterior
     const daysDiff = differenceInDays(to, from) + 1;
     const prevFrom = startOfDay(subDays(from, daysDiff));
     const prevTo = endOfDay(subDays(to, daysDiff));
@@ -90,7 +84,6 @@ export const useReportData = ({
           revenue += (t.total || 0);
           salesCount++;
           if (t.paymentMethod !== 'Fiado') {
-            // CTO: A entrada real de caixa é o total menos o crédito que foi resgatado (dinheiro que já estava na casa)
             cashInflow += (t.total || 0) - (t.creditApplied || 0);
           }
           if (t.items) {
@@ -127,7 +120,7 @@ export const useReportData = ({
 
       const barRevenue = revenue - gameRevenue;
       const grossProfit = revenue - cogs;
-      const netProfit = grossProfit - expenses; // Lucro líquido real (contas pagas)
+      const netProfit = grossProfit - expenses; 
       const avgTicket = salesCount > 0 ? revenue / salesCount : 0;
 
       return { revenue, gameRevenue, barRevenue, cashInflow, expenses, pendingExpenses, insumos, salesCount, grossProfit, netProfit, avgTicket };
@@ -178,22 +171,25 @@ export const useReportData = ({
         const method = t.paymentMethod || 'Outros';
         salesByPaymentMethodMap.set(method, (salesByPaymentMethodMap.get(method) || 0) + (t.total || 0));
         if (method !== 'Fiado') {
-          // CTO: Ajuste de entrada de caixa real
           cashInflowByMethodMap.set(method, (cashInflowByMethodMap.get(method) || 0) + (t.total || 0) - (t.creditApplied || 0));
         }
 
         if (t.items) {
           t.items.forEach((item: any) => {
-            topProductsMap.set(item.name, (topProductsMap.get(item.name) || 0) + (item.quantity || 1));
-            
             const product = (products || []).find((p) => p.id === item.productId);
+            // CEO: Inteligência de nomenclatura composta para diferenciar variações (ex: Original 600ml vs 300ml)
+            const subDetail = item.doseName || item.subcategory || product?.subcategory;
+            const displayName = subDetail ? `${item.name} (${subDetail})` : item.name;
+
+            topProductsMap.set(displayName, (topProductsMap.get(displayName) || 0) + (item.quantity || 1));
+            
             if (product) {
                 const baseUnitSize = product.baseUnitSize || 1;
                 const costPerMl = (product.costPrice || 0) / baseUnitSize;
                 const itemSize = item.size || 1;
                 const effectiveCost = item.size ? (costPerMl * itemSize) : (product.costPrice || 0);
                 const profit = ((item.unitPrice || 0) - effectiveCost) * (item.quantity || 1);
-                profitByProductMap.set(item.name, (profitByProductMap.get(item.name) || 0) + profit);
+                profitByProductMap.set(displayName, (profitByProductMap.get(displayName) || 0) + profit);
             }
           });
         }

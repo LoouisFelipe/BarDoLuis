@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Order, OrderItem, Product, DoseOption, Customer, GameModality } from '@/lib/schemas';
@@ -42,7 +43,8 @@ interface OrderManagementModalProps {
 
 /**
  * @fileOverview Gestão de Comanda Master Mobile-First.
- * CTO: Correção de localeCompare, UX de Subcategorias Clicáveis e Motor de Crédito/Débito.
+ * CTO: Correção de sintaxe e estabilização de build.
+ * CEO: Subcategoria gravada no ato da venda para BI granular.
  */
 export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   open,
@@ -143,6 +145,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
         name: customName || item.name,
         quantity: 1,
         unitPrice: customPrice !== undefined ? customPrice : (dose ? dose.price : (item.unitPrice || 0)),
+        subcategory: item.subcategory || item.category || null,
         ...(dose?.name ? { doseName: dose.name } : {}),
         ...(dose?.size ? { size: dose.size } : {}),
         ...(identifier ? { identifier } : {}),
@@ -165,12 +168,8 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   const handleCustomConfirm = () => {
     if (!itemToCustomize) return;
     let price = parseFloat(customData.price) || 0;
-    
-    if (manualType === 'credit') {
-        price = -Math.abs(price);
-    } else {
-        price = Math.abs(price);
-    }
+    if (manualType === 'credit') price = -Math.abs(price);
+    else price = Math.abs(price);
 
     handleAddItem(itemToCustomize, undefined, price, customData.identifier, (customData.name || itemToCustomize.name).toUpperCase());
     setItemToCustomize(null);
@@ -233,7 +232,7 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           }
       }}
     >
-      <div className="flex items-center gap-4 min-w-0">
+      <div className="flex items-center gap-4 min-w-0 pr-2">
           <div className="p-3 bg-primary/10 rounded-lg text-primary shrink-0">
               {item.saleType === 'game' ? <Dices size={20} /> : <Package size={20} />}
           </div>
@@ -317,33 +316,31 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                 {categories.map(cat => {
                     const itemsInCategory = allItems.filter(i => (i.category || 'GERAL').toUpperCase() === cat);
                     if (itemsInCategory.length === 0) return null;
-                    const subcategoriesMap = itemsInCategory.reduce((acc, i) => {
+                    const subMap = itemsInCategory.reduce((acc, i) => {
                         const sub = (i.subcategory || 'Diversos').toUpperCase();
                         if (!acc[sub]) acc[sub] = [];
                         acc[sub].push(i);
                         return acc;
                     }, {} as Record<string, any[]>);
-                    const sortedSubKeys = Object.keys(subcategoriesMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                    const sortedSubs = Object.keys(subMap).sort((a, b) => a.localeCompare(b, 'pt-BR'));
                     return (
                         <AccordionItem key={cat} value={cat} className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden shadow-md border-b-0">
                             <AccordionTrigger className="px-5 hover:no-underline h-16 group">
                                 <div className="flex items-center gap-3"><div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary/20"><Package size={18} /></div><span className="font-black uppercase text-[11px] tracking-widest">{cat}</span><Badge variant="secondary" className="ml-2 text-[9px] font-black bg-slate-800 text-slate-400 border-none">{itemsInCategory.length} Itens</Badge></div>
                             </AccordionTrigger>
                             <AccordionContent className="p-0 border-t border-slate-800/50">
-                                <div className="flex flex-col">
-                                    <Accordion type="multiple">
-                                        {sortedSubKeys.map(sub => (
-                                            <AccordionItem key={sub} value={sub} className="border-b last:border-0 border-slate-800/30">
-                                                <AccordionTrigger className="px-5 py-3 hover:bg-slate-900/60 transition-all border-none">
-                                                    <p className="text-[9px] font-black uppercase text-primary tracking-[0.2em]">{sub}</p>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="p-2 space-y-1">
-                                                    {subcategoriesMap[sub].map(item => renderItemRow(item))}
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                </div>
+                                <Accordion type="multiple">
+                                    {sortedSubs.map(sub => (
+                                        <AccordionItem key={sub} value={sub} className="border-b last:border-0 border-slate-800/30">
+                                            <AccordionTrigger className="px-5 py-3 hover:bg-slate-900/60 transition-all border-none">
+                                                <p className="text-[9px] font-black uppercase text-primary tracking-[0.2em]">{sub}</p>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="p-2 space-y-1">
+                                                {subMap[sub].map(item => renderItemRow(item))}
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
                             </AccordionContent>
                         </AccordionItem>
                     );
@@ -404,50 +401,45 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
   );
 
   return (
-    <>
-      <TooltipProvider>
-        <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[100vw] sm:max-w-[1400px] h-full sm:h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl">
-            <DialogHeader className="p-5 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-20 relative">
-                <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-lg shadow-primary/10"><Receipt className="h-6 w-6 text-primary" /></div>
-                <div className="flex flex-col">
-                    <DialogTitle className="text-lg font-black uppercase tracking-tight text-white truncate max-w-[150px]">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground")}>{linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}</div>
-                        <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary hover:text-primary/80" onClick={() => setIsLinkCustomerOpen(true)}>{linkedCustomer ? 'TROCAR' : 'VINCULAR'}</Button>
-                    </div>
+    <TooltipProvider>
+      <Dialog open={open && !isPaymentModalOpen && !isLinkCustomerOpen && !isDeleteAlertOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[100vw] sm:max-w-[1400px] h-full sm:h-[96vh] flex flex-col p-0 overflow-hidden bg-slate-950 border-none shadow-2xl">
+          <DialogHeader className="p-5 border-b border-slate-800/50 bg-slate-900/20 flex flex-row items-center justify-between shrink-0 h-20 relative">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-xl border border-primary/20 shadow-lg shadow-primary/10"><Receipt className="h-6 w-6 text-primary" /></div>
+              <div className="flex flex-col">
+                <DialogTitle className="text-lg font-black uppercase tracking-tight text-white truncate max-w-[150px]">{existingOrder?.displayName || 'COMANDA'}</DialogTitle>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", linkedCustomer ? "bg-primary text-white" : "bg-slate-800 text-muted-foreground")}>{linkedCustomer ? `FIEL: ${linkedCustomer.name}` : 'AVULSO'}</div>
+                  <Button variant="link" size="sm" className="h-auto p-0 text-[8px] font-black uppercase text-primary hover:text-primary/80" onClick={() => setIsLinkCustomerOpen(true)}>{linkedCustomer ? 'TROCAR' : 'VINCULAR'}</Button>
                 </div>
-                </div>
-                <div className="text-right flex flex-col items-end gap-0.5 pr-6"><p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total Acumulado</p><p className="text-2xl font-black text-primary tracking-tighter leading-none shadow-primary/10 drop-shadow-sm">R$ {total.toFixed(2)}</p></div>
-                <DialogDescription className="sr-only">Painel de Comanda Mobile Optimized</DialogDescription>
-            </DialogHeader>
-            <div className="flex-grow flex flex-col overflow-hidden">
-                <div className="flex flex-col h-full lg:hidden">
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
-                    <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0 shadow-lg z-10">
-                        <TabsTrigger value="menu" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={18}/> CARDÁPIO</TabsTrigger>
-                        <TabsTrigger value="cart" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px]">{currentItems.length}</span>}</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
-                    <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
-                </Tabs>
-                </div>
-                <div className="hidden lg:flex h-full overflow-hidden">
-                    <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
-                    <div className="w-[450px] shrink-0">{cartContent}</div>
-                </div>
+              </div>
             </div>
-            </DialogContent>
-        </Dialog>
-      </TooltipProvider>
+            <div className="text-right flex flex-col items-end gap-0.5 pr-6"><p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest">Total Acumulado</p><p className="text-2xl font-black text-primary tracking-tighter leading-none shadow-primary/10 drop-shadow-sm">R$ {total.toFixed(2)}</p></div>
+            <DialogDescription className="sr-only">Painel de Comanda Mobile Optimized</DialogDescription>
+          </DialogHeader>
+          <div className="flex-grow flex flex-col overflow-hidden">
+            <div className="flex flex-col h-full lg:hidden">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex flex-col h-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-900/40 rounded-none h-14 border-b border-slate-800/50 p-0 shadow-lg z-10">
+                  <TabsTrigger value="menu" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><Menu size={18}/> CARDÁPIO</TabsTrigger>
+                  <TabsTrigger value="cart" className="gap-2 font-black uppercase text-[10px] tracking-widest h-full relative data-[state=active]:text-primary data-[state=active]:bg-primary/5 transition-all"><ShoppingCart size={18}/> SACOLA {currentItems.length > 0 && <span className="ml-1 px-2 py-0.5 bg-primary text-white rounded-full text-[8px]">{currentItems.length}</span>}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="menu" className="flex-grow overflow-hidden mt-0">{productListContent}</TabsContent>
+                <TabsContent value="cart" className="flex-grow overflow-hidden mt-0">{cartContent}</TabsContent>
+              </Tabs>
+            </div>
+            <div className="hidden lg:flex h-full overflow-hidden">
+              <div className="flex-grow border-r border-slate-800/50 bg-slate-950/20 overflow-hidden">{productListContent}</div>
+              <div className="w-[450px] shrink-0">{cartContent}</div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isLinkCustomerOpen} onOpenChange={setIsLinkCustomerOpen}>
         <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm">
-              <Users className="text-primary h-5 w-5" /> VINCULAR FIEL
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm"><Users className="text-primary h-5 w-5" /> VINCULAR FIEL</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -464,38 +456,19 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
               </div>
             </ScrollArea>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsLinkCustomerOpen(false)} className="h-12 font-black uppercase text-[10px] rounded-xl w-full">FECHAR</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="ghost" onClick={() => setIsLinkCustomerOpen(false)} className="h-12 font-black uppercase text-[10px] rounded-xl w-full">FECHAR</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
       <Dialog open={!!itemToCustomize} onOpenChange={(o) => !o && setItemToCustomize(null)}>
         <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 rounded-3xl p-5">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm">
-              <Zap className="text-orange-500 h-5 w-5" /> {itemToCustomize?.name}
-            </DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-white text-sm"><Zap className="text-orange-500 h-5 w-5" /> {itemToCustomize?.name}</DialogTitle></DialogHeader>
           <div className="space-y-5 py-4">
             {(itemToCustomize?.type === 'manual' || itemToCustomize?.type === 'service') && (
               <>
                 <div className="flex gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
-                  <Button 
-                    type="button"
-                    variant={manualType === 'debit' ? 'default' : 'ghost'} 
-                    className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'debit' && "bg-primary text-white shadow-lg")}
-                    onClick={() => setManualType('debit')}
-                  >
-                    Débito (+)
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant={manualType === 'credit' ? 'default' : 'ghost'} 
-                    className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'credit' && "bg-emerald-600 text-white shadow-lg")}
-                    onClick={() => setManualType('credit')}
-                  >
-                    Crédito (-)
-                  </Button>
+                  <Button type="button" variant={manualType === 'debit' ? 'default' : 'ghost'} className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'debit' && "bg-primary text-white")} onClick={() => setManualType('debit')}>Débito (+)</Button>
+                  <Button type="button" variant={manualType === 'credit' ? 'default' : 'ghost'} className={cn("flex-1 h-10 font-black uppercase text-[10px] rounded-lg", manualType === 'credit' && "bg-emerald-600 text-white")} onClick={() => setManualType('credit')}>Crédito (-)</Button>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Descrição</Label>
@@ -520,15 +493,12 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent className="bg-slate-900 border-border/40 rounded-3xl p-8">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-3 text-destructive font-black uppercase tracking-tight text-lg">
-              <AlertTriangle size={24} /> EXCLUIR COMANDA?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">
-              Apagar permanentemente o atendimento <strong className="text-white">{existingOrder?.displayName}</strong>?
-            </AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center gap-3 text-destructive font-black uppercase tracking-tight text-lg"><AlertTriangle size={24} /> EXCLUIR COMANDA?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-bold uppercase text-muted-foreground leading-relaxed mt-2">Apagar permanentemente o atendimento <strong className="text-white">{existingOrder?.displayName}</strong>?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 grid grid-cols-2 gap-2">
             <AlertDialogCancel className="h-12 font-black uppercase text-[9px] rounded-xl">CANCELAR</AlertDialogCancel>
@@ -536,7 +506,23 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {isPaymentModalOpen && (<OrderPaymentModal open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen} order={{ id: existingOrder?.id || '', displayName: existingOrder?.displayName || '', items: currentItems, total, customerId: existingOrder?.customerId || null, createdAt: existingOrder?.createdAt }} onDeleteOrder={onDeleteOrder} onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} />)}
-    </>
+
+      {isPaymentModalOpen && (
+        <OrderPaymentModal 
+          open={isPaymentModalOpen} 
+          onOpenChange={setIsPaymentModalOpen} 
+          order={{ 
+            id: existingOrder?.id || '', 
+            displayName: existingOrder?.displayName || '', 
+            items: currentItems, 
+            total, 
+            customerId: existingOrder?.customerId || null, 
+            createdAt: existingOrder?.createdAt 
+          }} 
+          onDeleteOrder={onDeleteOrder} 
+          onCloseAll={() => { setIsPaymentModalOpen(false); onOpenChange(false); }} 
+        />
+      )}
+    </TooltipProvider>
   );
 };
