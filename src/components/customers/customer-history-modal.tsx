@@ -8,7 +8,8 @@ import { ptBR } from "date-fns/locale";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, Clock, Wallet } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, Clock, Wallet, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CustomerHistoryModalProps {
@@ -19,13 +20,12 @@ interface CustomerHistoryModalProps {
 }
 
 /**
- * @fileOverview Modal de Extrato Premium do Cliente.
- * UX: Agrupamento por datas, ranking de consumo e transparência em pagamentos híbridos (Saldo + Outro).
- * CTO: Implementação de lógica de agrupamento cronológico e motor de preferências.
+ * @fileOverview Modal de Extrato Premium do Cliente (Refatorado UX).
+ * CEO: Removida a repetição de nomes e adicionado acordeão para gestão de espaço.
+ * CTO: Implementação de lógica de agrupamento e visualização compacta.
  */
 export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChange }: CustomerHistoryModalProps) => {
   
-  // 1. Filtrar e ordenar transações do cliente (mais recentes primeiro)
   const customerTransactions = useMemo(() => {
     return transactions
       .filter(t => t.customerId === customer.id)
@@ -36,7 +36,6 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
       });
   }, [transactions, customer.id]);
 
-  // 2. Calcular Resumo Financeiro Geral
   const summary = useMemo(() => {
     const totalPurchases = customerTransactions
       .filter(t => t.type === 'sale')
@@ -49,7 +48,6 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
     return { totalPurchases, totalPayments };
   }, [customerTransactions]);
 
-  // 3. Motor de Preferências: Ranking de Produtos mais consumidos
   const topConsumed = useMemo(() => {
     const counts: Record<string, number> = {};
     customerTransactions.forEach(t => {
@@ -66,7 +64,6 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
       .slice(0, 3);
   }, [customerTransactions]);
 
-  // 4. Agrupamento por Datas para Timeline
   const groupedTransactions = useMemo(() => {
     const groups: Record<string, Transaction[]> = {};
     
@@ -85,9 +82,9 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
 
   const formatDateHeader = (dateStr: string) => {
     const date = new Date(dateStr + 'T12:00:00');
-    if (isToday(date)) return 'Hoje';
-    if (isYesterday(date)) return 'Ontem';
-    return format(date, "dd 'de' MMMM", { locale: ptBR });
+    if (isToday(date)) return 'HOJE';
+    if (isYesterday(date)) return 'ONTEM';
+    return format(date, "dd 'DE' MMMM", { locale: ptBR }).toUpperCase();
   };
 
   const balance = customer.balance || 0;
@@ -103,7 +100,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                     <User size={28} />
                 </div>
                 <div>
-                    <DialogTitle className="text-2xl font-black tracking-tight truncate max-w-[200px] sm:max-w-none">{customer.name}</DialogTitle>
+                    <DialogTitle className="text-2xl font-black tracking-tight truncate max-w-[200px] sm:max-w-none uppercase">{customer.name}</DialogTitle>
                     <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-1.5 mt-0.5">
                         <Clock size={10} className="text-primary" /> Histórico de consumo e pagamentos
                     </DialogDescription>
@@ -124,8 +121,8 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
           </div>
         </DialogHeader>
 
-        {/* Dash de Resumo e Preferências */}
-        <div className="bg-muted/20 border-b shrink-0 overflow-hidden shadow-inner">
+        {/* Resumo Financeiro */}
+        <div className="bg-muted/20 border-b shrink-0 shadow-inner">
             <div className="p-4 grid grid-cols-2 gap-4">
                 <div className="bg-card/50 p-4 rounded-2xl border border-border/50 shadow-sm">
                     <div className="flex items-center gap-2 mb-1.5 text-destructive">
@@ -143,7 +140,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                 </div>
             </div>
 
-            {/* Ranking de Consumo (Inteligência de Atendimento) */}
+            {/* Ranking de Consumo */}
             {topConsumed.length > 0 && (
                 <div className="px-4 pb-4">
                     <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 shadow-sm">
@@ -164,22 +161,28 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
 
         <div className="flex-1 overflow-hidden relative">
           <ScrollArea className="h-full w-full">
-            <div className="p-6 pt-2 space-y-10 pb-20">
+            <div className="p-4 pb-20">
               {Object.keys(groupedTransactions).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50 italic text-center gap-4">
                     <div className="p-4 bg-muted/20 rounded-full"><Clock size={48} /></div>
                     <p className="text-sm font-bold uppercase tracking-widest">Nenhuma transação encontrada.</p>
                 </div>
               ) : (
-                Object.keys(groupedTransactions).map((dateKey) => (
-                  <div key={dateKey} className="space-y-4">
-                    <div className="sticky top-0 z-10 py-2 bg-background/95 backdrop-blur-sm border-b border-border/10">
-                        <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] flex items-center gap-2.5">
-                            <Calendar size={12} className="text-primary" /> {formatDateHeader(dateKey)}
-                        </h3>
-                    </div>
-                    
-                    <div className="space-y-4">
+                <Accordion type="multiple" defaultValue={['yyyy-MM-dd']} className="space-y-4">
+                  {Object.keys(groupedTransactions).map((dateKey) => (
+                    <AccordionItem key={dateKey} value={dateKey} className="border-none">
+                      <AccordionTrigger className="hover:no-underline py-2 group">
+                        <div className="flex items-center gap-3 w-full border-b border-border/10 pb-2">
+                            <Calendar size={14} className="text-primary" />
+                            <h3 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.3em]">
+                                {formatDateHeader(dateKey)}
+                            </h3>
+                            <Badge variant="secondary" className="ml-auto text-[9px] font-black bg-slate-800 text-slate-400 border-none">
+                                {groupedTransactions[dateKey].length} REGISTROS
+                            </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 space-y-3">
                         {groupedTransactions[dateKey].map((transaction) => {
                             const date = transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date();
                             const isSale = transaction.type === 'sale';
@@ -187,20 +190,17 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                             
                             return (
                             <Card key={transaction.id} className="border-none shadow-lg bg-slate-900/40 hover:bg-slate-900/60 transition-all duration-300 group overflow-hidden">
-                                <CardContent className="p-5">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-4">
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
                                             <div className={cn(
-                                                "p-3 rounded-2xl shadow-lg transition-transform group-hover:scale-110",
+                                                "p-2.5 rounded-xl shadow-lg transition-transform group-hover:scale-110",
                                                 isSale ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-accent/10 text-accent border border-accent/20"
                                             )}>
-                                                {isSale ? <ShoppingBag size={20} /> : <HandCoins size={20} />}
+                                                {isSale ? <ShoppingBag size={18} /> : <HandCoins size={18} />}
                                             </div>
                                             <div>
-                                                <p className="font-black text-sm uppercase tracking-tight text-slate-100">
-                                                    {isSale ? (transaction.tabName || 'Venda / Consumo') : 'Pagamento Efetuado'}
-                                                </p>
-                                                <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest flex flex-wrap items-center gap-2 mt-1">
+                                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest flex flex-wrap items-center gap-2">
                                                     <span className="opacity-60">{format(date, "HH:mm")}</span>
                                                     <span className="w-1 h-1 rounded-full bg-border" />
                                                     <span className={cn(hasCreditRedemption && "text-foreground")}>{transaction.paymentMethod || 'N/A'}</span>
@@ -209,39 +209,34 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                                                             + <Wallet size={8} /> SALDO
                                                         </Badge>
                                                     )}
-                                                </div>
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             <p className={cn(
-                                                "font-black text-lg tracking-tighter",
+                                                "font-black text-lg tracking-tighter leading-none",
                                                 isSale ? "text-destructive" : "text-accent"
                                             )}>
                                                 {isSale ? '-' : '+'} R$ {transaction.total.toFixed(2)}
                                             </p>
-                                            <div className="flex flex-col items-end gap-1 mt-1.5">
-                                                {isSale && transaction.discount && transaction.discount > 0 ? (
-                                                    <Badge variant="destructive" className="text-[8px] font-black uppercase px-1.5 py-0 h-4 rounded-sm">DESC: -R$ {transaction.discount.toFixed(2)}</Badge>
-                                                ) : null}
-                                                {hasCreditRedemption ? (
-                                                    <div className="text-[9px] font-black text-accent uppercase flex items-center gap-1 bg-accent/5 px-1.5 py-0.5 rounded border border-accent/10">
-                                                        Resgate: -R$ {transaction.creditApplied?.toFixed(2)}
-                                                    </div>
-                                                ) : null}
-                                            </div>
+                                            {hasCreditRedemption && (
+                                                <div className="inline-block text-[8px] font-black text-accent uppercase bg-accent/5 px-1.5 py-0.5 rounded border border-accent/10 mt-1.5">
+                                                    RESGATE: -R$ {transaction.creditApplied?.toFixed(2)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
                                     {isSale && transaction.items && transaction.items.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t border-border/10 space-y-2">
+                                        <div className="mt-2 pt-3 border-t border-border/5 space-y-1.5">
                                             {transaction.items.map((item, idx) => {
                                                 const itemPrice = ('unitPrice' in item ? item.unitPrice : 0);
                                                 const isItemCredit = itemPrice < 0;
                                                 
                                                 return (
-                                                    <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center text-[11px] group/item">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="font-black text-primary min-w-[24px] bg-primary/5 text-center rounded py-0.5">
+                                                    <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center text-[10px] group/item">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-black text-primary min-w-[20px] bg-primary/5 text-center rounded py-0.5">
                                                                 {item.quantity}x
                                                             </span>
                                                             <span className={cn(
@@ -249,6 +244,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                                                                 isItemCredit ? "text-accent" : "text-muted-foreground group-hover/item:text-slate-200"
                                                             )}>
                                                                 {item.name} {('doseName' in item && item.doseName) ? `(${item.doseName})` : ''}
+                                                                {('identifier' in item && item.identifier) ? <span className="ml-1 text-[8px] text-orange-500/60"><Hash size={8} className="inline mr-0.5"/>{item.identifier}</span> : ''}
                                                             </span>
                                                         </div>
                                                         <span className={cn("font-black tabular-nums opacity-60", isItemCredit ? "text-accent" : "text-muted-foreground")}>
@@ -261,7 +257,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                                     )}
                                     
                                     {!isSale && transaction.description && (
-                                        <p className="text-[10px] text-muted-foreground italic mt-2 pl-12 border-l-2 border-accent/20">
+                                        <p className="text-[10px] text-muted-foreground italic mt-2 pl-10 border-l-2 border-accent/20">
                                             &quot;{transaction.description}&quot;
                                         </p>
                                     )}
@@ -269,9 +265,10 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                             </Card>
                             );
                         })}
-                    </div>
-                  </div>
-                ))
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               )}
             </div>
           </ScrollArea>
