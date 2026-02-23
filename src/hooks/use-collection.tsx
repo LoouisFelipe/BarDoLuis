@@ -14,10 +14,17 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 export type WithId<T> = T & { id: string };
 
+/** Metadata about the snapshot source and state. */
+export interface SnapshotMetadata {
+  fromCache: boolean;
+  hasPendingWrites: boolean;
+}
+
 export interface UseCollectionResult<T> {
   data: WithId<T>[] | null;
   isLoading: boolean;
   error: FirestoreError | Error | null;
+  snapshotMetadata: SnapshotMetadata | null;
 }
 
 export interface InternalQuery extends Query<DocumentData> {
@@ -31,7 +38,7 @@ export interface InternalQuery extends Query<DocumentData> {
 
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
- * CTO: Centralized version for the entire app.
+ * CTO: Centralized and robust version for the entire app.
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
@@ -42,12 +49,14 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  const [snapshotMetadata, setSnapshotMetadata] = useState<SnapshotMetadata | null>(null);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
       setIsLoading(false);
       setError(null);
+      setSnapshotMetadata(null);
       return;
     }
 
@@ -62,6 +71,10 @@ export function useCollection<T = any>(
           results.push({ ...(doc.data() as T), id: doc.id });
         }
         setData(results);
+        setSnapshotMetadata({
+          fromCache: snapshot.metadata.fromCache,
+          hasPendingWrites: snapshot.metadata.hasPendingWrites,
+        });
         setError(null);
         setIsLoading(false);
       },
@@ -90,5 +103,5 @@ export function useCollection<T = any>(
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error('Firestore target was not properly memoized using useMemoFirebase');
   }
-  return { data, isLoading, error };
+  return { data, isLoading, error, snapshotMetadata };
 }

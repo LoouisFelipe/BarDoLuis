@@ -1,12 +1,12 @@
 import { useMemo, DependencyList } from 'react';
-import { CollectionReference, Query, DocumentData } from 'firebase/firestore';
+import { CollectionReference, Query, DocumentData, DocumentReference } from 'firebase/firestore';
 
 /**
  * Hook de memoização personalizado para referências/queries do Firestore.
  * Garante que a referência só seja recriada quando as dependências reais mudarem,
  * evitando loops infinitos em listeners de tempo real.
  */
-export function useMemoFirebase<T extends CollectionReference<DocumentData> | Query<DocumentData> | null | undefined>(
+export function useMemoFirebase<T extends CollectionReference<DocumentData> | Query<DocumentData> | DocumentReference<DocumentData> | null | undefined>(
   factory: () => T,
   deps: DependencyList
 ): T & { __memo?: boolean } {

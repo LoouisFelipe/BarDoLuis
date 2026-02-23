@@ -3,8 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Order } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
-import { OrderCard } from '@/components/orders/OrderCard';
-import { OrderCardSkeleton } from '@/components/orders/OrderCardSkeleton';
+import { OrderCard, OrderCardSkeleton } from '@/components/orders/OrderCard';
 import { OrderManagementModal } from '@/components/orders/order-management-modal';
 import { useOpenOrders } from '@/hooks/use-open-orders';
 import { PlusCircle, Search, LayoutGrid, List, ChevronRight, ShoppingBasket } from 'lucide-react';
@@ -15,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * @fileOverview Aba de Controle Diário com Opções de Lista/Cards.
- * CTO: Implementação do ViewMode para flexibilidade no balcão.
+ * CTO: Implementação do ViewMode para flexibilidade no balcão. Refatorado import de skeleton.
  */
 export const DailyControlTab: React.FC = () => {
     const { openOrders, loading, error, updateOrder, deleteOrder } = useOpenOrders();

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { useMemoFirebase as useMemoFirebaseHook } from '@/hooks/use-memo-firebase';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -153,21 +154,11 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
-
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
-  /**
-   * REGRA DE OURO: O silenciamento das dependências é necessário para evitar loops infinitos 
-   * em instâncias de banco nomeadas como 'bardoluis'.
-   */
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
-  return memoized;
-}
+/** 
+ * Hook de memoização delegado para o hook centralizado em src/hooks/.
+ * CTO: Mantido aqui por compatibilidade de legado, mas redirecionando para a nova fonte da verdade.
+ */
+export const useMemoFirebase = useMemoFirebaseHook;
 
 /**
  * Hook especificamente para acessar o estado do usuário.

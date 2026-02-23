@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import { Order } from '@/lib/schemas';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ShoppingBasket, Clock } from 'lucide-react';
 
@@ -11,6 +13,10 @@ interface OrderCardProps {
   onClick: () => void;
 }
 
+/**
+ * @fileOverview Componente de Card de Comanda.
+ * CTO: Consolidado com o Skeleton para reduzir fragmentação de arquivos.
+ */
 export const OrderCard: React.FC<OrderCardProps> = ({ order, displayName, onClick }) => {
   const isOccupied = !!order && order.items.length > 0;
   const total = order?.total ?? 0;
@@ -62,6 +68,27 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, displayName, onClic
         "absolute left-0 top-0 bottom-0 w-1",
         isOccupied ? "bg-green-500" : "bg-transparent"
       )} />
+    </Card>
+  );
+};
+
+/**
+ * Componente Skeleton para carregamento das comandas.
+ * CTO: Integrado aqui para manter a coesão do domínio de Orders.
+ */
+export const OrderCardSkeleton = () => {
+  return (
+    <Card className="flex flex-col justify-between animate-pulse border-2 border-muted bg-card">
+      <CardHeader className="p-3 pb-2">
+        <Skeleton className="h-5 w-3/4" />
+      </CardHeader>
+      <CardContent className="p-3 pt-0">
+        <Skeleton className="h-8 w-1/2" />
+      </CardContent>
+      <CardFooter className="p-3 pt-0 flex justify-between">
+        <Skeleton className="h-3 w-1/3" />
+        <Skeleton className="h-3 w-1/4" />
+      </CardFooter>
     </Card>
   );
 };
