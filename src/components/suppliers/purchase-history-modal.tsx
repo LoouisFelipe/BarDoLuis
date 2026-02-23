@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -11,7 +12,7 @@ import { useCollection } from '@/hooks/use-collection';
 import { where, collection, query } from 'firebase/firestore';
 import { format, isToday, isYesterday, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Package, Calendar, Receipt, TrendingUp, ShoppingCart, Clock, ArrowUpRight, Boxes } from 'lucide-react';
+import { Package, Calendar, Receipt, TrendingUp, ShoppingCart, Clock, ArrowUpRight, Boxes, Star, Repeat, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,7 @@ interface PurchaseHistoryModalProps {
 /**
  * @fileOverview Histórico de Compras Premium (Padrão Tavares Bastos).
  * CEO: Transformação de "Lista de Compras" em "Dashboard de Investimento".
- * CTO: Agrupamento por data e auditoria de custo unitário.
+ * CTO: Inteligência de Mix (Itens mais comprados, recorrência e valores).
  */
 export const PurchaseHistoryModal: React.FC<PurchaseHistoryModalProps> = ({ supplier, open, onOpenChange }) => {
     
@@ -52,6 +53,27 @@ export const PurchaseHistoryModal: React.FC<PurchaseHistoryModalProps> = ({ supp
             sum + p.items.reduce((iSum, item) => iSum + (item.quantity || 0), 0), 0
         );
         return { totalInvestment, totalItemsVolume };
+    }, [purchases]);
+
+    // CEO: Inteligência de Itens Mais Comprados (Recorrência e Volume)
+    const topItems = useMemo(() => {
+        const stats: Record<string, { name: string, qty: number, totalCost: number, recurrence: number }> = {};
+        
+        purchases.forEach(p => {
+            p.items.forEach(item => {
+                const key = item.productId || item.name;
+                if (!stats[key]) {
+                    stats[key] = { name: item.name, qty: 0, totalCost: 0, recurrence: 0 };
+                }
+                stats[key].qty += (item.quantity || 0);
+                stats[key].totalCost += (item.quantity || 0) * (item.unitCost || 0);
+                stats[key].recurrence += 1;
+            });
+        });
+
+        return Object.values(stats)
+            .sort((a, b) => b.qty - a.qty)
+            .slice(0, 4);
     }, [purchases]);
 
     const groupedPurchases = useMemo(() => {
@@ -110,6 +132,39 @@ export const PurchaseHistoryModal: React.FC<PurchaseHistoryModalProps> = ({ supp
                             <ShoppingCart className="absolute -right-2 -bottom-2 h-12 w-12 text-accent/5 -rotate-12 group-hover:scale-110 transition-transform" />
                         </div>
                     </div>
+
+                    {/* CEO: Dashboard de Itens Preferidos (Mix de Reposição) */}
+                    {topItems.length > 0 && (
+                        <div className="px-4 pb-4">
+                            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 shadow-sm">
+                                <h4 className="text-[9px] font-black uppercase text-primary tracking-[0.2em] mb-3 flex items-center gap-2">
+                                    <Star size={12} fill="currentColor" /> MIX DE REPOSIÇÃO (MAIS COMPRADOS)
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {topItems.map((item, idx) => (
+                                        <div key={idx} className="bg-card/40 border border-border/40 rounded-xl p-3 flex flex-col gap-1.5 transition-all hover:border-primary/30 group/item">
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-[10px] font-black uppercase truncate pr-2 text-foreground group-hover/item:text-primary transition-colors">{item.name}</p>
+                                                <Badge variant="secondary" className="text-[8px] font-black bg-slate-800 text-slate-400 h-4 px-1.5 border-none shrink-0">
+                                                    <Repeat size={8} className="mr-1 text-primary" /> {item.recurrence}x
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Boxes size={10} className="text-muted-foreground" />
+                                                    <span className="text-[10px] font-bold text-muted-foreground">{item.qty} un.</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <DollarSign size={10} className="text-accent" />
+                                                    <span className="text-[10px] font-black text-accent">R$ {item.totalCost.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-hidden relative">
