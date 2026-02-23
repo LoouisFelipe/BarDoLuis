@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, Clock, Wallet, Hash } from 'lucide-react';
+import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, Clock, Wallet, Hash, Banknote, CreditCard, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CustomerHistoryModalProps {
@@ -21,8 +21,8 @@ interface CustomerHistoryModalProps {
 
 /**
  * @fileOverview Modal de Extrato Premium do Cliente (Refatorado UX).
- * CEO: Removida a repetição de nomes e adicionado acordeão para gestão de espaço.
- * CTO: Implementação de lógica de agrupamento e visualização compacta.
+ * CEO: Mudança de "Total Pago" para "Investimento Total" e detalhamento rico de consumo.
+ * CTO: Implementação de detalhamento de itens com preços unitários e subtotais.
  */
 export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChange }: CustomerHistoryModalProps) => {
   
@@ -37,15 +37,21 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
   }, [transactions, customer.id]);
 
   const summary = useMemo(() => {
-    const totalPurchases = customerTransactions
+    const totalConsumption = customerTransactions
       .filter(t => t.type === 'sale')
       .reduce((sum, t) => sum + (t.total || 0), 0);
     
-    const totalPayments = customerTransactions
-      .filter(t => t.type === 'payment')
-      .reduce((sum, t) => sum + (t.total || 0), 0);
+    // Investimento real = Pagamentos diretos + Vendas que não foram no Fiado
+    const totalInvested = customerTransactions.reduce((sum, t) => {
+        if (t.type === 'payment') return sum + (t.total || 0);
+        if (t.type === 'sale' && t.paymentMethod !== 'Fiado') {
+            // Se for venda, o investimento real é o total pago menos o crédito resgatado (que já foi investido antes)
+            return sum + (t.total || 0) - (t.creditApplied || 0);
+        }
+        return sum;
+    }, 0);
 
-    return { totalPurchases, totalPayments };
+    return { totalConsumption, totalInvested };
   }, [customerTransactions]);
 
   const topConsumed = useMemo(() => {
@@ -87,6 +93,15 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
     return format(date, "dd 'DE' MMMM", { locale: ptBR }).toUpperCase();
   };
 
+  const getPaymentIcon = (method?: string) => {
+    if (!method) return <Banknote size={14} />;
+    const m = method.toUpperCase();
+    if (m.includes('PIX')) return <Receipt size={14} className="text-primary" />;
+    if (m.includes('CRÉDITO') || m.includes('CARTÃO')) return <CreditCard size={14} className="text-blue-400" />;
+    if (m.includes('SALDO')) return <Wallet size={14} className="text-accent" />;
+    return <Banknote size={14} className="text-emerald-400" />;
+  };
+
   const balance = customer.balance || 0;
   const isCredit = balance < 0;
 
@@ -102,14 +117,14 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                 <div>
                     <DialogTitle className="text-2xl font-black tracking-tight truncate max-w-[200px] sm:max-w-none uppercase">{customer.name}</DialogTitle>
                     <DialogDescription className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-1.5 mt-0.5">
-                        <Clock size={10} className="text-primary" /> Histórico de consumo e pagamentos
+                        <Clock size={10} className="text-primary" /> Histórico de consumo e fidelidade
                     </DialogDescription>
                 </div>
             </div>
             <div className="text-right">
                 <p className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center justify-end gap-1.5 mb-1">
-                    {isCredit ? <Wallet size={10} className="text-accent" /> : null} 
-                    {isCredit ? 'Saldo em Crédito' : 'Saldo Devedor'}
+                    {isCredit ? <Wallet size={10} className="text-accent" /> : <Receipt size={10} className="text-yellow-400" />} 
+                    {isCredit ? 'SALDO EM CRÉDITO' : 'SALDO DEVEDOR'}
                 </p>
                 <p className={cn(
                     "text-3xl font-black tracking-tighter leading-none", 
@@ -121,22 +136,24 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
           </div>
         </DialogHeader>
 
-        {/* Resumo Financeiro */}
+        {/* Resumo Financeiro Estratégico */}
         <div className="bg-muted/20 border-b shrink-0 shadow-inner">
             <div className="p-4 grid grid-cols-2 gap-4">
-                <div className="bg-card/50 p-4 rounded-2xl border border-border/50 shadow-sm">
+                <div className="bg-card/50 p-4 rounded-2xl border border-border/50 shadow-sm relative overflow-hidden group">
                     <div className="flex items-center gap-2 mb-1.5 text-destructive">
                         <ArrowUpRight size={14} />
-                        <span className="text-[9px] font-black uppercase tracking-[0.15em]">Total Comprado</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.15em]">Consumo Total</span>
                     </div>
-                    <p className="text-xl font-black text-foreground">R$ {summary.totalPurchases.toFixed(2)}</p>
+                    <p className="text-xl font-black text-foreground">R$ {summary.totalConsumption.toFixed(2)}</p>
+                    <ShoppingBag className="absolute -right-2 -bottom-2 h-12 w-12 text-foreground/5 -rotate-12 group-hover:scale-110 transition-transform" />
                 </div>
-                <div className="bg-card/50 p-4 rounded-2xl border border-border/50 shadow-sm">
+                <div className="bg-card/50 p-4 rounded-2xl border border-border/50 shadow-sm relative overflow-hidden group">
                     <div className="flex items-center gap-2 mb-1.5 text-accent">
                         <ArrowDownRight size={14} />
-                        <span className="text-[9px] font-black uppercase tracking-[0.15em]">Total Pago</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.15em]">Investimento Total</span>
                     </div>
-                    <p className="text-xl font-black text-foreground">R$ {summary.totalPayments.toFixed(2)}</p>
+                    <p className="text-xl font-black text-foreground">R$ {summary.totalInvested.toFixed(2)}</p>
+                    <Banknote className="absolute -right-2 -bottom-2 h-12 w-12 text-accent/5 -rotate-12 group-hover:scale-110 transition-transform" />
                 </div>
             </div>
 
@@ -145,7 +162,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                 <div className="px-4 pb-4">
                     <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 shadow-sm">
                         <h4 className="text-[9px] font-black uppercase text-primary tracking-[0.2em] mb-3 flex items-center gap-2">
-                            <Star size={12} fill="currentColor" /> Preferidos do Cliente (TOP CONSUMO)
+                            <Star size={12} fill="currentColor" /> PREFERIDOS DO CLIENTE (TOP CONSUMO)
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {topConsumed.map((item, idx) => (
@@ -161,108 +178,120 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
 
         <div className="flex-1 overflow-hidden relative">
           <ScrollArea className="h-full w-full">
-            <div className="p-4 pb-20">
+            <div className="p-4 pb-24">
               {Object.keys(groupedTransactions).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50 italic text-center gap-4">
+                <div className="flex flex-col items-center justify-center py-24 text-muted-foreground opacity-50 italic text-center gap-4">
                     <div className="p-4 bg-muted/20 rounded-full"><Clock size={48} /></div>
-                    <p className="text-sm font-bold uppercase tracking-widest">Nenhuma transação encontrada.</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em]">Nenhum registro encontrado</p>
                 </div>
               ) : (
-                <Accordion type="multiple" defaultValue={['yyyy-MM-dd']} className="space-y-4">
+                <Accordion type="multiple" defaultValue={[Object.keys(groupedTransactions)[0]]} className="space-y-4">
                   {Object.keys(groupedTransactions).map((dateKey) => (
-                    <AccordionItem key={dateKey} value={dateKey} className="border-none">
-                      <AccordionTrigger className="hover:no-underline py-2 group">
-                        <div className="flex items-center gap-3 w-full border-b border-border/10 pb-2">
-                            <Calendar size={14} className="text-primary" />
-                            <h3 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.3em]">
+                    <AccordionItem key={dateKey} value={dateKey} className="border-none bg-card/30 rounded-2xl overflow-hidden border border-border/10">
+                      <AccordionTrigger className="hover:no-underline py-4 px-5 group hover:bg-muted/20 transition-all">
+                        <div className="flex items-center gap-3 w-full">
+                            <Calendar size={14} className="text-primary group-data-[state=open]:scale-110 transition-transform" />
+                            <h3 className="text-[11px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                                 {formatDateHeader(dateKey)}
                             </h3>
-                            <Badge variant="secondary" className="ml-auto text-[9px] font-black bg-slate-800 text-slate-400 border-none">
+                            <Badge variant="secondary" className="ml-auto text-[9px] font-black bg-slate-800 text-slate-400 border-none px-3">
                                 {groupedTransactions[dateKey].length} REGISTROS
                             </Badge>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pt-4 space-y-3">
+                      <AccordionContent className="pt-0 pb-4 px-4 space-y-3">
                         {groupedTransactions[dateKey].map((transaction) => {
                             const date = transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date();
                             const isSale = transaction.type === 'sale';
                             const hasCreditRedemption = transaction.creditApplied && transaction.creditApplied > 0;
+                            const isManualCredit = transaction.total < 0 && isSale;
                             
                             return (
-                            <Card key={transaction.id} className="border-none shadow-lg bg-slate-900/40 hover:bg-slate-900/60 transition-all duration-300 group overflow-hidden">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className={cn(
-                                                "p-2.5 rounded-xl shadow-lg transition-transform group-hover:scale-110",
-                                                isSale ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-accent/10 text-accent border border-accent/20"
-                                            )}>
-                                                {isSale ? <ShoppingBag size={18} /> : <HandCoins size={18} />}
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest flex flex-wrap items-center gap-2">
-                                                    <span className="opacity-60">{format(date, "HH:mm")}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-border" />
-                                                    <span className={cn(hasCreditRedemption && "text-foreground")}>{transaction.paymentMethod || 'N/A'}</span>
-                                                    {hasCreditRedemption && (
-                                                        <Badge variant="outline" className="text-accent border-accent/40 bg-accent/5 text-[8px] font-black py-0 h-4 rounded-sm flex items-center gap-1">
-                                                            + <Wallet size={8} /> SALDO
-                                                        </Badge>
-                                                    )}
-                                                </p>
-                                            </div>
+                            <div key={transaction.id} className="relative p-4 rounded-xl bg-slate-900/60 border border-border/5 group transition-all hover:border-primary/20">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "p-2.5 rounded-xl shadow-lg transition-transform group-hover:scale-105",
+                                            isSale 
+                                                ? (isManualCredit ? "bg-accent/10 text-accent border border-accent/20" : "bg-destructive/10 text-destructive border border-destructive/20")
+                                                : "bg-accent/10 text-accent border border-accent/20"
+                                        )}>
+                                            {isSale ? (isManualCredit ? <Wallet size={18} /> : <ShoppingBag size={18} />) : <HandCoins size={18} />}
                                         </div>
-                                        <div className="text-right">
-                                            <p className={cn(
-                                                "font-black text-lg tracking-tighter leading-none",
-                                                isSale ? "text-destructive" : "text-accent"
-                                            )}>
-                                                {isSale ? '-' : '+'} R$ {transaction.total.toFixed(2)}
-                                            </p>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-0.5">
+                                                <span className="text-[10px] text-muted-foreground font-black">{format(date, "HH:mm")}</span>
+                                                <span className="w-1 h-1 rounded-full bg-border" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80 flex items-center gap-1.5">
+                                                    {getPaymentIcon(transaction.paymentMethod)} {transaction.paymentMethod || 'N/A'}
+                                                </span>
+                                            </div>
                                             {hasCreditRedemption && (
-                                                <div className="inline-block text-[8px] font-black text-accent uppercase bg-accent/5 px-1.5 py-0.5 rounded border border-accent/10 mt-1.5">
-                                                    RESGATE: -R$ {transaction.creditApplied?.toFixed(2)}
-                                                </div>
+                                                <Badge variant="outline" className="text-accent border-accent/40 bg-accent/5 text-[8px] font-black py-0 h-4 rounded-sm">
+                                                    USO DE CRÉDITO ACUMULADO
+                                                </Badge>
                                             )}
                                         </div>
                                     </div>
+                                    <div className="text-right">
+                                        <p className={cn(
+                                            "font-black text-lg tracking-tighter leading-none",
+                                            isManualCredit ? "text-accent" : isSale ? "text-destructive" : "text-accent"
+                                        )}>
+                                            {isSale ? (transaction.total > 0 ? '-' : '+') : '+'} R$ {Math.abs(transaction.total).toFixed(2)}
+                                        </p>
+                                        {hasCreditRedemption && (
+                                            <div className="inline-block text-[8px] font-black text-accent uppercase bg-accent/10 px-2 py-0.5 rounded border border-accent/20 mt-1.5">
+                                                RESGATE: -R$ {transaction.creditApplied?.toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
 
-                                    {isSale && transaction.items && transaction.items.length > 0 && (
-                                        <div className="mt-2 pt-3 border-t border-border/5 space-y-1.5">
-                                            {transaction.items.map((item, idx) => {
-                                                const itemPrice = ('unitPrice' in item ? item.unitPrice : 0);
-                                                const isItemCredit = itemPrice < 0;
-                                                
-                                                return (
-                                                    <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center text-[10px] group/item">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-black text-primary min-w-[20px] bg-primary/5 text-center rounded py-0.5">
-                                                                {item.quantity}x
-                                                            </span>
-                                                            <span className={cn(
-                                                                "font-bold uppercase tracking-tight transition-colors", 
-                                                                isItemCredit ? "text-accent" : "text-muted-foreground group-hover/item:text-slate-200"
+                                {isSale && transaction.items && transaction.items.length > 0 && (
+                                    <div className="mt-2 pt-3 border-t border-white/5 space-y-2">
+                                        {transaction.items.map((item, idx) => {
+                                            const itemPrice = ('unitPrice' in item ? item.unitPrice : 0);
+                                            const isItemCredit = itemPrice < 0;
+                                            
+                                            return (
+                                                <div key={`${transaction.id}-${idx}`} className="flex justify-between items-center group/item">
+                                                    <div className="flex items-start gap-3 min-w-0">
+                                                        <span className="font-black text-primary text-[10px] min-w-[24px] h-6 flex items-center justify-center bg-primary/10 rounded-lg shrink-0">
+                                                            {item.quantity}x
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <p className={cn(
+                                                                "text-[11px] font-bold uppercase tracking-tight truncate", 
+                                                                isItemCredit ? "text-accent" : "text-foreground group-hover/item:text-primary transition-colors"
                                                             )}>
                                                                 {item.name} {('doseName' in item && item.doseName) ? `(${item.doseName})` : ''}
-                                                                {('identifier' in item && item.identifier) ? <span className="ml-1 text-[8px] text-orange-500/60"><Hash size={8} className="inline mr-0.5"/>{item.identifier}</span> : ''}
-                                                            </span>
+                                                            </p>
+                                                            <div className="flex items-center gap-2">
+                                                                {('identifier' in item && item.identifier) && (
+                                                                    <span className="text-[8px] font-black text-orange-500/80 uppercase bg-orange-500/5 px-1.5 rounded flex items-center gap-1">
+                                                                        <Hash size={8}/>{item.identifier}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[9px] text-muted-foreground/60 font-medium">@ R$ {Math.abs(itemPrice).toFixed(2)}</span>
+                                                            </div>
                                                         </div>
-                                                        <span className={cn("font-black tabular-nums opacity-60", isItemCredit ? "text-accent" : "text-muted-foreground")}>
-                                                            R$ {(itemPrice * item.quantity).toFixed(2)}
-                                                        </span>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                    
-                                    {!isSale && transaction.description && (
-                                        <p className="text-[10px] text-muted-foreground italic mt-2 pl-10 border-l-2 border-accent/20">
-                                            &quot;{transaction.description}&quot;
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                                    <span className={cn("text-[11px] font-black tabular-nums", isItemCredit ? "text-accent" : "text-muted-foreground")}>
+                                                        R$ {Math.abs(itemPrice * item.quantity).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                
+                                {!isSale && transaction.description && (
+                                    <p className="text-[10px] text-muted-foreground italic mt-2 pl-10 border-l-2 border-accent/20 leading-relaxed">
+                                        &ldquo;{transaction.description}&quot;
+                                    </p>
+                                )}
+                            </div>
                             );
                         })}
                       </AccordionContent>
