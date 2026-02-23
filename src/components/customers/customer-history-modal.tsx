@@ -2,13 +2,13 @@
 
 import React, { useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Customer, Transaction, OrderItem } from "@/lib/schemas";
+import { Customer, Transaction } from "@/lib/schemas";
 import { format, isToday, isYesterday, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, TrendingUp, Clock, Wallet } from 'lucide-react';
+import { ShoppingBag, HandCoins, Calendar, ArrowUpRight, ArrowDownRight, User, Star, Clock, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CustomerHistoryModalProps {
@@ -20,7 +20,7 @@ interface CustomerHistoryModalProps {
 
 /**
  * @fileOverview Modal de Extrato Premium do Cliente.
- * UX: Agrupamento por datas, ranking de consumo e inteligência de crédito/dívida.
+ * UX: Agrupamento por datas, ranking de consumo e transparência em pagamentos híbridos (Saldo + Outro).
  */
 export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChange }: CustomerHistoryModalProps) => {
   
@@ -178,6 +178,7 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                         {groupedTransactions[dateKey].map((transaction) => {
                             const date = transaction.timestamp instanceof Date ? transaction.timestamp : (transaction.timestamp as any)?.toDate?.() || new Date();
                             const isSale = transaction.type === 'sale';
+                            const hasCreditRedemption = transaction.creditApplied && transaction.creditApplied > 0;
                             
                             return (
                             <Card key={transaction.id} className="border-none shadow-sm bg-card/40 hover:bg-card/60 transition-colors border-l-2 border-l-transparent hover:border-l-primary/40">
@@ -194,8 +195,15 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                                                 <p className="font-bold text-sm">
                                                     {isSale ? (transaction.tabName || 'Venda / Consumo') : 'Pagamento Efetuado'}
                                                 </p>
-                                                <div className="text-[10px] text-muted-foreground font-bold uppercase">
-                                                    {format(date, "HH:mm")} • {transaction.paymentMethod || 'N/A'}
+                                                <div className="text-[10px] text-muted-foreground font-bold uppercase flex flex-wrap items-center gap-1">
+                                                    <span>{format(date, "HH:mm")}</span>
+                                                    <span>•</span>
+                                                    <span className={cn(hasCreditRedemption && "text-foreground")}>{transaction.paymentMethod || 'N/A'}</span>
+                                                    {hasCreditRedemption && (
+                                                        <span className="text-accent bg-accent/5 px-1 rounded flex items-center gap-0.5">
+                                                            + <Wallet size={8} /> SALDO
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -206,9 +214,16 @@ export const CustomerHistoryModal = ({ customer, transactions, open, onOpenChang
                                             )}>
                                                 {isSale ? '-' : '+'} R$ {transaction.total.toFixed(2)}
                                             </p>
-                                            {isSale && transaction.discount && transaction.discount > 0 ? (
-                                                <span className="text-[8px] font-bold text-accent uppercase">Desc: R$ {transaction.discount.toFixed(2)}</span>
-                                            ) : null}
+                                            <div className="flex flex-col items-end gap-0.5 mt-1">
+                                                {isSale && transaction.discount && transaction.discount > 0 ? (
+                                                    <span className="text-[8px] font-bold text-red-400 uppercase">Desc: -R$ {transaction.discount.toFixed(2)}</span>
+                                                ) : null}
+                                                {hasCreditRedemption ? (
+                                                    <span className="text-[8px] font-black text-accent uppercase flex items-center gap-0.5">
+                                                        Resgate: -R$ {transaction.creditApplied?.toFixed(2)}
+                                                    </span>
+                                                ) : null}
+                                            </div>
                                         </div>
                                     </div>
 
